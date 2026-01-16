@@ -17,10 +17,15 @@ function QuizContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // --- DYNAMIC SUBJECT LOGIC (Next.js Style) ---
-  // In Next.js, we get these from the URL: /quiz?subject=physics
+  // --- DYNAMIC SUBJECT LOGIC ---
+  // We grab 'subject' and 'name' sent from the Gateway router.push
   const subjectKey = searchParams.get('subject') || 'botany';
-  const subjectTitle = (subjectKey.charAt(0).toUpperCase() + subjectKey.slice(1) + " Quiz").toUpperCase();
+  const subjectName = searchParams.get('name') || 'Botany Quiz';
+  
+  // Standardize the title for the AI prompt and UI
+  const subjectTitle = subjectName.toUpperCase();
+  
+  // Safety check for topics
   const currentTopics = SUBJECT_TOPICS[subjectKey as keyof typeof SUBJECT_TOPICS] || SUBJECT_TOPICS.botany;
 
   // --- STATE MANAGEMENT ---
@@ -43,40 +48,44 @@ function QuizContent() {
 
   const researcherName = user?.user_metadata?.full_name?.split(' ')[0] || "Researcher";
 
-  // --- CORE LOGIC (Conceptually identical to your Vite version) ---
+  // --- CORE LOGIC ---
   const startQuiz = async (topic: string) => {
     setLoading(true);
     setSelectedTopic(topic);
     try {
+      // Calling your AI service
       const data = await generateMoanaQuiz(topic, subjectTitle);
-      if (data && data.length > 0) {
+      
+      if (data && Array.isArray(data) && data.length > 0) {
         setQuestions(data);
         setCurrentIdx(0);
         setUserAnswers(new Array(data.length).fill(-1));
         setIsRecapMode(false);
         setShowResultsModal(false);
+      } else {
+        throw new Error("Invalid data format received from AI");
       }
     } catch (err) {
-      console.error(err);
-      alert(`🚨 NEURAL LINK ERROR: Could not sync ${subjectTitle} data.`);
-      setSelectedTopic(null);
+      console.error("Quiz Generation Error:", err);
+      alert(`🚨 NEURAL LINK ERROR: Moana could not sync ${subjectTitle} data. Check your API connection.`);
+      setSelectedTopic(null); // Return to topic selection
     } finally {
       setLoading(false);
     }
   };
 
-  const scorePercentage = Math.round(
-    (userAnswers.reduce((score, ans, idx) =>
-      ans === questions[idx]?.correct ? score + 1 : score, 0
-    ) / (questions.length || 1)) * 100
-  );
+  const scorePercentage = questions.length > 0 
+    ? Math.round((userAnswers.reduce((score, ans, idx) => 
+        ans === questions[idx]?.correct ? score + 1 : score, 0
+      ) / questions.length) * 100)
+    : 0;
 
   if (loading) return <LoadingScreen topic={`${subjectTitle}: ${selectedTopic}`} />;
 
   if (!selectedTopic) {
     return (
       <div className="min-h-screen bg-[#020617]">
-        <div className="absolute top-6 right-6 z-50 text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest">
+        <div className="absolute top-6 right-6 z-50 text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest hidden md:block">
           Sector: {subjectTitle} | Op: {researcherName}
         </div>
         <TopicSelection
@@ -125,10 +134,13 @@ function QuizContent() {
   );
 }
 
-// Next.js 15 requires useSearchParams to be inside a Suspense boundary
 export default function QuizPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen bg-[#020617]" />}>
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#020617] flex items-center justify-center">
+        <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+      </div>
+    }>
       <QuizContent />
     </Suspense>
   );

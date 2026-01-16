@@ -1,19 +1,16 @@
-"use client"; // REQUIRED for motion, state, and router
+"use client"; 
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bot, Sparkles, ShieldAlert, CheckCircle2 } from 'lucide-react';
-import { useRouter } from 'next/navigation'; // Next.js Router
-import { useAuth } from '@/contexts/AuthProvider'; // Absolute import using @
+import { useRouter } from 'next/navigation'; 
+import { useAuth } from '@/contexts/AuthProvider'; 
 
-// Added '?' to make user optional and fix Property 'user' is missing error
 export default function AIFloatingButton({ user: propUser }: { user?: any }) {
   const router = useRouter();
   const { user: contextUser } = useAuth();
   
-  // This ensures the button works whether the data comes from the prop or the context
   const user = propUser || contextUser;
-  
   const [isDenied, setIsDenied] = useState(false);
 
   const robotColors = [
@@ -23,7 +20,8 @@ export default function AIFloatingButton({ user: propUser }: { user?: any }) {
 
   const handleProtectedNavigation = () => {
     if (user) {
-      router.push('/jarvis-gateway'); // Next.js uses .push instead of navigate()
+      // UPGRADE: Pointing to your NEW folder name
+      router.push('/moana-gateway'); 
     } else {
       setIsDenied(true); 
     }
@@ -32,7 +30,7 @@ export default function AIFloatingButton({ user: propUser }: { user?: any }) {
   return (
     <div className="fixed bottom-24 right-6 z-[100]">
       
-      {/* --- 1. ACCESS DENIED TOOLTIP --- */}
+      {/* ACCESS DENIED TOOLTIP */}
       <AnimatePresence>
         {isDenied && (
           <motion.div
@@ -66,7 +64,7 @@ export default function AIFloatingButton({ user: propUser }: { user?: any }) {
         )}
       </AnimatePresence>
 
-      {/* --- 2. GLOW EFFECT --- */}
+      {/* GLOW EFFECT */}
       <motion.div
         animate={{
           scale: isDenied ? [1, 1.3, 1] : [1, 1.2, 1],
@@ -79,7 +77,7 @@ export default function AIFloatingButton({ user: propUser }: { user?: any }) {
         }`}
       />
 
-      {/* --- 3. THE BUTTON --- */}
+      {/* THE BUTTON */}
       <motion.button
         whileHover={{ scale: 1.05, y: -5 }}
         whileTap={{ scale: 0.95 }}
@@ -118,7 +116,7 @@ export default function AIFloatingButton({ user: propUser }: { user?: any }) {
           </motion.div>
         </div>
 
-        <div className="flex flex-col items-start leading-none">
+        <div className="flex flex-col items-start leading-none text-left">
           <span className={`text-[10px] font-bold uppercase tracking-[0.2em] mb-1 transition-colors ${
             isDenied ? 'text-red-400' : 'text-emerald-400'
           }`}>

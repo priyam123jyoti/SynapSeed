@@ -1,4 +1,4 @@
-"use client"; // Required for Canvas and Framer Motion
+"use client"; 
 
 import { Suspense, useEffect, useState } from 'react';
 import { Canvas } from '@react-three/fiber';
@@ -12,14 +12,13 @@ import {
   ArrowLeft, 
   Sparkles,
   BookOpen,
+  LogOut,
   type LucideIcon 
 } from 'lucide-react';
 
-// Next.js Navigation instead of react-router-dom
 import { useRouter } from 'next/navigation';
+// Use relative paths if @ alias fails, but keeping @ for now
 import { supabase } from '@/lib/supabase'; 
-
-// Use the @ alias we fixed earlier
 import BackgroundAIModel from '@/components/moana-gateway/BackgroundAIModel';
 
 interface Mode {
@@ -33,42 +32,10 @@ interface Mode {
 }
 
 const MODES: Mode[] = [
-  { 
-    id: 'quizPhysics', 
-    title: "Physics Quiz", 
-    desc: "Time is Absolute?", 
-    icon: Microscope, 
-    color: "from-emerald-500 to-teal-400", 
-    path: "/quiz", 
-    subjectKey: "physics" 
-  },
-  { 
-    id: 'quizChemistry', 
-    title: "Chemistry Quiz", 
-    desc: "Do you fear exceptions?", 
-    icon: Globe2, 
-    color: "from-blue-500 to-cyan-400", 
-    path: "/quiz", 
-    subjectKey: "chemistry" 
-  },
-  { 
-    id: 'quizBotany', 
-    title: "Botany Quiz", 
-    desc: "Not all green is Chlorophyll", 
-    icon: Trophy, 
-    color: "from-amber-500 to-orange-400", 
-    path: "/quiz", 
-    subjectKey: "botany" 
-  },
-  { 
-    id: 'quizZoology', 
-    title: "Zoology Quiz", 
-    desc: "Adaptation is intentional?", 
-    icon: BookOpen, 
-    color: "from-purple-500 to-pink-400", 
-    path: "/quiz", 
-    subjectKey: "zoology" 
-  }
+  { id: 'quizPhysics', title: "Physics Quiz", desc: "Time is Absolute?", icon: Microscope, color: "from-emerald-500 to-teal-400", path: "/quiz", subjectKey: "physics" },
+  { id: 'quizChemistry', title: "Chemistry Quiz", desc: "Do you fear exceptions?", icon: Globe2, color: "from-blue-500 to-cyan-400", path: "/quiz", subjectKey: "chemistry" },
+  { id: 'quizBotany', title: "Botany Quiz", desc: "Not all green is Chlorophyll", icon: Trophy, color: "from-amber-500 to-orange-400", path: "/quiz", subjectKey: "botany" },
+  { id: 'quizZoology', title: "Zoology Quiz", desc: "Adaptation is intentional?", icon: BookOpen, color: "from-purple-500 to-pink-400", path: "/quiz", subjectKey: "zoology" }
 ];
 
 const containerVariants: Variants = {
@@ -85,7 +52,6 @@ export default function MoanaGateway() {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
 
-  // Fetch user session on mount (Next.js client-side pattern)
   useEffect(() => {
     const getUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -94,12 +60,17 @@ export default function MoanaGateway() {
     getUser();
   }, []);
 
-  const userName = user?.user_metadata?.full_name || "Guest Researcher";
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/');
+  };
+
+  const userName = user?.user_metadata?.full_name || "Researcher";
 
   return (
     <div className="relative min-h-screen bg-[#020617] overflow-hidden flex flex-col">
       
-      {/* LAYER 0: 3D ROBOT BACKGROUND */}
+      {/* 3D ROBOT BACKGROUND */}
       <div className="fixed inset-0 z-0">
         <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
           <ambientLight intensity={0.5} />
@@ -116,7 +87,7 @@ export default function MoanaGateway() {
 
       <div className="relative z-10 flex-1 flex flex-col p-6 max-w-5xl mx-auto w-full">
         
-        {/* Header Navigation */}
+        {/* Header */}
         <motion.nav 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -129,22 +100,25 @@ export default function MoanaGateway() {
             <ArrowLeft size={20} className="text-white group-hover:-translate-x-1 transition-transform" />
           </button>
           
-          <div className="text-right">
-            <h1 className="text-2xl font-black text-white tracking-tighter uppercase">
-              MOANA <span className="text-emerald-500 underline decoration-double underline-offset-4">V1.0</span>
-            </h1>
-            <p className="text-[12px] font-bold text-slate-400 uppercase tracking-[0.3em]">
-              {user ? `HI ${userName}` : "Protocol Selection"}
-            </p>
+          <div className="flex items-center gap-4">
+            <div className="text-right">
+              <h1 className="text-2xl font-black text-white tracking-tighter uppercase">
+                MOANA <span className="text-emerald-500 underline decoration-double underline-offset-4">V1.0</span>
+              </h1>
+              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">
+                {user ? `HI ${userName}` : "Protocol Selection"}
+              </p>
+            </div>
+            {user && (
+              <button onClick={handleSignOut} className="p-3 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 hover:bg-red-500/20 transition-all">
+                <LogOut size={18} />
+              </button>
+            )}
           </div>
         </motion.nav>
 
         {/* Hero Section */}
-        <motion.div 
-          initial={{ opacity: 0, x: -30 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="mb-12"
-        >
+        <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="mb-12">
           <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight">          
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
               Select Battle Mode
@@ -166,8 +140,8 @@ export default function MoanaGateway() {
               variants={cardVariants}
               whileHover={{ scale: 1.02, backgroundColor: "rgba(255, 255, 255, 0.03)" }}
               whileTap={{ scale: 0.98 }}
-              // Navigating with Search Params for Next.js
-              onClick={() => router.push(`${mode.path}?subject=${mode.subjectKey}`)} 
+              // FIXED: Added name to URL so the Quiz page can display it
+              onClick={() => router.push(`${mode.path}?subject=${mode.subjectKey}&name=${mode.title}`)} 
               className="group relative overflow-hidden p-6 bg-transparent backdrop-blur-md border border-white/10 rounded-[2rem] text-left hover:border-emerald-500/40 transition-all duration-500"
             >
               <div className="flex items-start gap-5 relative z-10">

@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { PlayCircle, Brain, Target, Zap } from 'lucide-react';
-import { motion } from 'framer-motion';
 
 interface ActionButtonsProps {
   score: number;
@@ -12,55 +11,61 @@ interface ActionButtonsProps {
 }
 
 export const ActionButtons = ({ score, onRestart, onReview, onTerminate }: ActionButtonsProps) => (
-  <div className="grid grid-cols-1 gap-4">
-    {/* PRIMARY ACTION: RE-ENTRY */}
+  <div className="grid grid-cols-1 gap-6">
+    {/* PRIMARY: THE NEURAL LINK BUTTON */}
     <button 
       onClick={onRestart} 
-      className={`group relative overflow-hidden py-5 rounded-[1.5rem] font-black text-xs uppercase tracking-[0.3em] transition-all active:scale-95 shadow-2xl
+      className={`group relative py-6 rounded-2xl font-black text-sm uppercase tracking-[0.3em] transition-all active:scale-[0.98] 
+        shadow-[0_20px_50px_rgba(0,0,0,0.5)] border-t border-white/20
         ${score >= 70 
-          ? 'bg-emerald-500 text-slate-950 hover:bg-emerald-400 shadow-emerald-500/20' 
-          : 'bg-slate-800 text-white hover:bg-slate-700'}
+          ? 'bg-gradient-to-b from-[#10b981] to-[#059669] text-emerald-950 hover:shadow-emerald-500/20' 
+          : 'bg-gradient-to-b from-[#fbbf24] to-[#d97706] text-amber-950 hover:shadow-amber-500/20'}
       `}
     >
-      {/* Glint Effect */}
-      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-700" />
+      {/* Premium Metallic Sheen */}
+      <div className="absolute inset-0 bg-gradient-to-tr from-white/0 via-white/30 to-white/0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out" />
       
-      <div className="flex items-center justify-center gap-3 relative z-10">
-        <PlayCircle size={20} className={score >= 70 ? 'animate-pulse' : ''} /> 
-        {score >= 70 ? "INITIATE NEXT CYCLE" : "RE-ATTEMPT PROTOCOL"}
+      <div className="flex items-center justify-center gap-4 relative z-10">
+        <PlayCircle size={24} strokeWidth={2.5} /> 
+        <span className="tracking-[0.4em]">
+          {score >= 70 ? "SYNC NEXT CYCLE" : "RE-ESTABLISH LINK"}
+        </span>
       </div>
-
-      {/* High Score Celebration Ping */}
-      {score >= 70 && (
-        <div className="absolute inset-0 bg-emerald-400 animate-ping opacity-10 pointer-events-none" />
-      )}
     </button>
 
-    {/* SECONDARY ACTIONS */}
-    <div className="grid grid-cols-2 gap-3">
+    {/* SECONDARY: PREMIUM FROSTED BLOCKS */}
+    <div className="grid grid-cols-2 gap-4">
       <button 
         onClick={onReview} 
-        className="group py-4 bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/10 rounded-2xl text-emerald-400/70 hover:text-emerald-400 font-bold text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2"
+        className="group relative py-5 bg-slate-900/80 backdrop-blur-md border border-emerald-500/30 rounded-2xl text-emerald-400 font-bold text-[11px] uppercase tracking-[0.25em] transition-all hover:bg-emerald-500 hover:text-emerald-950 shadow-lg"
       >
-        <Brain size={14} className="group-hover:rotate-12 transition-transform" /> 
-        Neural_Review
+        <div className="flex items-center justify-center gap-2">
+          <Brain size={16} strokeWidth={2.5} /> 
+          REVIEW
+        </div>
       </button>
 
       <button 
         onClick={onTerminate} 
-        className="group py-4 bg-red-500/5 hover:bg-red-500/10 border border-red-500/10 text-red-500/50 hover:text-red-400 rounded-2xl font-bold text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2"
+        className="group relative py-5 bg-slate-900/80 backdrop-blur-md border border-red-500/30 rounded-2xl text-red-400 font-bold text-[11px] uppercase tracking-[0.25em] transition-all hover:bg-red-500 hover:text-white shadow-lg"
       >
-        <Target size={14} className="group-hover:scale-110 transition-transform" /> 
-        De-Link_System
+        <div className="flex items-center justify-center gap-2">
+          <Target size={16} strokeWidth={2.5} /> 
+          ABORT
+        </div>
       </button>
     </div>
 
-    {/* Moana Status Indicator */}
-    <div className="flex items-center justify-center gap-2 mt-2 opacity-20">
-      <Zap size={10} className="text-emerald-500 fill-emerald-500" />
-      <span className="text-[8px] font-black tracking-[0.4em] text-white uppercase">
-        System_Ready_For_Input
-      </span>
+    {/* STATUS FOOTER: MINIMALIST LUXURY */}
+    <div className="flex items-center justify-center gap-3 mt-2">
+      <div className="h-[1px] w-8 bg-emerald-500/30" />
+      <div className="flex items-center gap-2">
+        <Zap size={12} className="text-emerald-500 animate-pulse" />
+        <span className="text-[9px] font-bold tracking-[0.5em] text-emerald-500/60 uppercase">
+          MOANA SYSTEMS ACTIVE
+        </span>
+      </div>
+      <div className="h-[1px] w-8 bg-emerald-500/30" />
     </div>
   </div>
 );
