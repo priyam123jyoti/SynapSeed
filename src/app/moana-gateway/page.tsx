@@ -93,12 +93,12 @@ export default function MoanaGateway() {
           animate={{ opacity: 1, y: 0 }}
           className="flex items-center justify-between mb-8 pt-4"
         >
-          <button 
-            onClick={() => router.push('/')} 
-            className="p-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl hover:bg-white/20 transition-all group"
-          >
-            <ArrowLeft size={20} className="text-white group-hover:-translate-x-1 transition-transform" />
-          </button>
+<button 
+  onClick={() => router.push('/')} 
+  className="p-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl hover:bg-white/20 transition-all group outline-none focus:ring-0"
+>
+  <ArrowLeft size={20} className="text-white group-hover:-translate-x-1 transition-transform" />
+</button>
           
           <div className="flex items-center gap-4">
             <div className="text-right">
@@ -109,11 +109,6 @@ export default function MoanaGateway() {
                 {user ? `HI ${userName}` : "Protocol Selection"}
               </p>
             </div>
-            {user && (
-              <button onClick={handleSignOut} className="p-3 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 hover:bg-red-500/20 transition-all">
-                <LogOut size={18} />
-              </button>
-            )}
           </div>
         </motion.nav>
 

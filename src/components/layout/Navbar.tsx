@@ -22,7 +22,7 @@ export default function Navbar({ user: propUser }: { user?: any }) {
     { name: 'Study Abroad', hasDropdown: false, path: '/study-abroad' },
     { name: 'Albums', hasDropdown: true, path: '/albums' },
     { name: 'Career Hub', hasDropdown: false, path: '/career' },
-    { name: 'Books', hasDropdown: false, path: '/affiliate-store' },
+    { name: 'SynapStore', hasDropdown: false, path: '/affiliate-store' },
   ];
 
   useEffect(() => {

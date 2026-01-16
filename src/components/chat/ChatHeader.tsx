@@ -27,7 +27,7 @@ export const ChatHeader = ({ modeId, onExit }: ChatHeaderProps) => {
       <div className="flex items-center gap-3">
         <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
         <h1 className="text-[10px] md:text-xs tracking-[0.2em] font-bold text-sky-100">
-          JARVIS PROTOCOL: <span className="text-sky-400">{modeId.toUpperCase()}</span>
+          MOANA AI: <span className="text-sky-400">{modeId.toUpperCase()}</span>
         </h1>
       </div>
 

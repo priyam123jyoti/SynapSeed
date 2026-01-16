@@ -79,7 +79,7 @@ export default function SubFilterNav({ activeMain, activeSub, onSelectSub, subCa
                 onClick={() => onSelectSub(sub)}
                 className={`px-5 py-2 rounded-full text-[10px] font-black uppercase tracking-[0.15em] transition-all whitespace-nowrap shadow-sm border ${
                   activeSub === sub 
-                  ? 'bg-emerald-950 text-white border-emerald-950' 
+                  ? 'bg-emerald-950 text-white border-emerald-950 text-black' 
                   : 'bg-white text-emerald-900/30 border-emerald-100 hover:border-emerald-300'
                 }`}
               >
