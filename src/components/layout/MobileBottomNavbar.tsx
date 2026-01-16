@@ -16,7 +16,7 @@ export default function MobileBottomNavbar() {
     { name: 'Study Abroad', icon: Globe, path: '/study-abroad' },
     { name: 'Albums', icon: Image, path: '/albums' },
     { name: 'Career Hub', icon: Briefcase, path: '/career' },
-    { name: 'Books', icon: BookOpen, path: '/books' },
+    { name: 'SynapStore', icon: BookOpen, path: '/affiliate-store' },
   ];
 
   // Sync state with URL if user navigates via browser back/forward or direct link
