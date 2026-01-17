@@ -72,7 +72,7 @@ export const LoadingScreen = ({ topic }: Props) => (
 
     {/* Technical Footnote */}
     <div className="absolute flex text-center items-center justify-center bottom-10 text-[8px] text-emerald-900 font-bold tracking-[0.5em] uppercase">
-      Quantum_Processor_Active // Biometric_Check_Passed
+      Moana AI Responding // Biometric Check Passed
     </div>
   </div>
 );
