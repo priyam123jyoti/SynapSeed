@@ -86,7 +86,7 @@ export const QuizInterface = ({
             <span className="text-[10px] text-emerald-200/50 font-bold tracking-widest uppercase">
               NODE {currentIdx + 1} <span className="text-emerald-900 mx-1">/</span> {totalQuestions}
             </span>
-            <div className="text-[8px] text-emerald-700 font-bold uppercase tracking-tighter">Bio_Link_Active</div>
+            <div className="text-[8px] text-emerald-700 font-bold uppercase tracking-tighter">MoanaAI</div>
           </div>
         </div>
 
@@ -162,7 +162,7 @@ export const QuizInterface = ({
               onClick={onFinish} 
               className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-10 py-4 rounded-xl font-black text-[10px] uppercase tracking-[0.3em] shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
             >
-              {isRecap ? "EXIT_REVIEW" : "FINALIZE_SYNC"} <ChevronRight size={14} />
+              {isRecap ? "EXIT_REVIEW" : "DONE"} <ChevronRight size={14} />
             </button>
           ) : (
             <button 

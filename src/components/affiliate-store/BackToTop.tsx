@@ -1,52 +1,49 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { ChevronUp } from 'lucide-react';
+import { useState, useEffect, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowUp } from 'lucide-react';
 
-export default function BackToTop() {
+const BackToTop = memo(() => {
   const [isVisible, setIsVisible] = useState(false);
 
-  // Show button when page is scrolled down 400px
   useEffect(() => {
+    // Passive listener for better scroll performance
     const toggleVisibility = () => {
-      // In Next.js, we check if window exists to be safe during hydration
-      if (typeof window !== 'undefined' && window.scrollY > 400) {
+      if (window.pageYOffset > 500) {
         setIsVisible(true);
       } else {
         setIsVisible(false);
       }
     };
 
-    window.addEventListener('scroll', toggleVisibility);
-    return () => window.removeEventListener('scroll', toggleVisibility);
+    window.addEventListener("scroll", toggleVisibility, { passive: true });
+    return () => window.removeEventListener("scroll", toggleVisibility);
   }, []);
 
   const scrollToTop = () => {
-    if (typeof window !== 'undefined') {
-      window.scrollTo({
-        top: 0,
-        behavior: 'smooth',
-      });
-    }
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   };
 
   return (
     <AnimatePresence>
       {isVisible && (
         <motion.button
-          initial={{ opacity: 0, scale: 0.5, y: 20 }}
+          initial={{ opacity: 0, scale: 0.8, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.5, y: 20 }}
+          exit={{ opacity: 0, scale: 0.8, y: 20 }}
           onClick={scrollToTop}
-          className="fixed bottom-8 right-8 z-[60] p-4 bg-emerald-950 text-white rounded-2xl shadow-2xl shadow-emerald-950/40 hover:bg-emerald-600 transition-colors group active:scale-90"
+          className="fixed bottom-8 right-8 z-[60] p-4 bg-emerald-950 text-white rounded-2xl shadow-2xl shadow-emerald-900/20 hover:bg-emerald-800 transition-colors active:scale-90"
         >
-          <ChevronUp 
-            size={24} 
-            className="group-hover:-translate-y-1 transition-transform duration-300" 
-          />
+          <ArrowUp size={24} />
         </motion.button>
       )}
     </AnimatePresence>
   );
-}
+});
+
+BackToTop.displayName = 'BackToTop';
+export default BackToTop;

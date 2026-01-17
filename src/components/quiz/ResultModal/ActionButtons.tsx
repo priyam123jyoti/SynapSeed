@@ -6,7 +6,7 @@ export const ActionButtons = memo(({ score, onRestart, onReview, onTerminate }: 
   <div className="grid grid-cols-1 gap-4">
     <button onClick={onRestart} className={`relative py-5 rounded-2xl font-black text-xs uppercase tracking-[0.3em] transition-all active:scale-95 overflow-hidden ${score >= 70 ? 'bg-emerald-500 text-emerald-950' : 'bg-amber-500 text-amber-950'}`}>
       <div className="flex items-center justify-center gap-3 relative z-10">
-        <PlayCircle size={20} /> <span>{score >= 70 ? "SYNC NEXT CYCLE" : "RE-ESTABLISH LINK"}</span>
+        <PlayCircle size={20} /> <span>{score >= 70 ? "SYNC NEXT CYCLE" : "LET'S BOOM D NEXT ROUND"}</span>
       </div>
     </button>
     <div className="grid grid-cols-2 gap-3">

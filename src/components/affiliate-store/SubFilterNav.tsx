@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, memo } from 'react';
 import { motion, animate, AnimatePresence } from 'framer-motion';
 
 interface SubFilterProps {
@@ -10,7 +10,8 @@ interface SubFilterProps {
   subCategories: Record<string, string[]>;
 }
 
-export default function SubFilterNav({ activeMain, activeSub, onSelectSub, subCategories }: SubFilterProps) {
+// 1. Wrapped in memo for 0-lag performance when parent updates
+const SubFilterNav = memo(({ activeMain, activeSub, onSelectSub, subCategories }: SubFilterProps) => {
   const currentOptions = subCategories[activeMain] || [];
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -23,15 +24,18 @@ export default function SubFilterNav({ activeMain, activeSub, onSelectSub, subCa
       duration: 1.4, // Glide out
       ease: "easeInOut",
       onUpdate: (value) => {
-        node.scrollLeft = value;
+        if (node) node.scrollLeft = value;
       },
       onComplete: () => {
+        // Added safety check: only animate back if node still exists
+        if (!node) return;
+        
         setTimeout(() => {
           animate(80, 0, {
             duration: 0.9, // Glide back
             ease: "easeInOut",
             onUpdate: (value) => {
-              node.scrollLeft = value;
+              if (node) node.scrollLeft = value;
             }
           });
         }, 200); // Tiny pause at the peak
@@ -97,4 +101,9 @@ export default function SubFilterNav({ activeMain, activeSub, onSelectSub, subCa
       `}</style>
     </div>
   );
-}
+});
+
+// Required for memoized components in Next.js DevTools
+SubFilterNav.displayName = 'SubFilterNav';
+
+export default SubFilterNav;
