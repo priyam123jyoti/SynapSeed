@@ -154,7 +154,7 @@ export const QuizInterface = ({
             onClick={onPrev} 
             className="flex items-center gap-2 px-4 py-2 text-emerald-500/50 hover:text-emerald-400 disabled:opacity-0 transition-all text-xs font-bold tracking-[0.2em] uppercase"
           >
-            <ChevronLeft size={16} /> Previous_Node
+            <ChevronLeft size={16} /> Previous
           </button>
           
           {currentIdx === totalQuestions - 1 ? (
@@ -169,7 +169,7 @@ export const QuizInterface = ({
               onClick={onNext} 
               className="flex items-center gap-2 px-8 py-4 bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-400 transition-all text-[10px] font-black tracking-[0.3em] uppercase group"
             >
-              Next_Node <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              Next <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </button>
           )}
         </div>

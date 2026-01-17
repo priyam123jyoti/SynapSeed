@@ -1,42 +1,36 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { generateMoanaQuiz } from '@/services/moanaAI';
-import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import { generateMoanaQuiz } from '@/services/moanaAI';
 
-// Keeping your specific component imports
+// Constants & Types
 import { SUBJECT_TOPICS } from '@/components/quiz/constants'; 
-import { TopicSelection } from '@/components/quiz/TopicSelection';
-import { QuizInterface } from '@/components/quiz/QuizInterface';
-import { ResultsModal } from '@/components/quiz/ResultsModal';
+
+// Components (We will create/refactor these in Phase 2)
+import TopicSelectionView from '@/components/quiz/TopicSelectionView';
+import QuizEngine from '@/components/quiz/QuizEngine';
 import { LoadingScreen } from '@/components/quiz/LoadingScreen';
 
 function QuizContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // --- DYNAMIC SUBJECT LOGIC ---
-  // We grab 'subject' and 'name' sent from the Gateway router.push
+  // 1. MEMOIZED URL PARAMS: Prevents recalculating strings on every render
   const subjectKey = searchParams.get('subject') || 'botany';
   const subjectName = searchParams.get('name') || 'Botany Quiz';
+  const subjectTitle = useMemo(() => subjectName.toUpperCase(), [subjectName]);
   
-  // Standardize the title for the AI prompt and UI
-  const subjectTitle = subjectName.toUpperCase();
-  
-  // Safety check for topics
-  const currentTopics = SUBJECT_TOPICS[subjectKey as keyof typeof SUBJECT_TOPICS] || SUBJECT_TOPICS.botany;
+  const currentTopics = useMemo(() => 
+    SUBJECT_TOPICS[subjectKey as keyof typeof SUBJECT_TOPICS] || SUBJECT_TOPICS.botany, 
+  [subjectKey]);
 
-  // --- STATE MANAGEMENT ---
-  const [user, setUser] = useState<User | null>(null);
+  // 2. AUTH STATE
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [questions, setQuestions] = useState<any[]>([]);
-  const [currentIdx, setCurrentIdx] = useState(0);
-  const [userAnswers, setUserAnswers] = useState<number[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [showResultsModal, setShowResultsModal] = useState(false);
-  const [isRecapMode, setIsRecapMode] = useState(false);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -46,88 +40,53 @@ function QuizContent() {
     fetchUser();
   }, []);
 
-  const researcherName = user?.user_metadata?.full_name?.split(' ')[0] || "Researcher";
+  const researcherName = useMemo(() => 
+    user?.user_metadata?.full_name?.split(' ')[0] || "Researcher", 
+  [user]);
 
-  // --- CORE LOGIC ---
-  const startQuiz = async (topic: string) => {
+  // 3. STABLE QUIZ GENERATION: Wrapped in useCallback to prevent child re-renders
+  const startQuiz = useCallback(async (topic: string) => {
     setLoading(true);
     setSelectedTopic(topic);
     try {
-      // Calling your AI service
       const data = await generateMoanaQuiz(topic, subjectTitle);
-      
       if (data && Array.isArray(data) && data.length > 0) {
         setQuestions(data);
-        setCurrentIdx(0);
-        setUserAnswers(new Array(data.length).fill(-1));
-        setIsRecapMode(false);
-        setShowResultsModal(false);
       } else {
-        throw new Error("Invalid data format received from AI");
+        throw new Error("Empty Data");
       }
     } catch (err) {
-      console.error("Quiz Generation Error:", err);
-      alert(`🚨 NEURAL LINK ERROR: Moana could not sync ${subjectTitle} data. Check your API connection.`);
-      setSelectedTopic(null); // Return to topic selection
+      console.error(err);
+      alert(`NEURAL LINK ERROR: Check connection.`);
+      setSelectedTopic(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [subjectTitle]);
 
-  const scorePercentage = questions.length > 0 
-    ? Math.round((userAnswers.reduce((score, ans, idx) => 
-        ans === questions[idx]?.correct ? score + 1 : score, 0
-      ) / questions.length) * 100)
-    : 0;
-
+  // 4. VIEW ROUTER LOGIC
   if (loading) return <LoadingScreen topic={`${subjectTitle}: ${selectedTopic}`} />;
 
-  if (!selectedTopic) {
-    return (
-      <div className="min-h-screen bg-[#020617]">
-        <div className="absolute top-6 right-6 z-50 text-emerald-500/50 font-mono text-[10px] uppercase tracking-widest hidden md:block">
-          Sector: {subjectTitle} | Op: {researcherName}
-        </div>
-        <TopicSelection
+  return (
+    <div className="min-h-screen bg-[#020617] relative overflow-hidden">
+      {/* Static Background Layer - Never re-renders */}
+      <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_50%,#0f172a_0%,#020617_100%)] pointer-events-none" />
+
+      {!selectedTopic ? (
+        <TopicSelectionView
           subjectTitle={subjectTitle}
           topics={currentTopics} 
+          researcherName={researcherName}
           onStart={startQuiz}
           onBack={() => router.push('/moana-gateway')}
         />
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-[#020617] text-white">
-      <QuizInterface
-        subjectLabel={subjectTitle} 
-        question={questions[currentIdx]}
-        currentIdx={currentIdx}
-        totalQuestions={questions.length}
-        userAnswer={userAnswers[currentIdx]}
-        isRecap={isRecapMode}
-        onAnswer={(i) => {
-          if (isRecapMode) return;
-          const updatedAnswers = [...userAnswers];
-          updatedAnswers[currentIdx] = i;
-          setUserAnswers(updatedAnswers);
-        }}
-        onNext={() => setCurrentIdx(prev => Math.min(prev + 1, questions.length - 1))}
-        onPrev={() => setCurrentIdx(prev => Math.max(prev - 1, 0))}
-        onFinish={() => setShowResultsModal(true)}
-      />
-
-      {showResultsModal && (
-        <ResultsModal
-          score={scorePercentage}
-          onReview={() => {
-            setIsRecapMode(true);
-            setShowResultsModal(false);
-            setCurrentIdx(0);
-          }}
-          onTerminate={() => router.push('/moana-gateway')}
+      ) : (
+        <QuizEngine 
+          questions={questions}
+          subjectTitle={subjectTitle}
+          selectedTopic={selectedTopic}
           onRestart={() => startQuiz(selectedTopic)}
+          onTerminate={() => router.push('/moana-gateway')}
         />
       )}
     </div>
@@ -136,11 +95,7 @@ function QuizContent() {
 
 export default function QuizPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-[#020617] flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
-      </div>
-    }>
+    <Suspense fallback={<LoadingScreen topic="Initializing Neural Link..." />}>
       <QuizContent />
     </Suspense>
   );

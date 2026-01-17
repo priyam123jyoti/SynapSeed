@@ -1,22 +1,25 @@
 "use client";
 
-import { useLayoutEffect, useRef } from 'react';
+import { useLayoutEffect, useRef, memo } from 'react';
 import { useGLTF, useAnimations, Float } from '@react-three/drei';
+import * as THREE from 'three';
 
-export default function BackgroundAIModel() {
-  const group = useRef<any>(null);
+const BackgroundAIModel = () => {
+  const group = useRef<THREE.Group>(null);
   
-  // Next.js looks inside the /public folder automatically for '/' paths
+  // 1. Load the model
   const { scene, animations } = useGLTF('/AI-Animation-3D.glb');
   const { actions, names } = useAnimations(animations, group);
 
+  // 2. Optimized Animation Loop
   useLayoutEffect(() => {
     if (names.length > 0) {
-      // Play the first animation found in the GLB file
-      actions[names[0]]?.reset().fadeIn(0.5).play();
+      const action = actions[names[0]];
+      action?.reset().fadeIn(0.5).play();
+      
+      // Keep the animation running even if the tab is inactive for a bit
+      action!.paused = false; 
     }
-    
-    // Optional: cleanup animations on unmount
     return () => {
       actions[names[0]]?.fadeOut(0.5);
     };
@@ -29,10 +32,14 @@ export default function BackgroundAIModel() {
         object={scene} 
         scale={2.5} 
         position={[0, -1.5, 0]} 
+        // Optimization: Don't render if the camera isn't looking at it
+        frustumCulled={true}
       />
     </Float>
   );
-}
+};
 
-// Preload for performance (Next.js will fetch this early)
+// PREVENT RERENDERS: memo is the secret to smoothness
+export default memo(BackgroundAIModel);
+
 useGLTF.preload('/AI-Animation-3D.glb');

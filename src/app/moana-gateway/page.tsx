@@ -1,159 +1,95 @@
-"use client"; 
+"use client";
 
-import { Suspense, useEffect, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { Environment, ContactShadows } from '@react-three/drei';
-import { motion, Variants } from 'framer-motion'; 
-import type { User } from '@supabase/supabase-js';
-import { 
-  Microscope, 
-  Trophy, 
-  Globe2, 
-  ArrowLeft, 
-  Sparkles,
-  BookOpen,
-  LogOut,
-  type LucideIcon 
-} from 'lucide-react';
-
+import { useEffect, useState, useCallback } from 'react';
+import { motion } from 'framer-motion'; 
 import { useRouter } from 'next/navigation';
-// Use relative paths if @ alias fails, but keeping @ for now
+import { ArrowLeft } from 'lucide-react';
 import { supabase } from '@/lib/supabase'; 
-import BackgroundAIModel from '@/components/moana-gateway/BackgroundAIModel';
 
-interface Mode {
-  id: string;
-  title: string;
-  desc: string;
-  icon: LucideIcon;
-  color: string;
-  path: string; 
-  subjectKey: string; 
-}
+// Constants & Components
+import { MODES } from '@/constants/modes'; 
+import Gateway3D from '@/components/moana-gateway/Gateway3D';
+import BattleCard from '@/components/moana-gateway/BattleCard';
 
-const MODES: Mode[] = [
-  { id: 'quizPhysics', title: "Physics Quiz", desc: "Time is Absolute?", icon: Microscope, color: "from-emerald-500 to-teal-400", path: "/quiz", subjectKey: "physics" },
-  { id: 'quizChemistry', title: "Chemistry Quiz", desc: "Do you fear exceptions?", icon: Globe2, color: "from-blue-500 to-cyan-400", path: "/quiz", subjectKey: "chemistry" },
-  { id: 'quizBotany', title: "Botany Quiz", desc: "Not all green is Chlorophyll", icon: Trophy, color: "from-amber-500 to-orange-400", path: "/quiz", subjectKey: "botany" },
-  { id: 'quizZoology', title: "Zoology Quiz", desc: "Adaptation is intentional?", icon: BookOpen, color: "from-purple-500 to-pink-400", path: "/quiz", subjectKey: "zoology" }
-];
-
-const containerVariants: Variants = {
+const containerVariants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { staggerChildren: 0.1, delayChildren: 0.5 } }, 
-};
-
-const cardVariants: Variants = {
-  hidden: { opacity: 0, y: 20, filter: "blur(10px)" },
-  visible: { opacity: 1, y: 0, filter: "blur(0px)", transition: { type: "spring", damping: 25, stiffness: 100 } },
+  visible: { 
+    opacity: 1, 
+    transition: { staggerChildren: 0.08, delayChildren: 0.2 } 
+  }, 
 };
 
 export default function MoanaGateway() {
   const router = useRouter();
-  const [user, setUser] = useState<User | null>(null);
+  const [userName, setUserName] = useState("Researcher");
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      setUser(user);
+    const fetchUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      if (data?.user?.user_metadata?.full_name) {
+        setUserName(data.user.user_metadata.full_name.split(' ')[0]);
+      }
     };
-    getUser();
+    fetchUser();
   }, []);
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/');
-  };
-
-  const userName = user?.user_metadata?.full_name || "Researcher";
+  // Memoized to prevent BattleCard re-renders
+  const handleNavigate = useCallback((path: string, subject: string, title: string) => {
+    router.push(`${path}?subject=${subject}&name=${title}`);
+  }, [router]);
 
   return (
     <div className="relative min-h-screen bg-[#020617] overflow-hidden flex flex-col">
-      
-      {/* 3D ROBOT BACKGROUND */}
-      <div className="fixed inset-0 z-0">
-        <Canvas camera={{ position: [0, 0, 5], fov: 45 }}>
-          <ambientLight intensity={0.5} />
-          <spotLight position={[10, 10, 10]} angle={0.15} penumbra={1} intensity={2} color="#10b981" />
-          <Suspense fallback={null}>
-            <BackgroundAIModel />
-            <Environment preset="city" />
-            <ContactShadows opacity={0.4} scale={10} blur={2} far={4.5} />
-          </Suspense>
-        </Canvas>
-      </div>
+      {/* 3D LAYER: Locked with memo() */}
+      <Gateway3D />
 
-      <div className="fixed inset-0 z-[1] bg-gradient-to-b from-[#020617]/40 via-transparent to-[#020617]" />
-
+      {/* UI LAYER */}
       <div className="relative z-10 flex-1 flex flex-col p-6 max-w-5xl mx-auto w-full">
-        
-        {/* Header */}
         <motion.nav 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-8 pt-4"
+          className="flex items-center justify-between mb-12 pt-4"
         >
-<button 
-  onClick={() => router.push('/')} 
-  className="p-3 bg-white/10 backdrop-blur-lg border border-white/20 rounded-2xl hover:bg-white/20 transition-all group outline-none focus:ring-0"
->
-  <ArrowLeft size={20} className="text-white group-hover:-translate-x-1 transition-transform" />
-</button>
+          <button 
+            onClick={() => router.push('/')} 
+            className="p-3 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl hover:bg-white/10 transition-all group outline-none"
+          >
+            <ArrowLeft size={20} className="text-white group-hover:-translate-x-1 transition-transform" />
+          </button>
           
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <h1 className="text-2xl font-black text-white tracking-tighter uppercase">
-                MOANA <span className="text-emerald-500 underline decoration-double underline-offset-4">V1.0</span>
-              </h1>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em]">
-                {user ? `HI ${userName}` : "Protocol Selection"}
-              </p>
-            </div>
+          <div className="text-right">
+            <h1 className="text-2xl font-black text-white tracking-tighter uppercase italic">
+              MOANA <span className="text-emerald-500 underline decoration-double underline-offset-4">V1.0</span>
+            </h1>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-1">
+              PROTOCOL: {userName}
+            </p>
           </div>
         </motion.nav>
 
-        {/* Hero Section */}
-        <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} className="mb-12">
-          <h2 className="text-4xl md:text-5xl font-bold text-white leading-tight">          
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-400">
-              Select Battle Mode
-            </span>
-          </h2>
-          <div className="h-1 w-16 bg-emerald-500 mt-6 rounded-full" />
-        </motion.div>
-
-        {/* Grid */}
+{/* Hero Section */}
+<motion.div 
+  initial={{ opacity: 0, x: -30 }} 
+  animate={{ opacity: 1, x: 0 }} 
+  transition={{ duration: 0.8, ease: "easeOut" }} // Smooth linear-ish ease
+  className="mb-12 will-change-transform" // Hardware acceleration
+>
+  <h2 className="text-5xl font-black text-white leading-tight tracking-tight">          
+    SELECT <br />
+    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 pb-2 block">
+      BATTLE MODE
+    </span>
+  </h2>
+  <div className="h-1.5 w-20 bg-emerald-500 mt-6 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.4)]" />
+</motion.div>
         <motion.div 
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-20"
+          className="grid grid-cols-1 md:grid-cols-2 gap-5 mb-20"
         >
           {MODES.map((mode) => (
-            <motion.button
-              key={mode.id}
-              variants={cardVariants}
-              whileHover={{ scale: 1.02, backgroundColor: "rgba(255, 255, 255, 0.03)" }}
-              whileTap={{ scale: 0.98 }}
-              // FIXED: Added name to URL so the Quiz page can display it
-              onClick={() => router.push(`${mode.path}?subject=${mode.subjectKey}&name=${mode.title}`)} 
-              className="group relative overflow-hidden p-6 bg-transparent backdrop-blur-md border border-white/10 rounded-[2rem] text-left hover:border-emerald-500/40 transition-all duration-500"
-            >
-              <div className="flex items-start gap-5 relative z-10">
-                <div className={`p-4 rounded-2xl bg-gradient-to-br ${mode.color} shadow-lg group-hover:rotate-6 transition-transform`}>
-                  <mode.icon size={26} className="text-white" />
-                </div>
-                
-                <div className="flex-1">
-                  <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                    {mode.title}
-                    <Sparkles size={14} className="text-emerald-400 opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </h3>
-                  <p className="text-sm text-slate-400 mt-1">{mode.desc}</p>
-                </div>
-              </div>
-              <div className={`absolute -right-6 -bottom-6 w-32 h-32 bg-gradient-to-br ${mode.color} blur-[60px] opacity-0 group-hover:opacity-20 transition-opacity duration-700`} />
-            </motion.button>
+            <BattleCard key={mode.id} mode={mode} onNavigate={handleNavigate} />
           ))}
         </motion.div>
       </div>
