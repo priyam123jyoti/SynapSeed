@@ -15,7 +15,6 @@ import BackToTop from '@/components/affiliate-store/BackToTop';
 import StoreHeader from '@/components/affiliate-store/StoreHeader';
 import StoreHeading from '@/components/affiliate-store/StoreHeading';
 
-// Hook for performance
 function useDebounce<T>(value: T, delay: number): T {
   const [debouncedValue, setDebouncedValue] = useState(value);
   useEffect(() => {
@@ -28,11 +27,11 @@ function useDebounce<T>(value: T, delay: number): T {
 export default function AffiliateStore() {
   const [activeCategory, setActiveCategory] = useState('Books');
   const [activeSub, setActiveSub] = useState('All');
-  const [searchInput, setSearchInput] = useState(''); 
+  const [searchInput, setSearchInput] = useState('');
   const searchQuery = useDebounce(searchInput, 300);
   const [isPending, startTransition] = useTransition();
   const [displayLimit, setDisplayLimit] = useState(10);
-  
+
   const loadMoreRef = useRef(null);
   const isInView = useInView(loadMoreRef, { margin: "200px" });
 
@@ -40,16 +39,16 @@ export default function AffiliateStore() {
     const isSearching = searchQuery.length > 0;
     const query = isSearching ? searchQuery.toLowerCase() : '';
 
-    return ALL_PRODUCTS.filter((product) => {
+    return (ALL_PRODUCTS as any[]).filter((product) => {
       if (product.category !== activeCategory) return false;
-      const matchesSub = activeSub === 'All' || 
-                         product.examTag === activeSub || 
-                         (product.subjects && product.subjects.includes(activeSub));
+      const matchesSub = activeSub === 'All' ||
+        product.examTag === activeSub ||
+        (product.subjects && product.subjects.includes(activeSub));
       if (!matchesSub) return false;
       if (!isSearching) return true;
       return product.name.toLowerCase().includes(query) ||
-             product.examTag?.toLowerCase().includes(query) ||
-             product.subjects?.some(s => s.toLowerCase().includes(query));
+        product.examTag?.toLowerCase().includes(query) ||
+        product.subjects?.some((s: string) => s.toLowerCase().includes(query));
     });
   }, [activeCategory, activeSub, searchQuery]);
 
@@ -62,7 +61,7 @@ export default function AffiliateStore() {
       setActiveCategory(newCat);
       setActiveSub('All');
       setDisplayLimit(10);
-      window.scrollTo({ top: 0, behavior: 'instant' }); 
+      if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'instant' });
     });
   }, []);
 
@@ -79,24 +78,24 @@ export default function AffiliateStore() {
 
   return (
     <div className="min-h-screen bg-[#fcfdfd] pb-20 font-sans">
-      <StoreHeader 
-        searchInput={searchInput} 
-        setSearchInput={setSearchInput} 
+      <StoreHeader
+        searchInput={searchInput}
+        setSearchInput={setSearchInput}
         searchQuery={searchQuery}
         activeCategory={activeCategory}
       />
 
       <StoreNav activeCategory={activeCategory} setActiveCategory={handleCategoryChange} />
-      
-      <SubFilterNav 
-        activeMain={activeCategory} 
-        activeSub={activeSub} 
-        onSelectSub={handleSubChange} 
+
+      <SubFilterNav
+        activeMain={activeCategory}
+        activeSub={activeSub}
+        onSelectSub={handleSubChange}
         subCategories={SUB_CATEGORIES}
       />
 
       <main className="max-w-5xl mx-auto px-4 mt-8 min-h-[60vh]">
-        <StoreHeading 
+        <StoreHeading
           activeSub={activeSub}
           activeCategory={activeCategory}
           isPending={isPending}
@@ -107,8 +106,8 @@ export default function AffiliateStore() {
         <div className="flex flex-col gap-6 items-center w-full">
           <AnimatePresence mode="popLayout" initial={false}>
             {visibleProducts.length > 0 ? (
-              visibleProducts.map((product) => (
-                <motion.div 
+              visibleProducts.map((product: any) => (
+                <motion.div
                   key={product.id}
                   layout="position"
                   initial={{ opacity: 0, y: 20 }}
@@ -117,20 +116,14 @@ export default function AffiliateStore() {
                   transition={{ duration: 0.4, ease: "easeOut" }}
                   className="w-full md:w-[98%]"
                 >
-                  {/* CORE FIX: 
-                      We transform the data object here to ensure all properties 
-                      (rating, reviews, affiliateLink) exist before passing to the card.
-                  */}
-                  <WideProductCard 
+                  <WideProductCard
                     product={{
                       ...product,
                       id: String(product.id),
-                      // Checks for affiliateLink (Books) or link (Tech/Certificates)
-                      affiliateLink: (product as any).affiliateLink || (product as any).link || "#",
-                      // Fallbacks for ratings/reviews if they aren't in the data files
-                      reviews: String((product as any).reviews || "500+"),
-                      rating: (product as any).rating || 4.5
-                    } as any} 
+                      affiliateLink: product.affiliateLink || product.link || "#",
+                      reviews: String(product.reviews || "500+"),
+                      rating: product.rating || 4.5
+                    } as any}
                   />
                 </motion.div>
               ))
@@ -148,7 +141,7 @@ export default function AffiliateStore() {
 
           {visibleProducts.length < allFilteredProducts.length && (
             <div ref={loadMoreRef} className="w-full h-20 flex items-center justify-center py-8">
-               <Loader2 className="animate-spin text-emerald-500/50" size={24} />
+              <Loader2 className="animate-spin text-emerald-500/50" size={24} />
             </div>
           )}
         </div>
