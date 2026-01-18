@@ -117,16 +117,17 @@ export default function AffiliateStore() {
                   transition={{ duration: 0.4, ease: "easeOut" }}
                   className="w-full md:w-[98%]"
                 >
-                  {/* CORE FIX (Line 120): 
-                    We pass the product through as 'any' to satisfy the TypeScript build check.
-                    We also safely map 'link' to 'affiliateLink' to ensure buttons work.
-                  */}
                   <WideProductCard 
                     product={{
                       ...product,
-                      rating: (product as any).rating || 4.5,
-                      reviews: (product as any).reviews || 100,
-                      affiliateLink: (product as any).link || (product as any).affiliateLink
+                      // Ensure id is always a string for the component
+                      id: String(product.id),
+                      // Map 'link' if 'affiliateLink' is missing in some data entries
+                      affiliateLink: (product as any).affiliateLink || (product as any).link || "#",
+                      // Ensure reviews is a string to match the Product interface
+                      reviews: String((product as any).reviews || "0"),
+                      // Ensure rating exists as a number
+                      rating: (product as any).rating || 0
                     } as any} 
                   />
                 </motion.div>
