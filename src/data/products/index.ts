@@ -1,7 +1,7 @@
 import { books } from './books';
 import { tech } from './tech';
 import { certificates } from './certificates';
-// import { courses } from './courses'; // Ready for when you add courses.ts
+import { courses } from './courses'; // Ready for when you add courses.ts
 
 /**
  * MASTER PRODUCT ARRAY
@@ -11,6 +11,7 @@ export const ALL_PRODUCTS = [
   ...books,
   ...tech,
   ...certificates,
+  ...courses
   // ...courses
 ];
 

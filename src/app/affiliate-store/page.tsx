@@ -117,22 +117,21 @@ export default function AffiliateStore() {
                   transition={{ duration: 0.4, ease: "easeOut" }}
                   className="w-full md:w-[98%]"
                 >
-                  {/* --- FIX IS HERE --- */}
-                  {/* We are creating a new object on the fly that matches EXACTLY what WideProductCard wants. */}
-                  {/* The 'as any' at the end forces TypeScript to accept it. */}
+                  {/* CORE FIX: 
+                      We transform the data object here to ensure all properties 
+                      (rating, reviews, affiliateLink) exist before passing to the card.
+                  */}
                   <WideProductCard 
                     product={{
                       ...product,
-                      // Force ID to be a string
                       id: String(product.id),
-                      // Map 'link' (from data) to 'affiliateLink' (required by component)
+                      // Checks for affiliateLink (Books) or link (Tech/Certificates)
                       affiliateLink: (product as any).affiliateLink || (product as any).link || "#",
-                      // Provide defaults if reviews/rating are missing
-                      reviews: String((product as any).reviews || "120"), 
+                      // Fallbacks for ratings/reviews if they aren't in the data files
+                      reviews: String((product as any).reviews || "500+"),
                       rating: (product as any).rating || 4.5
                     } as any} 
                   />
-                  {/* --- END FIX --- */}
                 </motion.div>
               ))
             ) : (
