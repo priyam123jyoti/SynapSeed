@@ -61,8 +61,8 @@ export default function MoanaGateway() {
             <h1 className="text-2xl font-black text-white tracking-tighter uppercase italic">
               MOANA <span className="text-emerald-500 underline decoration-double underline-offset-4">V1.0</span>
             </h1>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-1">
-              PROTOCOL: {userName}
+            <p className="text-[16px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-1">
+              HI, {userName}
             </p>
           </div>
         </motion.nav>
@@ -74,7 +74,7 @@ export default function MoanaGateway() {
   transition={{ duration: 0.8, ease: "easeOut" }} // Smooth linear-ish ease
   className="mb-12 will-change-transform" // Hardware acceleration
 >
-  <h2 className="text-5xl font-black text-white leading-tight tracking-tight">          
+  <h2 className="text-4xl font-black text-white leading-tight tracking-tight">          
     SELECT <br />
     <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 pb-2 block">
       BATTLE MODE

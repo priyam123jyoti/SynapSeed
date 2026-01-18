@@ -52,11 +52,11 @@ export const QuizInterface = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#020617] p-6 flex items-center justify-center font-mono selection:bg-emerald-500/30">
+    <div className="min-h-screen bg-[#020617] p-0.1 flex items-center justify-center font-mono selection:bg-emerald-500/30">
       {/* Moana Ambient Bio-Glow */}
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/5 blur-[140px] pointer-events-none rounded-full" />
 
-      <div className="max-w-3xl w-full bg-slate-900/40 border border-emerald-500/10 rounded-[1.5rem] p-8 md:p-12 relative shadow-2xl backdrop-blur-xl overflow-hidden">
+      <div className="max-w-3xl w-full bg-slate-900/40 border border-emerald-500/10 rounded-[1.5rem] p-4 md:p-12 relative shadow-2xl backdrop-blur-xl overflow-hidden">
         
         {/* MOANA SYSTEM PROGRESS BAR */}
         <div className="absolute top-0 left-0 w-full h-1.5 bg-white/5">
@@ -78,7 +78,7 @@ export const QuizInterface = ({
                 className="absolute inset-0 bg-emerald-500 rounded-full blur-md"
               />
             </div>
-            <span className="text-[10px] font-black text-emerald-500 tracking-[0.25em] uppercase bg-emerald-500/10 px-4 py-1.5 rounded-full border border-emerald-500/20">
+            <span className="text-[10px] font-black text-emerald-500 tracking-[0.25em] uppercase bg-emerald-500/10 px-2 py-1 rounded-full border border-emerald-500/20">
               {isRecap ? "MOANA_RECALL_MODE" : `MOANA_SYNC: ${subjectLabel}`}
             </span>
           </div>
