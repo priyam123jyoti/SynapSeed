@@ -4,12 +4,11 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: 'm.media-amazon.com',
-        port: '',
-        pathname: '/images/**',
+        hostname: 'images.unsplash.com',
+        pathname: '**',
       },
     ],
   },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

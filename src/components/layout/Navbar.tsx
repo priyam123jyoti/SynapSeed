@@ -19,7 +19,7 @@ export default function Navbar({ user: propUser }: { user?: any }) {
 
   const navLinks = [
     { name: 'Home', hasDropdown: false, path: '/' },
-    { name: 'Study Abroad', hasDropdown: false, path: '/study-abroad' },
+    { name: 'Study Abroad', hasDropdown: false, path: '/global-study' },
     { name: 'Albums', hasDropdown: true, path: '/albums' },
     { name: 'Career Hub', hasDropdown: false, path: '/career' },
     { name: 'SynapStore', hasDropdown: false, path: '/affiliate-store' },

@@ -15,10 +15,10 @@ export const SyncCelebration = ({ score, onComplete }: SyncCelebrationProps) => 
 
   // OPTIMIZATION: Memoize Tier Data to prevent object recreation
   const tier = useMemo(() => {
-    if (score === 100) return { color: '#fbbf24', audio: '/audio/hundred-percent.mp3', delay: 7000, label: "BOTANY GOD DETECTED", particles: 'rocket' };
-    if (score >= 80) return { color: '#10b981', audio: '/audio/eighty-nineghty-percent.mp3', delay: 5000, label: "ELITE SYNC COMPLETE", particles: 'standard' };
-    if (score >= 40) return { color: '#3b82f6', audio: '/audio/fourty-saventy-percenty.mp3', delay: 4500, label: "UPLINK STABLE", particles: 'none' };
-    return { color: '#ef4444', audio: '/audio/below-thirty-percent.mp3', delay: 4000, label: "CRITICAL LINK FAILURE", particles: 'none' };
+    if (score === 100) return { color: '#fbbf24', audio: '/audio/hundred-percent.mp3', delay: 7000, label: "Super Intelligent, Unbeatable", particles: 'rocket' };
+    if (score >= 80) return { color: '#10b981', audio: '/audio/eighty-nineghty-percent.mp3', delay: 5000, label: "Master Of Science", particles: 'standard' };
+    if (score >= 40) return { color: '#3b82f6', audio: '/audio/fourty-saventy-percenty.mp3', delay: 4500, label: "More Practice Need", particles: 'none' };
+    return { color: '#ef4444', audio: '/audio/below-thirty-percent.mp3', delay: 4000, label: "Genius Learn from mistakes", particles: 'none' };
   }, [score]);
 
   // OPTIMIZATION: Use useCallback for side-effect triggers

@@ -13,7 +13,7 @@ export default function MobileBottomNavbar() {
 
   const tabs = [
     { name: 'Home', icon: Home, path: '/' },
-    { name: 'Study Abroad', icon: Globe, path: '/study-abroad' },
+    { name: 'Study Abroad', icon: Globe, path: '/global-study' },
     { name: 'Albums', icon: Image, path: '/albums' },
     { name: 'Career Hub', icon: Briefcase, path: '/career' },
     { name: 'SynapStore', icon: BookOpen, path: '/affiliate-store' },
