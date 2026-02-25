@@ -17,25 +17,21 @@ function QuizContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // 1. EXTRACT URL PARAMETERS
   const subjectKey = searchParams.get('subject') || 'botany';
   const subjectName = searchParams.get('name') || 'Botany Quiz';
-  const autoQuery = searchParams.get('query'); // The "Auto-Start" trigger
+  const autoQuery = searchParams.get('query'); 
   
   const subjectTitle = useMemo(() => subjectName.toUpperCase(), [subjectName]);
   
-  // Map the topics based on the subject in the URL
   const currentTopics = useMemo(() => 
     SUBJECT_TOPICS[subjectKey as keyof typeof SUBJECT_TOPICS] || SUBJECT_TOPICS.botany, 
   [subjectKey]);
 
-  // 2. STATE MANAGEMENT
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [questions, setQuestions] = useState<any[]>([]);
 
-  // Fetch User Profile on Mount
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -44,11 +40,35 @@ function QuizContent() {
     fetchUser();
   }, []);
 
+  // --- NEW: SAVE SCORE TO DATABASE ---
+  const saveQuizScore = useCallback(async (percentage: number) => {
+    if (!user) {
+      console.warn("User not logged in, score not saved to leaderboard.");
+      return;
+    }
+
+    const { error } = await supabase
+      .from('quiz_scores') // Matches the table we created in SQL
+      .insert([
+        { 
+          user_id: user.id, 
+          score: percentage, 
+          topic: selectedTopic || autoQuery || "General", 
+          subject: subjectTitle 
+        }
+      ]);
+
+    if (error) {
+      console.error("Failed to sync mastery level:", error.message);
+    } else {
+      console.log("Mastery level synced to Global Leaderboard!");
+    }
+  }, [user, selectedTopic, autoQuery, subjectTitle]);
+
   const researcherName = useMemo(() => 
     user?.user_metadata?.full_name?.split(' ')[0] || "Researcher", 
   [user]);
 
-  // 3. STABLE QUIZ GENERATION FUNCTION
   const startQuiz = useCallback(async (topic: string) => {
     setLoading(true);
     setSelectedTopic(topic);
@@ -68,29 +88,18 @@ function QuizContent() {
     }
   }, [subjectTitle]);
 
-  // 4. THE INTERACTIVITY BRIDGE (Auto-Start + URL Cleanup)
   useEffect(() => {
     if (autoQuery && !selectedTopic && !loading && questions.length === 0) {
-      // Trigger the AI generation
       startQuiz(autoQuery);
-
-      /**
-       * CRITICAL UI FIX: 
-       * We clear the 'query' from the URL bar immediately after starting.
-       * This prevents the useEffect from re-triggering when the user 
-       * clicks 'Abort' or finishes the quiz.
-       */
       const newPath = `/quiz?subject=${subjectKey}&name=${subjectName}`;
       window.history.replaceState(null, '', newPath);
     }
   }, [autoQuery, startQuiz, selectedTopic, loading, questions.length, subjectKey, subjectName]);
 
-  // 5. RENDER LOGIC
   if (loading) return <LoadingScreen topic={`${subjectTitle}: ${selectedTopic || autoQuery}`} />;
 
   return (
     <div className="min-h-screen bg-[#020617] relative overflow-hidden">
-      {/* Background Neural Layer */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_50%,#0f172a_0%,#020617_100%)] pointer-events-none" />
 
       {!selectedTopic ? (
@@ -107,9 +116,8 @@ function QuizContent() {
           subjectTitle={subjectTitle}
           selectedTopic={selectedTopic}
           onRestart={() => startQuiz(selectedTopic)}
+          onFinishQuiz={saveQuizScore} // Passing the save function here
           onTerminate={() => {
-            // Because the URL query was cleaned by the useEffect above,
-            // this will now correctly return to TopicSelectionView.
             setSelectedTopic(null);
             setQuestions([]);
           }}
@@ -119,7 +127,6 @@ function QuizContent() {
   );
 }
 
-// Wrap in Suspense for Next.js 14+ SearchParams requirement
 export default function QuizPage() {
   return (
     <Suspense fallback={<LoadingScreen topic="Initializing Neural Link..." />}>

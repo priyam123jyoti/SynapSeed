@@ -10,15 +10,16 @@ interface QuizEngineProps {
   selectedTopic: string;
   onRestart: () => void;
   onTerminate: () => void;
+  onFinishQuiz: (score: number) => void; // Added this prop
 }
 
 const QuizEngine = ({ 
   questions, 
   subjectTitle, 
   onRestart, 
-  onTerminate 
+  onTerminate,
+  onFinishQuiz // Destructure here
 }: QuizEngineProps) => {
-  // 1. ISOLATED STATE: These updates are now blazing fast
   const [currentIdx, setCurrentIdx] = useState(0);
   const [userAnswers, setUserAnswers] = useState<number[]>(() => 
     new Array(questions.length).fill(-1)
@@ -26,7 +27,6 @@ const QuizEngine = ({
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [isRecapMode, setIsRecapMode] = useState(false);
 
-  // 2. MEMOIZED CALCULATION: Score only recalculates when answers change
   const scorePercentage = useMemo(() => {
     if (questions.length === 0) return 0;
     const correctCount = userAnswers.reduce((total, ans, idx) => 
@@ -35,7 +35,6 @@ const QuizEngine = ({
     return Math.round((correctCount / questions.length) * 100);
   }, [userAnswers, questions]);
 
-  // 3. STABLE HANDLERS: Prevents QuizInterface from re-rendering unnecessarily
   const handleAnswer = useCallback((answerIndex: number) => {
     if (isRecapMode) return;
     setUserAnswers(prev => {
@@ -53,6 +52,15 @@ const QuizEngine = ({
     setCurrentIdx(prev => Math.max(prev - 1, 0));
   }, []);
 
+  // --- NEW HANDLER FOR FINISHING ---
+  const handleFinish = useCallback(() => {
+    // 1. Sync score to DB immediately
+    onFinishQuiz(scorePercentage);
+    
+    // 2. Show the results UI
+    setShowResultsModal(true);
+  }, [onFinishQuiz, scorePercentage]);
+
   return (
     <div className="relative z-10 w-full max-w-4xl mx-auto px-4 py-8">
       <QuizInterface
@@ -65,7 +73,7 @@ const QuizEngine = ({
         onAnswer={handleAnswer}
         onNext={handleNext}
         onPrev={handlePrev}
-        onFinish={() => setShowResultsModal(true)}
+        onFinish={handleFinish} // Using our new handler
       />
 
       {showResultsModal && (
@@ -78,7 +86,6 @@ const QuizEngine = ({
           }}
           onTerminate={onTerminate}
           onRestart={() => {
-            // Reset local engine state before restarting
             setUserAnswers(new Array(questions.length).fill(-1));
             setCurrentIdx(0);
             setIsRecapMode(false);
@@ -90,5 +97,4 @@ const QuizEngine = ({
   );
 };
 
-// React.memo prevents the engine from re-rendering unless the 'questions' array actually changes
 export default memo(QuizEngine);
