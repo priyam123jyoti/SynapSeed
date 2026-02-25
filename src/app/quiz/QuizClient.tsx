@@ -45,13 +45,33 @@ export default function QuizClient() {
     user?.user_metadata?.full_name?.split(' ')[0] || "Researcher", 
   [user]);
 
+  // --- NEW: SCORE SYNC FUNCTION ---
+  const saveQuizScore = useCallback(async (percentage: number) => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from('quiz_scores')
+      .insert([
+        { 
+          user_id: user.id, 
+          score: percentage, 
+          topic: selectedTopic || "General", 
+          subject: subjectTitle 
+        }
+      ]);
+
+    if (error) {
+      console.error("Database Sync Error:", error.message);
+    } else {
+      console.log("Mastery Level Synced to Leaderboard!");
+    }
+  }, [user, selectedTopic, subjectTitle]);
+
   // 4. QUIZ GENERATION & SEO URL UPDATE
   const startQuiz = useCallback(async (topic: string) => {
     setLoading(true);
     setSelectedTopic(topic);
 
-    // SEO BOOST: Update the browser URL without refreshing the page. 
-    // This allows students to bookmark specific topic results.
     const params = new URLSearchParams(window.location.search);
     params.set('topic', topic.toLowerCase().replace(/\s+/g, '-'));
     window.history.pushState(null, '', `?${params.toString()}`);
@@ -65,7 +85,7 @@ export default function QuizClient() {
       }
     } catch (err) {
       console.error("Moana AI Error:", err);
-      alert(`NEURAL LINK ERROR: Unable to generate questions for ${topic}. Check connection.`);
+      alert(`NEURAL LINK ERROR: Unable to generate questions for ${topic}.`);
       setSelectedTopic(null);
     } finally {
       setLoading(false);
@@ -77,16 +97,11 @@ export default function QuizClient() {
 
   return (
     <main className="min-h-screen bg-[#020617] relative overflow-hidden">
-      {/* SEMANTIC SEO: Hidden H1 for crawler context */}
       <h1 className="sr-only">
         {subjectTitle} Interactive Practice Lab | Powered by Moana AI
       </h1>
 
-      {/* Static Background Layer */}
-      <div 
-        className="fixed inset-0 bg-[radial-gradient(circle_at_50%_50%,#0f172a_0%,#020617_100%)] pointer-events-none" 
-        aria-hidden="true"
-      />
+      <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_50%,#0f172a_0%,#020617_100%)] pointer-events-none" aria-hidden="true" />
 
       <div className="relative z-10">
         {!selectedTopic ? (
@@ -103,31 +118,26 @@ export default function QuizClient() {
             subjectTitle={subjectTitle}
             selectedTopic={selectedTopic}
             onRestart={() => startQuiz(selectedTopic)}
+            onFinishQuiz={saveQuizScore} // <--- THIS FIXES THE BUILD ERROR
             onTerminate={() => {
-              // Clear topic from URL when terminating
+              setSelectedTopic(null);
+              setQuestions([]);
               router.push('/moana-gateway');
             }}
           />
         )}
       </div>
 
-      {/* SEO FOOTER: Contextual Internal Links */}
       {!selectedTopic && (
         <footer className="relative z-20 pb-10 text-center opacity-50 hover:opacity-100 transition-opacity">
           <p className="text-emerald-500/50 font-mono text-[10px] tracking-[0.3em] mb-4">
-            SY_SEED // AUTHORIZED_ACCESS_ONLY
+            SYNAPSEED AUTHORIZED ACCESS ONLY
           </p>
           <div className="flex justify-center gap-8">
-            <button 
-              onClick={() => router.push('/synapstore')}
-              className="text-white font-mono text-[9px] hover:text-emerald-400 transition-colors"
-            >
+            <button onClick={() => router.push('/synapstore')} className="text-white font-mono text-[9px] hover:text-emerald-400">
               [ ACCESS_SYNAPSTORE_HARDWARE ]
             </button>
-            <button 
-              onClick={() => router.push('/about')}
-              className="text-white font-mono text-[9px] hover:text-emerald-400 transition-colors"
-            >
+            <button onClick={() => router.push('/about')} className="text-white font-mono text-[9px] hover:text-emerald-400">
               [ DEVELOPER_PRIYAMJYOTI_DIHINGIA ]
             </button>
           </div>

@@ -40,18 +40,20 @@ function QuizContent() {
     fetchUser();
   }, []);
 
-  // --- NEW: SAVE SCORE TO DATABASE ---
+  // Sync score to Supabase
   const saveQuizScore = useCallback(async (percentage: number) => {
-    if (!user) {
-      console.warn("User not logged in, score not saved to leaderboard.");
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    
+    if (!currentUser) {
+      console.warn("User session not found, score not saved.");
       return;
     }
 
     const { error } = await supabase
-      .from('quiz_scores') // Matches the table we created in SQL
+      .from('quiz_scores')
       .insert([
         { 
-          user_id: user.id, 
+          user_id: currentUser.id, 
           score: percentage, 
           topic: selectedTopic || autoQuery || "General", 
           subject: subjectTitle 
@@ -59,11 +61,11 @@ function QuizContent() {
       ]);
 
     if (error) {
-      console.error("Failed to sync mastery level:", error.message);
+      console.error("Database Sync Error:", error.message);
     } else {
-      console.log("Mastery level synced to Global Leaderboard!");
+      console.log("Mastery Level Synced!");
     }
-  }, [user, selectedTopic, autoQuery, subjectTitle]);
+  }, [selectedTopic, autoQuery, subjectTitle]);
 
   const researcherName = useMemo(() => 
     user?.user_metadata?.full_name?.split(' ')[0] || "Researcher", 
@@ -77,11 +79,10 @@ function QuizContent() {
       if (data && Array.isArray(data) && data.length > 0) {
         setQuestions(data);
       } else {
-        throw new Error("Neural Link Failed: Data Corrupted");
+        throw new Error("Data Corrupted");
       }
     } catch (err) {
       console.error(err);
-      alert(`NEURAL LINK ERROR: Unable to generate questions for ${topic}.`);
       setSelectedTopic(null);
     } finally {
       setLoading(false);
@@ -116,7 +117,7 @@ function QuizContent() {
           subjectTitle={subjectTitle}
           selectedTopic={selectedTopic}
           onRestart={() => startQuiz(selectedTopic)}
-          onFinishQuiz={saveQuizScore} // Passing the save function here
+          onFinishQuiz={saveQuizScore} // THE FIX IS HERE
           onTerminate={() => {
             setSelectedTopic(null);
             setQuestions([]);
