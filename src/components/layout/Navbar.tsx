@@ -9,6 +9,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image'; // Import Next.js Image component
 
+
 export default function Navbar({ user: propUser }: { user?: any }) {
   const router = useRouter();
   const pathname = usePathname(); 
@@ -20,7 +21,7 @@ export default function Navbar({ user: propUser }: { user?: any }) {
   const navLinks = [
     { name: 'Home', hasDropdown: false, path: '/' },
     { name: 'Study Abroad', hasDropdown: false, path: '/global-study' },
-    { name: 'Albums', hasDropdown: true, path: '/albums' },
+    { name: 'Leaderboard', hasDropdown: true, path: '/leaderboard' },
     { name: 'Career Hub', hasDropdown: false, path: '/career' },
     { name: 'SynapStore', hasDropdown: false, path: '/affiliate-store' },
   ];

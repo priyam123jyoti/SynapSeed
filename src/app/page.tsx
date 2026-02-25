@@ -5,6 +5,9 @@ import Chloroplast3D from '@/components/layout/Chloroplast3D';
 import RightPanel from '@/components/layout/RightPanel';
 import MobileBottomNavbar from '@/components/layout/MobileBottomNavbar';
 import AIFloatingButton from '@/components/layout/AIFloatingButton';
+import SubjectPillars from '@/components/home/SubjectPillars';
+import FeatureShowcase from '@/components/home/FeatureShowcase';
+import ImpactStats from '@/components/home/ImpactStats';
 
 export default function Home() {
   return (
@@ -24,6 +27,9 @@ export default function Home() {
             </div>
           </div>
         </div>
+        <SubjectPillars /> {/* Add it here */}
+        <FeatureShowcase />
+        <ImpactStats />
       </main>
       
       <AIFloatingButton />
