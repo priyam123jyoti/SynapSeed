@@ -5,19 +5,16 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { generateMoanaQuiz } from '@/services/moanaAI';
 
-// Constants & Types
-import { SUBJECT_TOPICS } from '@/components/quiz/constants'; 
-
 // Components
 import TopicSelectionView from '@/components/quiz/TopicSelectionView';
 import QuizEngine from '@/components/quiz/QuizEngine';
 import { LoadingScreen } from '@/components/quiz/LoadingScreen';
+import { SUBJECT_TOPICS } from '@/components/quiz/constants'; 
 
 export default function QuizClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // 1. MEMOIZED URL PARAMS
   const subjectKey = searchParams.get('subject') || 'botany';
   const subjectName = searchParams.get('name') || 'Botany Quiz';
   const subjectTitle = useMemo(() => subjectName.toUpperCase(), [subjectName]);
@@ -26,13 +23,11 @@ export default function QuizClient() {
     SUBJECT_TOPICS[subjectKey as keyof typeof SUBJECT_TOPICS] || SUBJECT_TOPICS.botany, 
   [subjectKey]);
 
-  // 2. STATE MANAGEMENT
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [questions, setQuestions] = useState<any[]>([]);
 
-  // 3. AUTHENTICATION FETCH
   useEffect(() => {
     const fetchUser = async () => {
       const { data: { user } } = await supabase.auth.getUser();
@@ -41,14 +36,8 @@ export default function QuizClient() {
     fetchUser();
   }, []);
 
-  const researcherName = useMemo(() => 
-    user?.user_metadata?.full_name?.split(' ')[0] || "Researcher", 
-  [user]);
-
-  // --- NEW: SCORE SYNC FUNCTION ---
   const saveQuizScore = useCallback(async (percentage: number) => {
     if (!user) return;
-
     const { error } = await supabase
       .from('quiz_scores')
       .insert([
@@ -60,22 +49,17 @@ export default function QuizClient() {
         }
       ]);
 
-    if (error) {
-      console.error("Database Sync Error:", error.message);
-    } else {
-      console.log("Mastery Level Synced to Leaderboard!");
-    }
+    if (error) console.error("Database Sync Error:", error.message);
+    else console.log("Mastery Level Synced!");
   }, [user, selectedTopic, subjectTitle]);
 
-  // 4. QUIZ GENERATION & SEO URL UPDATE
+  const researcherName = useMemo(() => 
+    user?.user_metadata?.full_name?.split(' ')[0] || "Researcher", 
+  [user]);
+
   const startQuiz = useCallback(async (topic: string) => {
     setLoading(true);
     setSelectedTopic(topic);
-
-    const params = new URLSearchParams(window.location.search);
-    params.set('topic', topic.toLowerCase().replace(/\s+/g, '-'));
-    window.history.pushState(null, '', `?${params.toString()}`);
-
     try {
       const data = await generateMoanaQuiz(topic, subjectTitle);
       if (data && Array.isArray(data) && data.length > 0) {
@@ -84,25 +68,18 @@ export default function QuizClient() {
         throw new Error("NEURAL_DATA_VOID");
       }
     } catch (err) {
-      console.error("Moana AI Error:", err);
-      alert(`NEURAL LINK ERROR: Unable to generate questions for ${topic}.`);
+      console.error(err);
       setSelectedTopic(null);
     } finally {
       setLoading(false);
     }
   }, [subjectTitle]);
 
-  // 5. VIEW ROUTER
   if (loading) return <LoadingScreen topic={`${subjectTitle}: ${selectedTopic}`} />;
 
   return (
     <main className="min-h-screen bg-[#020617] relative overflow-hidden">
-      <h1 className="sr-only">
-        {subjectTitle} Interactive Practice Lab | Powered by Moana AI
-      </h1>
-
-      <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_50%,#0f172a_0%,#020617_100%)] pointer-events-none" aria-hidden="true" />
-
+      <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_50%,#0f172a_0%,#020617_100%)] pointer-events-none" />
       <div className="relative z-10">
         {!selectedTopic ? (
           <TopicSelectionView
@@ -118,7 +95,7 @@ export default function QuizClient() {
             subjectTitle={subjectTitle}
             selectedTopic={selectedTopic}
             onRestart={() => startQuiz(selectedTopic)}
-            onFinishQuiz={saveQuizScore} // <--- THIS FIXES THE BUILD ERROR
+            onFinishQuiz={saveQuizScore}
             onTerminate={() => {
               setSelectedTopic(null);
               setQuestions([]);
@@ -127,22 +104,6 @@ export default function QuizClient() {
           />
         )}
       </div>
-
-      {!selectedTopic && (
-        <footer className="relative z-20 pb-10 text-center opacity-50 hover:opacity-100 transition-opacity">
-          <p className="text-emerald-500/50 font-mono text-[10px] tracking-[0.3em] mb-4">
-            SYNAPSEED AUTHORIZED ACCESS ONLY
-          </p>
-          <div className="flex justify-center gap-8">
-            <button onClick={() => router.push('/synapstore')} className="text-white font-mono text-[9px] hover:text-emerald-400">
-              [ ACCESS_SYNAPSTORE_HARDWARE ]
-            </button>
-            <button onClick={() => router.push('/about')} className="text-white font-mono text-[9px] hover:text-emerald-400">
-              [ DEVELOPER_PRIYAMJYOTI_DIHINGIA ]
-            </button>
-          </div>
-        </footer>
-      )}
     </main>
   );
 }
