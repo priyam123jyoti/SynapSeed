@@ -8,9 +8,9 @@ interface QuizEngineProps {
   questions: any[];
   subjectTitle: string;
   selectedTopic: string;
-  onRestart: () => void;
+  onRestart: () => void | Promise<void>;
   onTerminate: () => void;
-  onFinishQuiz: (score: number) => void; // Added this prop
+  onFinishQuiz: (score: number) => void | Promise<void>;
 }
 
 const QuizEngine = ({ 
@@ -18,7 +18,7 @@ const QuizEngine = ({
   subjectTitle, 
   onRestart, 
   onTerminate,
-  onFinishQuiz // Destructure here
+  onFinishQuiz 
 }: QuizEngineProps) => {
   const [currentIdx, setCurrentIdx] = useState(0);
   const [userAnswers, setUserAnswers] = useState<number[]>(() => 
@@ -52,12 +52,8 @@ const QuizEngine = ({
     setCurrentIdx(prev => Math.max(prev - 1, 0));
   }, []);
 
-  // --- NEW HANDLER FOR FINISHING ---
   const handleFinish = useCallback(() => {
-    // 1. Sync score to DB immediately
     onFinishQuiz(scorePercentage);
-    
-    // 2. Show the results UI
     setShowResultsModal(true);
   }, [onFinishQuiz, scorePercentage]);
 
@@ -73,7 +69,7 @@ const QuizEngine = ({
         onAnswer={handleAnswer}
         onNext={handleNext}
         onPrev={handlePrev}
-        onFinish={handleFinish} // Using our new handler
+        onFinish={handleFinish}
       />
 
       {showResultsModal && (

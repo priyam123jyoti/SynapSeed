@@ -5,10 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { generateMoanaQuiz } from '@/services/moanaAI';
 
-// Constants & Types
+// Constants & Components
 import { SUBJECT_TOPICS } from '@/components/quiz/constants'; 
-
-// Components
 import TopicSelectionView from '@/components/quiz/TopicSelectionView';
 import QuizEngine from '@/components/quiz/QuizEngine';
 import { LoadingScreen } from '@/components/quiz/LoadingScreen';
@@ -48,7 +46,7 @@ export default function QuizClient() {
         topic: selectedTopic || "General", 
         subject: subjectTitle 
       }]);
-    if (error) console.error("Sync Error:", error.message);
+    if (error) console.error("Database Sync Error:", error.message);
   }, [user, selectedTopic, subjectTitle]);
 
   const startQuiz = useCallback(async (topic: string) => {
@@ -56,8 +54,11 @@ export default function QuizClient() {
     setSelectedTopic(topic);
     try {
       const data = await generateMoanaQuiz(topic, subjectTitle);
-      if (data && Array.isArray(data)) setQuestions(data);
+      if (data && Array.isArray(data)) {
+        setQuestions(data);
+      }
     } catch (err) {
+      console.error(err);
       setSelectedTopic(null);
     } finally {
       setLoading(false);
@@ -83,10 +84,11 @@ export default function QuizClient() {
             questions={questions}
             subjectTitle={subjectTitle}
             selectedTopic={selectedTopic}
-            onRestart={() => startQuiz(selectedTopic)}
-            onFinishQuiz={saveQuizScore}
+            onRestart={() => { startQuiz(selectedTopic); }}
+            onFinishQuiz={(score) => { saveQuizScore(score); }}
             onTerminate={() => {
               setSelectedTopic(null);
+              setQuestions([]);
               router.push('/moana-gateway');
             }}
           />
