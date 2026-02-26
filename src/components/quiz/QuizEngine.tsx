@@ -11,7 +11,7 @@ interface QuizEngineProps {
   selectedTopic: string;
   onRestart: () => void | Promise<void>;
   onTerminate: () => void;
-  onFinishQuiz?: (score: number) => void | Promise<void>; // Add the '?'
+  onFinishQuiz?: (score: number) => void | Promise<void>; // Optional prop
 }
 
 const QuizEngine = ({ 
@@ -54,7 +54,10 @@ const QuizEngine = ({
   }, []);
 
   const handleFinish = useCallback(() => {
-    onFinishQuiz(scorePercentage);
+    // Safety check: Only call if the function exists
+    if (onFinishQuiz) {
+      onFinishQuiz(scorePercentage);
+    }
     setShowResultsModal(true);
   }, [onFinishQuiz, scorePercentage]);
 
