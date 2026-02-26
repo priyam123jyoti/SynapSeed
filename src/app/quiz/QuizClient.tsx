@@ -5,11 +5,13 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { generateMoanaQuiz } from '@/services/moanaAI';
 
+// Constants & Types
+import { SUBJECT_TOPICS } from '@/components/quiz/constants'; 
+
 // Components
 import TopicSelectionView from '@/components/quiz/TopicSelectionView';
 import QuizEngine from '@/components/quiz/QuizEngine';
 import { LoadingScreen } from '@/components/quiz/LoadingScreen';
-import { SUBJECT_TOPICS } from '@/components/quiz/constants'; 
 
 export default function QuizClient() {
   const router = useRouter();
@@ -40,35 +42,22 @@ export default function QuizClient() {
     if (!user) return;
     const { error } = await supabase
       .from('quiz_scores')
-      .insert([
-        { 
-          user_id: user.id, 
-          score: percentage, 
-          topic: selectedTopic || "General", 
-          subject: subjectTitle 
-        }
-      ]);
-
-    if (error) console.error("Database Sync Error:", error.message);
-    else console.log("Mastery Level Synced!");
+      .insert([{ 
+        user_id: user.id, 
+        score: percentage, 
+        topic: selectedTopic || "General", 
+        subject: subjectTitle 
+      }]);
+    if (error) console.error("Sync Error:", error.message);
   }, [user, selectedTopic, subjectTitle]);
-
-  const researcherName = useMemo(() => 
-    user?.user_metadata?.full_name?.split(' ')[0] || "Researcher", 
-  [user]);
 
   const startQuiz = useCallback(async (topic: string) => {
     setLoading(true);
     setSelectedTopic(topic);
     try {
       const data = await generateMoanaQuiz(topic, subjectTitle);
-      if (data && Array.isArray(data) && data.length > 0) {
-        setQuestions(data);
-      } else {
-        throw new Error("NEURAL_DATA_VOID");
-      }
+      if (data && Array.isArray(data)) setQuestions(data);
     } catch (err) {
-      console.error(err);
       setSelectedTopic(null);
     } finally {
       setLoading(false);
@@ -85,7 +74,7 @@ export default function QuizClient() {
           <TopicSelectionView
             subjectTitle={subjectTitle}
             topics={currentTopics} 
-            researcherName={researcherName}
+            researcherName={user?.user_metadata?.full_name?.split(' ')[0] || "Researcher"}
             onStart={startQuiz}
             onBack={() => router.push('/moana-gateway')}
           />
@@ -98,7 +87,6 @@ export default function QuizClient() {
             onFinishQuiz={saveQuizScore}
             onTerminate={() => {
               setSelectedTopic(null);
-              setQuestions([]);
               router.push('/moana-gateway');
             }}
           />
