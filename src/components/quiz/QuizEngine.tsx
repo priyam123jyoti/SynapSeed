@@ -11,7 +11,7 @@ interface QuizEngineProps {
   selectedTopic: string;
   onRestart: () => void | Promise<void>;
   onTerminate: () => void;
-  onFinishQuiz: (score: number) => void | Promise<void>;
+  onFinishQuiz?: (score: number) => void | Promise<void>; // Add the '?'
 }
 
 const QuizEngine = ({ 
