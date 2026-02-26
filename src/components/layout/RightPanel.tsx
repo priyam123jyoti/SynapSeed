@@ -1,19 +1,16 @@
-import React from 'react'
+import React, { memo } from 'react'
 import { Download, BookOpen, Crown } from 'lucide-react'
 
-// Defining a clear interface for the user prop
-interface RightPanelProps {
-  user?: any; // Marked as optional since we might bypass auth
-}
-
-export default function RightPanel({ user }: RightPanelProps) {
+const RightPanel = () => {
   return (
     <div className="h-full">
-      {/* Container: Deep Midnight Green with subtle border glow */}
       <div className="flex-1 h-full bg-[#050a0a] p-8 text-white shadow-[0_20px_50px_rgba(0,0,0,0.5)] border border-emerald-500/10 flex flex-col justify-between relative overflow-hidden rounded-[1rem]">
         
-        {/* Subtle Background Glow Decoration */}
-        <div className="absolute -top-20 -right-20 w-40 h-40 bg-emerald-500/10 blur-[80px]" />
+        {/* Glow Optimization: Use will-change for GPU acceleration */}
+        <div 
+          className="absolute -top-20 -right-20 w-40 h-40 bg-emerald-500/10 blur-[80px]" 
+          style={{ willChange: 'transform' }} 
+        />
         
         <div className="relative z-10">
           <div className="flex items-center gap-2 mb-4">
@@ -38,7 +35,6 @@ export default function RightPanel({ user }: RightPanelProps) {
         </div>
 
         <div className="space-y-6 relative z-10">
-          {/* Pro Tip with Premium Badge */}
           <div className="bg-slate-900/50 backdrop-blur-md p-5 rounded-[2rem] border border-white/5 group hover:border-emerald-500/30 transition-all duration-500">
             <div className="flex items-center gap-2 mb-2">
               <Crown size={12} className="text-amber-400" />
@@ -49,7 +45,6 @@ export default function RightPanel({ user }: RightPanelProps) {
             </p>
           </div>
 
-          {/* Premium Action Button */}
           <button className="group relative w-full overflow-hidden rounded-2xl transition-all active:scale-95 cursor-pointer">
               <div className="absolute inset-0 bg-gradient-to-r from-emerald-600 to-teal-500 group-hover:from-emerald-500 group-hover:to-teal-400 transition-all" />
               <div className="relative py-4 flex items-center justify-center gap-3">
@@ -64,3 +59,5 @@ export default function RightPanel({ user }: RightPanelProps) {
     </div>
   )
 }
+
+export default memo(RightPanel);

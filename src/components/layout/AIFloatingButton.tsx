@@ -1,18 +1,17 @@
 "use client"; 
 
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Bot, Sparkles, ShieldAlert, CheckCircle2 } from 'lucide-react';
 import { useRouter } from 'next/navigation'; 
 import { useAuth } from '@/contexts/AuthProvider'; 
 
-export default function AIFloatingButton({ user: propUser }: { user?: any }) {
+const AIFloatingButton = () => {
   const router = useRouter();
-  const { user: contextUser } = useAuth();
-  
-  const user = propUser || contextUser;
+  const { user } = useAuth(); // Get user directly from context
   const [isDenied, setIsDenied] = useState(false);
 
+  // Moved colors outside render loop to save memory
   const robotColors = [
     "#10b981", "#34d399", "#60a5fa", "#818cf8", "#a78bfa",
     "#fb7185", "#fb923c", "#facc15", "#22d3ee", "#ffffff"
@@ -20,7 +19,6 @@ export default function AIFloatingButton({ user: propUser }: { user?: any }) {
 
   const handleProtectedNavigation = () => {
     if (user) {
-      // UPGRADE: Pointing to your NEW folder name
       router.push('/moana-gateway'); 
     } else {
       setIsDenied(true); 
@@ -29,7 +27,6 @@ export default function AIFloatingButton({ user: propUser }: { user?: any }) {
 
   return (
     <div className="fixed bottom-24 right-6 z-[100]">
-      
       {/* ACCESS DENIED TOOLTIP */}
       <AnimatePresence>
         {isDenied && (
@@ -58,7 +55,7 @@ export default function AIFloatingButton({ user: propUser }: { user?: any }) {
               className="w-full py-3 bg-red-600 hover:bg-red-700 text-white text-[10px] font-black uppercase tracking-[0.2em] rounded-xl transition-all flex items-center justify-center gap-2 group/btn shadow-lg shadow-red-900/40 cursor-pointer"
             >
               <CheckCircle2 size={14} />
-              Acknowledge & Close
+              Acknowledge
             </button>
           </motion.div>
         )}
@@ -75,6 +72,7 @@ export default function AIFloatingButton({ user: propUser }: { user?: any }) {
         className={`absolute inset-0 blur-2xl rounded-full transition-colors duration-700 ${
           isDenied ? 'bg-red-600' : 'bg-gradient-to-r from-emerald-400 to-cyan-500'
         }`}
+        style={{ willChange: 'transform, opacity' }}
       />
 
       {/* THE BUTTON */}
@@ -130,3 +128,5 @@ export default function AIFloatingButton({ user: propUser }: { user?: any }) {
     </div>
   );
 }
+
+export default memo(AIFloatingButton);
