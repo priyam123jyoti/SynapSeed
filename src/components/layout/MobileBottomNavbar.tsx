@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-// Swapped 'Image' for 'Trophy'
-import { Home, Globe, Trophy, Briefcase, BookOpen } from 'lucide-react';
+// Swapped Briefcase for Network
+import { Home, Globe, Trophy, Network, BookOpen } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 
@@ -14,8 +14,8 @@ export default function MobileBottomNavbar() {
   const tabs = [
     { name: 'Home', icon: Home, path: '/' },
     { name: 'Study Abroad', icon: Globe, path: '/global-study' },
-    { name: 'Leaderboard', icon: Trophy, path: '/leaderboard' }, // Updated Icon and Name
-    { name: 'Career Hub', icon: Briefcase, path: '/career' },
+    { name: 'Leaderboard', icon: Trophy, path: '/leaderboard' },
+    { name: 'Mind Map', icon: Network, path: '/ai-hub' }, // Updated Icon to Network
     { name: 'SynapStore', icon: BookOpen, path: '/affiliate-store' },
   ];
 
@@ -24,7 +24,7 @@ export default function MobileBottomNavbar() {
     if (currentTab) {
       setActive(currentTab.name);
     }
-  }, [pathname]);
+  }, [pathname, tabs]); // Added tabs to dependency array for best practice
 
   return (
     <div className="md:hidden fixed bottom-2 left-0 right-0 px-6 z-[100]">

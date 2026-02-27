@@ -22,7 +22,7 @@ export default function Navbar({ user: propUser }: { user?: any }) {
     { name: 'Home', hasDropdown: false, path: '/' },
     { name: 'Study Abroad', hasDropdown: false, path: '/global-study' },
     { name: 'Leaderboard', hasDropdown: true, path: '/leaderboard' },
-    { name: 'Career Hub', hasDropdown: false, path: '/career' },
+    { name: 'Mind Maps', hasDropdown: false, path: '/ai-hub' },
     { name: 'SynapStore', hasDropdown: false, path: '/affiliate-store' },
   ];
 

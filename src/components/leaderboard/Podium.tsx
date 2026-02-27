@@ -6,9 +6,9 @@ import { Crown, Sparkles, Target } from 'lucide-react';
 
 export const Podium = ({ topThree }: { topThree: any[] }) => {
   const data = [
-    { rank: 2, user: topThree[1], color: "bg-[#8E443D]", h: "h-40 lg:h-64", order: "order-1" },
-    { rank: 1, user: topThree[0], color: "bg-[#4F6D7A]", h: "h-60 lg:h-96", order: "order-2", win: true },
-    { rank: 3, user: topThree[2], color: "bg-[#CD7F32]", h: "h-32 lg:h-48", order: "order-3" },
+    { rank: 2, user: topThree[1], color: "bg-[#8E443D]", crownColor: "text-slate-300", h: "h-40 lg:h-64", order: "order-1" },
+    { rank: 1, user: topThree[0], color: "bg-[#4F6D7A]", crownColor: "text-amber-400", h: "h-60 lg:h-96", order: "order-2", win: true },
+    { rank: 3, user: topThree[2], color: "bg-[#CD7F32]", crownColor: "text-[#CD7F32]", h: "h-32 lg:h-48", order: "order-3" },
   ];
 
   return (
@@ -31,7 +31,7 @@ export const Podium = ({ topThree }: { topThree: any[] }) => {
               )}
               
               <Crown 
-                className={`${item.win ? 'text-amber-400 scale-125' : 'text-gray-400'} mx-auto mb-2`} 
+                className={`${item.crownColor} ${item.win ? 'scale-125' : ''} mx-auto mb-2`} 
                 fill="currentColor" 
                 size={item.win ? 32 : 24} 
               />
@@ -44,7 +44,6 @@ export const Podium = ({ topThree }: { topThree: any[] }) => {
                 <p className="text-xs lg:text-2xl font-black leading-none">
                   {item.user.average_score}%
                 </p>
-                {/* NO. OF ROUNDS ADDED HERE */}
                 <p className="text-[7px] lg:text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1 mt-1 tracking-tighter">
                   <Target size={8} className="lg:w-3 lg:h-3" />
                   {item.user.quizzes_played} Rounds
@@ -52,7 +51,7 @@ export const Podium = ({ topThree }: { topThree: any[] }) => {
               </div>
             </div>
 
-            {/* BAR: Sharp 3px rounded edges as requested */}
+            {/* BAR: Fixed Rectangles */}
             <motion.div
               initial={{ height: 0 }}
               animate={{ height: "auto" }}

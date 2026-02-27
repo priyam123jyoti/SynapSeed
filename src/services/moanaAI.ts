@@ -1,22 +1,71 @@
 import Groq from "groq-sdk";
 
-// Next.js uses process.env instead of import.meta.env
-// Ensure your .env.local file has: NEXT_PUBLIC_GROQ_API_KEY=your_key_here
 const groq = new Groq({
   apiKey: process.env.NEXT_PUBLIC_GROQ_API_KEY,
   dangerouslyAllowBrowser: true 
 });
 
-/**
- * IDENTITY PROTOCOL
- * Maker: Priyamjyoti Dihingia
- */
 const MOANA_IDENTITY = `You are M.O.A.N.A. (Molecular Organism & Advanced Neural Analyzer). 
 Created by Priyamjyoti Dihingia. 
-You are a master of Physics, Chemistry, Botany, and Zoology curriculum spanning HS, BSc, and MSc levels.`;
+You are a master of Physics, Chemistry, Botany, and Zoology curriculum (HS to MSc levels).`;
 
 /**
- * PROTOCOL: Examination Engine (Infinite Variety)
+ * PROTOCOL: Multi-Map Recursive Architect
+ * Analyzes text and returns a series of structured mind maps.
+ */
+export const generateMindMap = async (rawText: string) => {
+  const prompt = `
+    COMMAND: Perform an EXHAUSTIVE RECURSIVE ANALYSIS of the following scientific text.
+    TEXT: "${rawText}"
+    
+    INSTRUCTIONS:
+    1. SPLIT BY TOPIC: If the text covers multiple distinct major concepts, split them into separate maps within the "maps" array.
+    2. RECURSIVE DEPTH: Map every sub-concept, detail, and relationship mentioned. Go as deep as the text allows (Topic > Sub-topic > Detail > Fact).
+    3. QUALITY NOTES: Every node MUST have a "description" acting as a high-quality, concise study note.
+    
+    OUTPUT FORMAT: Return ONLY a JSON object with this structure:
+    { 
+      "maps": [
+        { 
+          "topic": "Main Title", 
+          "description": "Short summary",
+          "children": [
+            { 
+              "topic": "Sub-concept", 
+              "description": "Definition...", 
+              "children": [
+                { "topic": "Detail", "description": "Specific note...", "children": [] }
+              ] 
+            }
+          ] 
+        }
+      ]
+    }
+  `;
+
+  try {
+    const response = await groq.chat.completions.create({
+      messages: [
+        { role: "system", content: `${MOANA_IDENTITY} You are a Curriculum Architect. Output ONLY valid JSON.` },
+        { role: "user", content: prompt }
+      ],
+      model: "llama-3.3-70b-versatile",
+      response_format: { type: "json_object" },
+      temperature: 0.4,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (!content) throw new Error("Null response");
+    
+    return JSON.parse(content);
+  } catch (error) {
+    console.error("M.O.A.N.A. ARCHITECT ERROR:", error);
+    return { maps: [] };
+  }
+};
+
+/**
+ * PROTOCOL: Examination Engine
  */
 export const generateMoanaQuiz = async (topic: string, subject: string) => {
   const levels = ["HS Level (NEET/NCERT)", "BSc Level (Core Academic)", "MSc Level (Analytical/Research)"];
@@ -25,14 +74,7 @@ export const generateMoanaQuiz = async (topic: string, subject: string) => {
   const prompt = `
     COMMAND: Generate 10 High-Fidelity Quiz Questions.
     SUBJECT: ${subject} | MODULE: ${topic} | DEPTH: ${selectedLevel}
-    
-    VARIABILITY PROTOCOL:
-    1. NO REPETITION: Use deep curriculum details.
-    2. DISTRACTOR ROTATION: Create NEW plausible wrong options for every round.
-    3. LINGUISTIC VARIANCE: Vary sentence structure.
-    
     Return exactly 10 questions in a JSON array inside a "questions" key.
-    Required keys per question: "question", "options" (4 strings), "correct" (0-3), "explanation".
   `;
 
   try {
@@ -43,51 +85,12 @@ export const generateMoanaQuiz = async (topic: string, subject: string) => {
       ],
       model: "llama-3.3-70b-versatile",
       response_format: { type: "json_object" },
-      temperature: 0.9,
     });
 
     const content = response.choices[0]?.message?.content;
-    if (!content) throw new Error("Null response from MOANA Uplink");
-    
-    const data = JSON.parse(content);
-    
-    // Standardizing the return to ensure the UI receives an array
-    return data.questions || data.quiz || (Array.isArray(data) ? data : []);
+    const data = content ? JSON.parse(content) : {};
+    return data.questions || [];
   } catch (error) {
-    console.error("M.O.A.N.A. SYNC ERROR:", error);
     return [];
   }
 };
-
-/**
- * PROTOCOL: Neural Link Chat
- * Renamed internal logic to Moana; kept 'startJarvisChat' export for backward compatibility.
- */
-export const startMoanaChat = (modeId: string, subject: string = 'Botany') => {
-  const instruction = `${MOANA_IDENTITY} You are currently in ${modeId.toUpperCase()} mode for the subject: ${subject}. Provide expert scientific guidance.`;
-
-  return {
-    sendMessage: async (userInput: string, chatHistory: any[]) => {
-      try {
-        const response = await groq.chat.completions.create({
-          messages: [
-            { role: "system", content: instruction },
-            ...chatHistory,
-            { role: "user", content: userInput }
-          ],
-          model: "llama-3.3-70b-versatile",
-          temperature: 0.7,
-        });
-        return response.choices[0]?.message?.content ?? "Neural Link Interrupted.";
-      } catch (error) {
-        console.error("M.O.A.N.A. Chat Error:", error);
-        return "ERROR: Connection to M.O.A.N.A. uplink failed.";
-      }
-    },
-    introMessage: `Neural Link Established. M.O.A.N.A. active for ${subject.toUpperCase()}.`
-  };
-};
-
-// Aliases for seamless migration
-export const startJarvisChat = startMoanaChat;
-export const generateBotanyQuiz = generateMoanaQuiz;
