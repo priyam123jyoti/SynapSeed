@@ -2,24 +2,23 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Home, Globe, Image, Briefcase, BookOpen } from 'lucide-react';
-import { usePathname, useRouter } from 'next/navigation'; // Next.js specific
+// Swapped 'Image' for 'Trophy'
+import { Home, Globe, Trophy, Briefcase, BookOpen } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 
 export default function MobileBottomNavbar() {
   const pathname = usePathname();
-  const router = useRouter();
   const [active, setActive] = useState('Home');
 
   const tabs = [
     { name: 'Home', icon: Home, path: '/' },
     { name: 'Study Abroad', icon: Globe, path: '/global-study' },
-    { name: 'Leaderboard', icon: Image, path: '/leaderboard' },
+    { name: 'Leaderboard', icon: Trophy, path: '/leaderboard' }, // Updated Icon and Name
     { name: 'Career Hub', icon: Briefcase, path: '/career' },
     { name: 'SynapStore', icon: BookOpen, path: '/affiliate-store' },
   ];
 
-  // Sync state with URL if user navigates via browser back/forward or direct link
   useEffect(() => {
     const currentTab = tabs.find((tab) => tab.path === pathname);
     if (currentTab) {
@@ -45,7 +44,7 @@ export default function MobileBottomNavbar() {
               {/* Active Background Glow */}
               {isActive && (
                 <motion.div
-                  layoutId="activeTabMobile" // Unique layoutId for mobile vs desktop
+                  layoutId="activeTabMobile"
                   className="absolute inset-0 bg-emerald-50 rounded-2xl"
                   transition={{ type: "spring", stiffness: 350, damping: 30 }}
                 />
@@ -62,7 +61,7 @@ export default function MobileBottomNavbar() {
                 <motion.span 
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="text-[8px] font-bold text-emerald-800 uppercase tracking-widest mt-1 relative z-10"
+                  className="text-[8px] font-bold text-emerald-800 uppercase tracking-widest mt-1 relative z-10 text-center"
                 >
                   {tab.name}
                 </motion.span>
