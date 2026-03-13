@@ -32,13 +32,13 @@ const TopicCard = memo(({ name, icon, onClick }: TopicCardProps) => (
     onClick={() => onClick(name)}
     className="relative p-6 bg-slate-900/40 backdrop-blur-sm border border-emerald-600/20 rounded-3xl hover:border-emerald-500/50 transition-colors text-left group overflow-hidden"
   >
-    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-emerald-500/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#29ccbe] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
     
     <div className="text-3xl mb-3 filter drop-shadow-lg group-hover:drop-shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all">
       {icon}
     </div>
     <div className="text-[9px] text-emerald-500/60 mb-1 font-bold uppercase tracking-widest">
-      MN_DATA_NODE
+      Quiz Topic
     </div>
     <h3 className="font-bold uppercase text-slate-200 group-hover:text-white transition-all text-sm leading-tight">
       {name}
@@ -78,10 +78,10 @@ export const TopicSelection = ({ subjectTitle, topics, onStart, onBack }: TopicS
               className="group flex items-center gap-2 text-slate-500 font-bold hover:text-emerald-400 transition-all text-[10px] tracking-[0.2em] mb-4"
             >
               <ArrowLeft size={12} /> 
-              RETURN_TO_GATEWAY
+              Raturn
             </button>
-            <h1 className="text-4xl font-black tracking-tighter uppercase italic text-white">
-              {subjectTitle} <span className="text-emerald-500">ARCHIVE</span>
+            <h1 className="text-4xl font-black tracking-tighter uppercase text-white">
+              {subjectTitle} <span className="text-emerald-500">Archive</span>
             </h1>
           </motion.div>
 

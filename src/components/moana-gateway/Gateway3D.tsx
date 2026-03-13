@@ -7,7 +7,7 @@ import BackgroundAIModel from './BackgroundAIModel';
 
 const Gateway3D = () => {
   return (
-    <div className="fixed inset-0 z-0 bg-[#020617]">
+    <div className="fixed inset-0 z-0 bg-[#0B1A12]">
       <Canvas 
         shadows 
         camera={{ position: [0, 0, 5], fov: 45 }}
@@ -24,7 +24,7 @@ const Gateway3D = () => {
         </Suspense>
       </Canvas>
       {/* Optimized Gradient Overlay - uses transform-z to stay on top of WebGL */}
-      <div className="absolute inset-0 z-[1] bg-gradient-to-b from-[#020617]/40 via-transparent to-[#020617] pointer-events-none transform-gpu" />
+      <div className="absolute inset-0 z-[1] bg-gradient-to-b from-[#B4FF00]/40 via-transparent from-[#B4FF00] pointer-events-none transform-gpu" />
     </div>
   );
 };

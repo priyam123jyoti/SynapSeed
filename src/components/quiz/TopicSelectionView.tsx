@@ -47,7 +47,7 @@ const TopicSelectionView = ({
       <div className="absolute top-6 right-6 z-50 pointer-events-none hidden md:block">
         <div className="text-right">
           <p className="text-emerald-500/40 font-mono text-[10px] uppercase tracking-[0.3em]">
-            SYSTEM_SECTOR: <span className="text-emerald-400">{subjectTitle}</span>
+            SUBJECT: <span className="text-emerald-400">{subjectTitle}</span>
           </p>
           <p className="text-slate-700 font-mono text-[10px] uppercase tracking-[0.3em]">
             OPERATOR: {researcherName}
