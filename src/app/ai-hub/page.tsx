@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useCallback, useEffect } from 'react';
-import { useNodesState, useEdgesState, addEdge, ConnectionLineType, ReactFlowProvider } from 'reactflow';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import { useNodesState, useEdgesState, addEdge, ConnectionLineType, ReactFlowProvider, Handle, Position } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { ShieldAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthProvider';
 import { generateMindMap } from '@/services/moanaAI';
-import { supabase } from '@/lib/supabase'; 
+import { supabase } from '@/lib/supabase';
 
 // Modular Components
 import { Sidebar } from '@/components/mindmap/Sidebar';
@@ -16,6 +16,28 @@ import { MindMapNavbar } from '@/components/mindmap/MindMapNavbar';
 import { NodeFocusModal } from '@/components/mindmap/NodeFocusModal';
 
 const COLOR_PALETTE = ['#38bdf8', '#4ade80', '#f472b6', '#fb923c', '#facc15', '#a78bfa', '#94a3b8', '#fb7185'];
+
+// --- CUSTOM NODE COMPONENT (STOPS TEXT DISAPPEARING) ---
+const NeuralNode = ({ data }: any) => {
+  const isRoot = data.isRoot;
+  const topic = data.topic || data.fullData?.topic || "Neural Link";
+  const description = data.description || data.fullData?.description || "";
+
+  return (
+    <div className="w-full h-full relative">
+      <Handle type="target" position={Position.Top} className="opacity-0" />
+      <div className="text-left select-none p-2">
+        <div className={`font-black uppercase leading-tight mb-2 ${isRoot ? 'text-2xl text-white' : 'text-lg text-slate-800'}`}>
+          {topic}
+        </div>
+        <div className={`leading-relaxed font-bold ${isRoot ? 'text-sm text-white/80' : 'text-[11px] text-slate-500'}`}>
+          {description.length > 120 ? `${description.substring(0, 120)}...` : description}
+        </div>
+      </div>
+      <Handle type="source" position={Position.Bottom} className="opacity-0" />
+    </div>
+  );
+};
 
 export default function MindMapPage() {
   const router = useRouter();
@@ -31,58 +53,28 @@ export default function MindMapPage() {
   const [isHovering, setIsHovering] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
 
-  // --- 1. SECURITY GUARD ---
+  const nodeTypes = useMemo(() => ({ neuralNode: NeuralNode }), []);
+
   useEffect(() => {
-    if (!loading && !user) {
-      router.push('/?error=unauthorized');
-    }
+    if (!loading && !user) router.push('/?error=unauthorized');
   }, [user, loading, router]);
 
-  // --- 2. LOAD NEURAL HISTORY ON MOUNT ---
   useEffect(() => {
     const fetchHistory = async () => {
       if (!user) return;
-      const { data, error } = await supabase
-        .from('mind_maps')
-        .select('*')
-        .order('created_at', { ascending: false });
-
+      const { data } = await supabase.from('mind_maps').select('*').order('created_at', { ascending: false });
       if (data) setMaps(data);
-      if (error) console.error("History Fetch Error:", error.message);
     };
-
     if (user && !loading) fetchHistory();
   }, [user, loading]);
 
-  // --- 3. CLOUD SAVE FUNCTION ---
   const saveMapToCloud = async (topic: string, nodesData: any[], edgesData: any[]) => {
     if (!user) return;
-    const { data, error } = await supabase
-      .from('mind_maps')
-      .insert([{
-        user_id: user.id,
-        topic: topic,
-        nodes: nodesData,
-        edges: edgesData
-      }])
-      .select();
-
+    const { data } = await supabase.from('mind_maps').insert([{
+      user_id: user.id, topic: topic, nodes: nodesData, edges: edgesData
+    }]).select();
     if (data) setMaps(prev => [data[0], ...prev]);
-    if (error) console.error("Cloud Save Error:", error.message);
   };
-
-  const onConnect = useCallback((params: any) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
-
-  const createNodeLabel = (topic: string, description: string, isRoot: boolean) => (
-    <div className="text-left select-none pointer-events-none p-2">
-      <div className={`font-black uppercase leading-tight mb-2 ${isRoot ? 'text-2xl text-white' : 'text-lg text-slate-800'}`}>
-        {topic}
-      </div>
-      <div className={`leading-relaxed font-bold ${isRoot ? 'text-sm text-white/80' : 'text-[11px] text-slate-500'}`}>
-        {description.substring(0, 120)}...
-      </div>
-    </div>
-  );
 
   const handleGenerate = async () => {
     if (!inputText.trim()) return;
@@ -90,25 +82,25 @@ export default function MindMapPage() {
     
     try {
       const result: any = await generateMindMap(inputText);
-      
-      if (result && typeof result === 'object' && 'maps' in result) {
-        const mapsData = result.maps;
+      if (result?.maps) {
         const allNodes: any[] = [];
         const allEdges: any[] = [];
         const NODE_WIDTH = 320;
         const HORIZONTAL_GAP = 120;
         const VERTICAL_GAP = 450;
 
-        mapsData.forEach((mapData: any, mapIndex: number) => {
+        result.maps.forEach((mapData: any, mapIndex: number) => {
           const mapYOffset = mapIndex * 10000;
 
+          // --- RESTORED: CALCULATE WIDTH OF BRANCHES ---
           const getBranchWidth = (node: any): number => {
             if (!node.children || node.children.length === 0) return NODE_WIDTH + HORIZONTAL_GAP;
             return node.children.reduce((acc: number, child: any) => acc + getBranchWidth(child), 0);
           };
 
+          // --- RESTORED: BUILD TREE WITH BOUNDARY LOGIC ---
           const buildTree = (nodeData: any, parentId: string | null = null, level = 0, currentXBoundary = 0, branchColor = '#4ade80') => {
-            const id = parentId ? `${parentId}-${nodeData.topic.replace(/\s/g, '').toLowerCase()}-${Math.random().toString(36).substr(2, 5)}` : `root-${mapIndex}`;
+            const id = parentId ? `${parentId}-${Math.random().toString(36).substr(2, 5)}` : `root-${mapIndex}`;
             const isRoot = level === 0;
             const totalBranchWidth = getBranchWidth(nodeData);
 
@@ -117,17 +109,15 @@ export default function MindMapPage() {
 
             allNodes.push({
               id,
+              type: 'neuralNode',
               position: { x: xPos, y: yPos },
+              data: { topic: nodeData.topic, description: nodeData.description, isRoot, color: branchColor },
               style: { 
                 background: isRoot ? '#020617' : 'white', 
                 border: `3px solid ${isRoot ? '#38bdf8' : branchColor}`, 
                 borderRadius: '24px', padding: '12px', width: NODE_WIDTH, cursor: 'pointer',
                 boxShadow: '0 10px 30px rgba(0,0,0,0.08)'
               },
-              data: { 
-                label: createNodeLabel(nodeData.topic, nodeData.description, isRoot),
-                fullData: nodeData, color: branchColor
-              }
             });
 
             if (parentId) {
@@ -142,7 +132,7 @@ export default function MindMapPage() {
               nodeData.children.forEach((child: any, i: number) => {
                 const childColor = level === 0 ? COLOR_PALETTE[i % COLOR_PALETTE.length] : branchColor;
                 buildTree(child, id, level + 1, nextChildXBoundary, childColor);
-                nextChildXBoundary += getBranchWidth(child);
+                nextChildXBoundary += getBranchWidth(child); // Ensure siblings don't overlap
               });
             }
           };
@@ -152,65 +142,39 @@ export default function MindMapPage() {
         setNodes(allNodes);
         setEdges(allEdges);
         setActiveView('canvas');
-
-        // --- 4. PERSIST TO SUPABASE ---
         await saveMapToCloud(inputText, allNodes, allEdges);
       }
-    } catch (error) {
-      console.error("Neural Mapping Error:", error);
-    } finally {
-      setIsGenerating(false);
-    }
+    } finally { setIsGenerating(false); }
   };
 
-  if (loading || !user) {
-    return (
-      <div className="h-screen w-full bg-[#020617] flex flex-col items-center justify-center">
-        <ShieldAlert size={48} className="text-emerald-500 animate-pulse mb-4" />
-        <h2 className="text-white font-black tracking-widest uppercase text-sm">Validating Neural Link...</h2>
-      </div>
-    );
-  }
+  if (loading || !user) return (
+    <div className="h-screen w-full bg-[#020617] flex flex-col items-center justify-center">
+      <ShieldAlert size={48} className="text-emerald-500 animate-pulse mb-4" />
+      <h2 className="text-white font-black uppercase text-sm">Validating Neural Link...</h2>
+    </div>
+  );
 
   return (
     <ReactFlowProvider>
-      <div className="h-screen bg-slate-50 flex flex-col overflow-hidden relative font-sans">
-        <MindMapNavbar 
-          isFullScreen={isFullScreen} 
-          setIsFullScreen={setIsFullScreen} 
-          activeView={activeView} 
-          setActiveView={setActiveView}
-        />
-        
-        <main className="flex-1 flex overflow-hidden relative">
+      <div className="h-screen bg-slate-50 flex flex-col overflow-hidden relative">
+        <MindMapNavbar isFullScreen={isFullScreen} setIsFullScreen={setIsFullScreen} activeView={activeView} setActiveView={setActiveView} />
+        <main className="flex-1 flex overflow-hidden">
           {!isFullScreen && (
             <Sidebar 
-              inputText={inputText} 
-              setInputText={setInputText} 
-              isGenerating={isGenerating} 
-              handleGenerate={handleGenerate} 
-              maps={maps || []} 
-              setMaps={setMaps} 
-              activeView={activeView} 
-              setActiveView={setActiveView} 
-              setHovering={setIsHovering}
-              setNodes={setNodes} 
-              setEdges={setEdges} 
+              inputText={inputText} setInputText={setInputText} isGenerating={isGenerating} handleGenerate={handleGenerate} 
+              maps={maps || []} setMaps={setMaps} activeView={activeView} setActiveView={setActiveView} 
+              setHovering={setIsHovering} setNodes={setNodes} setEdges={setEdges} 
             />
           )}
-          
           <FlowCanvas 
-            nodes={nodes || []} 
-            edges={edges || []} 
-            onNodesChange={onNodesChange} 
-            onEdgesChange={onEdgesChange} 
-            onConnect={onConnect} 
+            nodes={nodes} edges={edges} 
+            nodeTypes={nodeTypes}
+            onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} 
+            onConnect={(p: any) => setEdges((eds) => addEdge(p, eds))} 
             onNodeDoubleClick={(e: any, n: any) => setFocusedNode(n.data)} 
-            setHovering={setIsHovering} 
-            activeView={isFullScreen ? 'canvas' : activeView} 
+            setHovering={setIsHovering} activeView={isFullScreen ? 'canvas' : activeView} 
           />
         </main>
-
         <NodeFocusModal node={focusedNode} onClose={() => setFocusedNode(null)} />
       </div>
     </ReactFlowProvider>

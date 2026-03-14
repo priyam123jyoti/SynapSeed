@@ -1,11 +1,15 @@
 "use client";
 
 import React from 'react';
-import { X, Zap, Share2, Download } from 'lucide-react';
+import { X, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 export const NodeFocusModal = ({ node, onClose }: any) => {
   if (!node) return null;
+
+  // FIX: Access text from both new flat structure or old nested structure
+  const topic = node.topic || node.fullData?.topic || "Neural Node";
+  const description = node.description || node.fullData?.description || "No description available.";
 
   return (
     <AnimatePresence>
@@ -40,7 +44,7 @@ export const NodeFocusModal = ({ node, onClose }: any) => {
                   Node Intelligence
                 </div>
                 <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tight leading-none">
-                  {node.fullData?.topic}
+                  {topic}
                 </h2>
               </div>
               <button 
@@ -52,19 +56,19 @@ export const NodeFocusModal = ({ node, onClose }: any) => {
             </div>
 
             <div className="prose prose-slate max-w-none">
-              <p className="text-lg text-slate-600 leading-relaxed font-medium">
-                {node.fullData?.description}
+              <p className="text-lg text-slate-600 leading-relaxed font-bold italic">
+                "{description}"
               </p>
             </div>
 
-            {/* Actions */}
-            <div className="mt-12 pt-8 border-t border-slate-100 flex flex-wrap gap-4">
-               <button className="flex items-center gap-2 px-6 py-3 bg-slate-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-800 transition-all">
-                 <Download size={14} /> Export Insight
-               </button>
-               <button className="flex items-center gap-2 px-6 py-3 bg-slate-100 text-slate-600 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all">
-                 <Share2 size={14} /> Share Node
-               </button>
+            {/* Footer */}
+            <div className="mt-12 pt-8 border-t border-slate-100 flex justify-end">
+               <button 
+                onClick={onClose}
+                className="px-8 py-4 bg-[#020617] text-white text-[10px] font-black uppercase tracking-widest rounded-2xl hover:bg-emerald-600 transition-all shadow-lg"
+              >
+                Close Node
+              </button>
             </div>
           </div>
         </motion.div>

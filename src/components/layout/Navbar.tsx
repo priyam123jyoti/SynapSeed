@@ -39,19 +39,21 @@ export default function Navbar({ user: propUser }: { user?: any }) {
     }
   };
 
-  const handleAuth = async () => {
-    if (user) {
-      await supabase.auth.signOut(); 
-      router.refresh();
-    } else {
-      await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: typeof window !== 'undefined' ? window.location.origin : '', 
-        },
-      });
-    }
-  };
+// Inside your Navbar.tsx, update handleAuth:
+const handleAuth = async () => {
+  if (user) {
+    await supabase.auth.signOut(); 
+    router.refresh();
+  } else {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        // Redirect to our new onboarding wizard
+        redirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/onboarding`, 
+      },
+    });
+  }
+};
 
   return (
     <>
