@@ -1,7 +1,7 @@
 "use client";
 
 import React from 'react';
-import { BrainCircuit, Send, History, Trash2, Clock, Box, ArrowRight } from 'lucide-react';
+import { BrainCircuit, History, Trash2, Clock, Box, ArrowRight } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface SidebarProps {
@@ -32,6 +32,35 @@ export const Sidebar = ({
   setEdges
 }: SidebarProps) => {
 
+  // --- REBUILD NODE LABELS ---
+  const loadMapFromHistory = (mapData: any) => {
+    // We must re-create the HTML (JSX) for the labels because databases cannot store HTML
+    const reconstructedNodes = mapData.nodes.map((node: any) => {
+      const isRoot = node.id.includes('root');
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          label: (
+            <div className="text-left select-none pointer-events-none p-2">
+              <div className={`font-black uppercase leading-tight mb-2 ${isRoot ? 'text-2xl text-white' : 'text-lg text-slate-800'}`}>
+                {node.data.fullData?.topic || "Unknown Topic"}
+              </div>
+              <div className={`leading-relaxed font-bold ${isRoot ? 'text-sm text-white/80' : 'text-[11px] text-slate-500'}`}>
+                {node.data.fullData?.description?.substring(0, 120) || ""}...
+              </div>
+            </div>
+          )
+        }
+      };
+    });
+
+    setNodes(reconstructedNodes);
+    setEdges(mapData.edges);
+    setActiveView('canvas');
+    setHovering(false);
+  };
+
   // --- DELETE LOGIC ---
   const handleDelete = async (e: React.MouseEvent, id: string) => {
     e.stopPropagation();
@@ -40,6 +69,8 @@ export const Sidebar = ({
     const { error } = await supabase.from('mind_maps').delete().eq('id', id);
     if (!error) {
       setMaps(prev => prev.filter(m => m.id !== id));
+    } else {
+      console.error("Delete error:", error.message);
     }
   };
 
@@ -80,18 +111,13 @@ export const Sidebar = ({
 
       {/* History Content Area */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {maps.length > 0 ? (
+        {maps && maps.length > 0 ? (
           maps.map((m: any) => (
             <div key={m.id} className="group relative">
               <button 
                 onMouseEnter={() => setHovering(true)}
                 onMouseLeave={() => setHovering(false)}
-                onClick={() => {
-                  setNodes(m.nodes);
-                  setEdges(m.edges);
-                  setActiveView('canvas');
-                  setHovering(false);
-                }} 
+                onClick={() => loadMapFromHistory(m)} 
                 className="w-full h-24 bg-white border border-slate-200 rounded-3xl flex items-center px-6 gap-4 hover:border-emerald-500 hover:bg-emerald-50/30 transition-all text-left group shadow-sm active:scale-95"
               >
                 <div className="w-12 h-12 bg-slate-100 rounded-2xl flex items-center justify-center text-slate-500 group-hover:bg-white group-hover:text-emerald-500 transition-colors">

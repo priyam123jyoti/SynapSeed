@@ -7,7 +7,7 @@ import { ShieldAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthProvider';
 import { generateMindMap } from '@/services/moanaAI';
-import { supabase } from '@/lib/supabase'; // Ensure your supabase client path is correct
+import { supabase } from '@/lib/supabase'; 
 
 // Modular Components
 import { Sidebar } from '@/components/mindmap/Sidebar';
@@ -25,7 +25,7 @@ export default function MindMapPage() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [inputText, setInputText] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [maps, setMaps] = useState<any[]>([]); // This will now hold your Supabase history
+  const [maps, setMaps] = useState<any[]>([]); 
   const [activeView, setActiveView] = useState<'dashboard' | 'canvas'>('dashboard');
   const [focusedNode, setFocusedNode] = useState<any>(null);
   const [isHovering, setIsHovering] = useState(false);
@@ -189,19 +189,19 @@ export default function MindMapPage() {
               setInputText={setInputText} 
               isGenerating={isGenerating} 
               handleGenerate={handleGenerate} 
-              maps={maps} 
-              setMaps={setMaps} // Pass setter for delete functionality
+              maps={maps || []} 
+              setMaps={setMaps} 
               activeView={activeView} 
               setActiveView={setActiveView} 
               setHovering={setIsHovering}
-              setNodes={setNodes} // Pass to allow loading from history
-              setEdges={setEdges} // Pass to allow loading from history
+              setNodes={setNodes} 
+              setEdges={setEdges} 
             />
           )}
           
           <FlowCanvas 
-            nodes={nodes} 
-            edges={edges} 
+            nodes={nodes || []} 
+            edges={edges || []} 
             onNodesChange={onNodesChange} 
             onEdgesChange={onEdgesChange} 
             onConnect={onConnect} 
