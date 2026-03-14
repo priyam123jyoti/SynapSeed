@@ -32,22 +32,27 @@ export const Sidebar = ({
   setEdges
 }: SidebarProps) => {
 
-  // --- REBUILD NODE LABELS ---
+  // --- REBUILD NODE LABELS (STRENGTHENED FIX) ---
   const loadMapFromHistory = (mapData: any) => {
-    // We must re-create the HTML (JSX) for the labels because databases cannot store HTML
     const reconstructedNodes = mapData.nodes.map((node: any) => {
       const isRoot = node.id.includes('root');
+      
+      // 1. Extract data with multiple fallbacks to ensure text is found
+      const topicText = node.data.fullData?.topic || node.data.topic || node.data.label?.props?.children[0]?.props?.children || "Neural Node";
+      const descText = node.data.fullData?.description || node.data.description || "";
+
       return {
         ...node,
         data: {
           ...node.data,
+          // 2. Re-inject the JSX using the safe variables from above
           label: (
-            <div className="text-left select-none pointer-events-none p-2">
+            <div className="text-left select-none pointer-events-none p-2 w-full">
               <div className={`font-black uppercase leading-tight mb-2 ${isRoot ? 'text-2xl text-white' : 'text-lg text-slate-800'}`}>
-                {node.data.fullData?.topic || "Unknown Topic"}
+                {topicText}
               </div>
               <div className={`leading-relaxed font-bold ${isRoot ? 'text-sm text-white/80' : 'text-[11px] text-slate-500'}`}>
-                {node.data.fullData?.description?.substring(0, 120) || ""}...
+                {descText.length > 120 ? `${descText.substring(0, 120)}...` : descText}
               </div>
             </div>
           )
