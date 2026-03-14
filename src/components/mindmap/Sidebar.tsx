@@ -35,7 +35,7 @@ export const Sidebar = ({
             disabled={isGenerating}
             className="w-full py-5 bg-[#020617] text-white font-black rounded-2xl uppercase text-[11px] tracking-[0.2em] shadow-xl hover:scale-[1.01] active:scale-[0.98] transition-all disabled:opacity-50"
           >
-            {isGenerating ? "Mapping Neural Pathways..." : "Generate Neural Map"}
+            {isGenerating ? "Mapping Neural Pathways..." : "Generate Mind Map Here"}
           </button>
         </div>
       </div>
