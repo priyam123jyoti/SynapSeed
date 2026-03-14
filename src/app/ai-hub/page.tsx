@@ -7,6 +7,7 @@ import { ShieldAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthProvider';
 import { generateMindMap } from '@/services/moanaAI';
+import { supabase } from '@/lib/supabase'; // Ensure your supabase client path is correct
 
 // Modular Components
 import { Sidebar } from '@/components/mindmap/Sidebar';
@@ -24,18 +25,51 @@ export default function MindMapPage() {
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [inputText, setInputText] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [maps, setMaps] = useState<any[]>([]);
+  const [maps, setMaps] = useState<any[]>([]); // This will now hold your Supabase history
   const [activeView, setActiveView] = useState<'dashboard' | 'canvas'>('dashboard');
   const [focusedNode, setFocusedNode] = useState<any>(null);
   const [isHovering, setIsHovering] = useState(false);
   const [isFullScreen, setIsFullScreen] = useState(false);
 
-  // --- SECURITY GUARD ---
+  // --- 1. SECURITY GUARD ---
   useEffect(() => {
     if (!loading && !user) {
       router.push('/?error=unauthorized');
     }
   }, [user, loading, router]);
+
+  // --- 2. LOAD NEURAL HISTORY ON MOUNT ---
+  useEffect(() => {
+    const fetchHistory = async () => {
+      if (!user) return;
+      const { data, error } = await supabase
+        .from('mind_maps')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (data) setMaps(data);
+      if (error) console.error("History Fetch Error:", error.message);
+    };
+
+    if (user && !loading) fetchHistory();
+  }, [user, loading]);
+
+  // --- 3. CLOUD SAVE FUNCTION ---
+  const saveMapToCloud = async (topic: string, nodesData: any[], edgesData: any[]) => {
+    if (!user) return;
+    const { data, error } = await supabase
+      .from('mind_maps')
+      .insert([{
+        user_id: user.id,
+        topic: topic,
+        nodes: nodesData,
+        edges: edgesData
+      }])
+      .select();
+
+    if (data) setMaps(prev => [data[0], ...prev]);
+    if (error) console.error("Cloud Save Error:", error.message);
+  };
 
   const onConnect = useCallback((params: any) => setEdges((eds) => addEdge(params, eds)), [setEdges]);
 
@@ -59,8 +93,6 @@ export default function MindMapPage() {
       
       if (result && typeof result === 'object' && 'maps' in result) {
         const mapsData = result.maps;
-        setMaps(mapsData);
-        
         const allNodes: any[] = [];
         const allEdges: any[] = [];
         const NODE_WIDTH = 320;
@@ -119,8 +151,10 @@ export default function MindMapPage() {
         
         setNodes(allNodes);
         setEdges(allEdges);
-        // Switch to canvas automatically on generation
         setActiveView('canvas');
+
+        // --- 4. PERSIST TO SUPABASE ---
+        await saveMapToCloud(inputText, allNodes, allEdges);
       }
     } catch (error) {
       console.error("Neural Mapping Error:", error);
@@ -141,7 +175,6 @@ export default function MindMapPage() {
   return (
     <ReactFlowProvider>
       <div className="h-screen bg-slate-50 flex flex-col overflow-hidden relative font-sans">
-        {/* Pass activeView and setActiveView to the Navbar */}
         <MindMapNavbar 
           isFullScreen={isFullScreen} 
           setIsFullScreen={setIsFullScreen} 
@@ -157,9 +190,12 @@ export default function MindMapPage() {
               isGenerating={isGenerating} 
               handleGenerate={handleGenerate} 
               maps={maps} 
+              setMaps={setMaps} // Pass setter for delete functionality
               activeView={activeView} 
               setActiveView={setActiveView} 
               setHovering={setIsHovering}
+              setNodes={setNodes} // Pass to allow loading from history
+              setEdges={setEdges} // Pass to allow loading from history
             />
           )}
           
