@@ -1,9 +1,13 @@
 "use client";
 
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import { Atom, Beaker, Leaf, Dog, ArrowRight } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
+
+// Importing your specific AuthGuardModal component
+import AuthGuardModal from '@/components/auth/AuthGuardModal'; 
 
 const SUBJECTS = [
   {
@@ -11,7 +15,7 @@ const SUBJECTS = [
     title: 'Physics',
     icon: <Atom size={32} />,
     stats: '8,500+ Questions',
-    topic: 'Mechanics and Thermodynamics', // The auto-search term
+    topic: 'Mechanics and Thermodynamics',
     description: 'Master Mechanics to Quantum Physics with AI-driven problem solving.',
     color: 'from-blue-500/20 to-cyan-500/20',
     border: 'hover:border-blue-400',
@@ -54,14 +58,24 @@ const SUBJECTS = [
 
 const SubjectPillars = memo(() => {
   const router = useRouter();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handleStartQuiz = (id: string, name: string, topic: string) => {
-    // Navigates and passes the specific topic as a 'query'
+  const handleStartQuiz = async (id: string, name: string, topic: string) => {
+    // 1. Silent check: See if a user exists in Supabase
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!user) {
+      // 2. Gatekeeper Trigger: Show the modal, stop the code execution here
+      setIsModalOpen(true);
+      return;
+    }
+
+    // 3. Authorized Flow: Only navigates if the user is authenticated
     router.push(`/quiz?subject=${id}&name=${name}&query=${encodeURIComponent(topic)}`);
   };
 
   return (
-    <section className="py-20 px-4 bg-white">
+    <section className="py-20 px-4 bg-white relative">
       <div className="max-w-6xl mx-auto">
         <div className="text-center mb-16">
           <h2 className="text-3xl md:text-5xl font-black text-gray-900 mb-4 tracking-tight">
@@ -116,6 +130,13 @@ const SubjectPillars = memo(() => {
           ))}
         </div>
       </div>
+
+      {/* The Auth Guard Modal is rendered here */}
+      <AuthGuardModal 
+        isOpen={isModalOpen} 
+        onClose={() => setIsModalOpen(false)} 
+        title="MoanaAI" 
+      />
     </section>
   );
 });

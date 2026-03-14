@@ -1,4 +1,3 @@
-// Force refresh 1
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -16,8 +15,11 @@ export default function QuizClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
+  // Dynamic URL Params
   const subjectKey = searchParams.get('subject') || 'botany';
   const subjectName = searchParams.get('name') || 'Botany Quiz';
+  const queryTopic = searchParams.get('query'); // Potential direct topic start
+  
   const subjectTitle = useMemo(() => subjectName.toUpperCase(), [subjectName]);
   
   const currentTopics = useMemo(() => 
@@ -25,17 +27,32 @@ export default function QuizClient() {
   [subjectKey]);
 
   const [user, setUser] = useState<any>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState(true); // Security State
   const [loading, setLoading] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [questions, setQuestions] = useState<any[]>([]);
 
+  // --- THE SECURITY GUARD ---
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+    const validateAccess = async () => {
+      const { data: { user }, error } = await supabase.auth.getUser();
+
+      if (error || !user) {
+        // Kick out unauthorized users
+        router.replace('/?error=unauthorized');
+        return;
+      }
+
       setUser(user);
+      setIsAuthChecking(false);
+
+      // If a 'query' exists in URL, start quiz for that topic automatically
+      if (queryTopic && !selectedTopic) {
+        handleStartQuiz(queryTopic);
+      }
     };
-    fetchUser();
-  }, []);
+    validateAccess();
+  }, [router, queryTopic]);
 
   const saveQuizScore = useCallback(async (percentage: number) => {
     if (!user) return;
@@ -50,7 +67,7 @@ export default function QuizClient() {
     if (error) console.error("Database Sync Error:", error.message);
   }, [user, selectedTopic, subjectTitle]);
 
-  const startQuiz = useCallback(async (topic: string) => {
+  const handleStartQuiz = useCallback(async (topic: string) => {
     setLoading(true);
     setSelectedTopic(topic);
     try {
@@ -66,7 +83,15 @@ export default function QuizClient() {
     }
   }, [subjectTitle]);
 
-  if (loading) return <LoadingScreen topic={`${subjectTitle}: ${selectedTopic}`} />;
+  // Initial Auth Loading Screen
+  if (isAuthChecking) {
+    return <LoadingScreen topic="Authenticating Researcher..." />;
+  }
+
+  // Quiz Generation Loading Screen
+  if (loading) {
+    return <LoadingScreen topic={`${subjectTitle}: ${selectedTopic}`} />;
+  }
 
   return (
     <main className="min-h-screen bg-[#020617] relative overflow-hidden">
@@ -77,7 +102,7 @@ export default function QuizClient() {
             subjectTitle={subjectTitle}
             topics={currentTopics} 
             researcherName={user?.user_metadata?.full_name?.split(' ')[0] || "Researcher"}
-            onStart={startQuiz}
+            onStart={handleStartQuiz}
             onBack={() => router.push('/moana-gateway')}
           />
         ) : (
@@ -85,7 +110,7 @@ export default function QuizClient() {
             questions={questions}
             subjectTitle={subjectTitle}
             selectedTopic={selectedTopic}
-            onRestart={() => { startQuiz(selectedTopic); }}
+            onRestart={() => { handleStartQuiz(selectedTopic); }}
             onFinishQuiz={(score) => { saveQuizScore(score); }}
             onTerminate={() => {
               setSelectedTopic(null);

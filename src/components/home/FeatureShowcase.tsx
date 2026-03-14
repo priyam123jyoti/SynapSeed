@@ -51,7 +51,7 @@ const FeatureShowcase = () => {
               </p>
             </div>
             <div className="mt-4 pt-4 border-t border-white/10">
-               <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Active in 12+ Countries</span>
+               <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest">Active in 150+ Countries</span>
             </div>
           </div>
 

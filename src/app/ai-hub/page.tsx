@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthProvider';
 import { generateMindMap } from '@/services/moanaAI';
 
+// Modular Components
 import { Sidebar } from '@/components/mindmap/Sidebar';
 import { FlowCanvas } from '@/components/mindmap/FlowCanvas';
 import { MindMapNavbar } from '@/components/mindmap/MindMapNavbar';
@@ -27,6 +28,7 @@ export default function MindMapPage() {
   const [activeView, setActiveView] = useState<'dashboard' | 'canvas'>('dashboard');
   const [focusedNode, setFocusedNode] = useState<any>(null);
   const [isHovering, setIsHovering] = useState(false);
+  const [isFullScreen, setIsFullScreen] = useState(false);
 
   // --- SECURITY GUARD ---
   useEffect(() => {
@@ -53,19 +55,19 @@ export default function MindMapPage() {
     setIsGenerating(true);
     
     try {
-      const result = await generateMindMap(inputText);
+      const result: any = await generateMindMap(inputText);
       
-      if (result?.maps) {
-        setMaps(result.maps);
+      if (result && typeof result === 'object' && 'maps' in result) {
+        const mapsData = result.maps;
+        setMaps(mapsData);
+        
         const allNodes: any[] = [];
         const allEdges: any[] = [];
-        
         const NODE_WIDTH = 320;
         const HORIZONTAL_GAP = 120;
         const VERTICAL_GAP = 450;
 
-        result.maps.forEach((mapData: any, mapIndex: number) => {
-          // Increased gap to 10,000 to prevent any possible overlap (Grapes)
+        mapsData.forEach((mapData: any, mapIndex: number) => {
           const mapYOffset = mapIndex * 10000;
 
           const getBranchWidth = (node: any): number => {
@@ -84,7 +86,6 @@ export default function MindMapPage() {
             allNodes.push({
               id,
               position: { x: xPos, y: yPos },
-              // IMPORTANT: Using default node style to ensure your custom label renders
               style: { 
                 background: isRoot ? '#020617' : 'white', 
                 border: `3px solid ${isRoot ? '#38bdf8' : branchColor}`, 
@@ -115,11 +116,14 @@ export default function MindMapPage() {
           };
           buildTree(mapData);
         });
+        
         setNodes(allNodes);
         setEdges(allEdges);
+        // Switch to canvas automatically on generation
+        setActiveView('canvas');
       }
     } catch (error) {
-      console.error("Mapping Error:", error);
+      console.error("Neural Mapping Error:", error);
     } finally {
       setIsGenerating(false);
     }
@@ -136,20 +140,41 @@ export default function MindMapPage() {
 
   return (
     <ReactFlowProvider>
-      <div className="h-screen bg-slate-50 flex flex-col overflow-hidden relative">
-        <MindMapNavbar />
+      <div className="h-screen bg-slate-50 flex flex-col overflow-hidden relative font-sans">
+        {/* Pass activeView and setActiveView to the Navbar */}
+        <MindMapNavbar 
+          isFullScreen={isFullScreen} 
+          setIsFullScreen={setIsFullScreen} 
+          activeView={activeView} 
+          setActiveView={setActiveView}
+        />
+        
         <main className="flex-1 flex overflow-hidden relative">
-          <Sidebar 
-            inputText={inputText} setInputText={setInputText} isGenerating={isGenerating} 
-            handleGenerate={handleGenerate} maps={maps} activeView={activeView} 
-            setActiveView={setActiveView} setHovering={setIsHovering}
-          />
+          {!isFullScreen && (
+            <Sidebar 
+              inputText={inputText} 
+              setInputText={setInputText} 
+              isGenerating={isGenerating} 
+              handleGenerate={handleGenerate} 
+              maps={maps} 
+              activeView={activeView} 
+              setActiveView={setActiveView} 
+              setHovering={setIsHovering}
+            />
+          )}
+          
           <FlowCanvas 
-            nodes={nodes} edges={edges} onNodesChange={onNodesChange} onEdgesChange={onEdgesChange} 
-            onConnect={onConnect} onNodeDoubleClick={(e: any, n: any) => setFocusedNode(n.data)} 
-            setHovering={setIsHovering} activeView={activeView} 
+            nodes={nodes} 
+            edges={edges} 
+            onNodesChange={onNodesChange} 
+            onEdgesChange={onEdgesChange} 
+            onConnect={onConnect} 
+            onNodeDoubleClick={(e: any, n: any) => setFocusedNode(n.data)} 
+            setHovering={setIsHovering} 
+            activeView={isFullScreen ? 'canvas' : activeView} 
           />
         </main>
+
         <NodeFocusModal node={focusedNode} onClose={() => setFocusedNode(null)} />
       </div>
     </ReactFlowProvider>

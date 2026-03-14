@@ -2,33 +2,71 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, Maximize2, Minimize2, LayoutDashboard } from 'lucide-react';
 
-export const MindMapNavbar = () => {
+interface NavbarProps {
+  isFullScreen: boolean;
+  setIsFullScreen: (val: boolean) => void;
+  activeView: 'dashboard' | 'canvas'; // Add this
+  setActiveView: (view: 'dashboard' | 'canvas') => void; // Add this
+}
+
+export const MindMapNavbar = ({ isFullScreen, setIsFullScreen, activeView, setActiveView }: NavbarProps) => {
   return (
-    <nav className="h-16 bg-[#020617] text-white flex items-center justify-between px-6 shrink-0 z-[60] border-b border-white/5">
+    <nav className="h-16 bg-[#021417] text-white flex items-center justify-between px-6 shrink-0 z-[60] border-b border-white/5">
       <div className="flex items-center gap-4">
-        <Link 
-          href="/" 
-          className="p-2 rounded-full hover:bg-white/10 transition-colors"
-        >
-          <ChevronLeft size={20} />
-        </Link>
-        <div className="flex flex-col text-left">
+        {/* If on mobile and in canvas view, show BACK TO DASHBOARD, else show BACK TO HOME */}
+        {activeView === 'canvas' ? (
+          <button 
+            onClick={() => setActiveView('dashboard')}
+            className="flex items-center gap-2 p-2 pr-4 rounded-full bg-white/5 hover:bg-white/10 transition-colors text-emerald-400 lg:hidden"
+          >
+            <ChevronLeft size={20} />
+            <span className="text-[10px] font-black uppercase tracking-widest">Dashboard</span>
+          </button>
+        ) : (
+          <Link 
+            href="/" 
+            className="p-2 rounded-full hover:bg-white/10 transition-colors"
+          >
+            <ChevronLeft size={20} />
+          </Link>
+        )}
+
+        <div className="hidden sm:flex flex-col text-left">
           <h1 className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-400">
             MoanaAI
           </h1>
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-            Neural Mind Map Generator
+             Mind Map Generator
           </span>
         </div>
       </div>
       
-      {/* Space for future buttons like 'Export' or 'Save' */}
       <div className="flex items-center gap-3">
-        <div className="hidden md:block px-3 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 text-[9px] font-black text-emerald-400 uppercase tracking-widest">
-          Neural Link Active
-        </div>
+        {/* Toggle Dashboard Button for Desktop (Optional but helpful) */}
+        <button 
+          onClick={() => setActiveView(activeView === 'dashboard' ? 'canvas' : 'dashboard')}
+          className="hidden lg:flex items-center gap-2 px-4 py-2 rounded-xl border border-white/10 bg-white/5 text-[10px] font-black uppercase tracking-widest hover:bg-white/10 transition-all"
+        >
+          <LayoutDashboard size={14} /> 
+          {activeView === 'dashboard' ? 'View Canvas' : 'View Editor'}
+        </button>
+
+        <button 
+          onClick={() => setIsFullScreen(!isFullScreen)}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl border transition-all active:scale-95 text-[10px] font-black uppercase tracking-widest ${
+            isFullScreen 
+            ? 'border-amber-500/30 bg-amber-500/10 text-amber-400 hover:bg-amber-500/20' 
+            : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20'
+          }`}
+        >
+          {isFullScreen ? (
+            <><Minimize2 size={14} /> Exit Focus</>
+          ) : (
+            <><Maximize2 size={14} /> Full Screen</>
+          )}
+        </button>
       </div>
     </nav>
   );

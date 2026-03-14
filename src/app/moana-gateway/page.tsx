@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { motion } from 'framer-motion'; 
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase'; 
 
 // Constants & Components
@@ -22,25 +22,59 @@ const containerVariants = {
 export default function MoanaGateway() {
   const router = useRouter();
   const [userName, setUserName] = useState("Researcher");
+  const [isLoading, setIsLoading] = useState(true);
 
+  // --- THE SECURITY GUARD ---
   useEffect(() => {
-    const fetchUser = async () => {
-      const { data } = await supabase.auth.getUser();
-      if (data?.user?.user_metadata?.full_name) {
-        setUserName(data.user.user_metadata.full_name.split(' ')[0]);
+    const validateAccess = async () => {
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser();
+
+        if (error || !user) {
+          // If no session found, kick to landing page and prevent "Back" button usage
+          router.replace('/?error=unauthorized');
+          return;
+        }
+
+        // Set user name from metadata
+        if (user.user_metadata?.full_name) {
+          setUserName(user.user_metadata.full_name.split(' ')[0]);
+        }
+        
+        // Authorization successful
+        setIsLoading(false);
+      } catch (err) {
+        console.error("Security Bypass Attempted:", err);
+        router.replace('/');
       }
     };
-    fetchUser();
-  }, []);
 
-  // Memoized to prevent BattleCard re-renders
+    validateAccess();
+  }, [router]);
+
+  // Memoized navigation to prevent re-renders
   const handleNavigate = useCallback((path: string, subject: string, title: string) => {
     router.push(`${path}?subject=${subject}&name=${title}`);
   }, [router]);
 
+  // --- NEURAL LOADING STATE ---
+  if (isLoading) {
+    return (
+      <div className="h-screen w-full bg-[#020617] flex flex-col items-center justify-center">
+        <div className="relative">
+          <ShieldCheck size={48} className="text-emerald-500 animate-pulse" />
+          <div className="absolute inset-0 border-4 border-emerald-500/20 border-t-emerald-500 rounded-full animate-spin" />
+        </div>
+        <h2 className="text-white font-black tracking-[0.3em] uppercase text-[10px] mt-6 animate-pulse">
+          Establishing Secure Neural Link...
+        </h2>
+      </div>
+    );
+  }
+
   return (
-    <div className="relative min-h-screen bg-[#020617] overflow-hidden flex flex-col">
-      {/* 3D LAYER: Locked with memo() */}
+    <div className="relative min-h-screen bg-[#020617] overflow-hidden flex flex-col font-sans">
+      {/* 3D LAYER */}
       <Gateway3D />
 
       {/* UI LAYER */}
@@ -67,21 +101,23 @@ export default function MoanaGateway() {
           </div>
         </motion.nav>
 
-{/* Hero Section */}
-<motion.div 
-  initial={{ opacity: 0, x: -30 }} 
-  animate={{ opacity: 1, x: 0 }} 
-  transition={{ duration: 0.8, ease: "easeOut" }} // Smooth linear-ish ease
-  className="mb-12 will-change-transform" // Hardware acceleration
->
-  <h2 className="text-4xl font-black text-white leading-tight tracking-tight">          
-    SELECT <br />
-    <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 pb-2 block">
-      BATTLE MODE
-    </span>
-  </h2>
-  <div className="h-1.5 w-20 bg-emerald-500 mt-6 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.4)]" />
-</motion.div>
+        {/* Hero Section */}
+        <motion.div 
+          initial={{ opacity: 0, x: -30 }} 
+          animate={{ opacity: 1, x: 0 }} 
+          transition={{ duration: 0.8, ease: "easeOut" }}
+          className="mb-12 will-change-transform"
+        >
+          <h2 className="text-4xl font-black text-white leading-tight tracking-tight">          
+            SELECT <br />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-cyan-500 pb-2 block">
+              BATTLE MODE
+            </span>
+          </h2>
+          <div className="h-1.5 w-20 bg-emerald-500 mt-6 rounded-full shadow-[0_0_15px_rgba(16,185,129,0.4)]" />
+        </motion.div>
+
+        {/* Battle Grid */}
         <motion.div 
           variants={containerVariants}
           initial="hidden"
