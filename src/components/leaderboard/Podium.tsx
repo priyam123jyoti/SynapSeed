@@ -18,7 +18,6 @@ export const Podium = ({ topThree }: { topThree: any[] }) => {
         return (
           <div key={item.user.user_id} className={`flex flex-col items-center flex-1 ${item.order}`}>
             
-            {/* Crown & Info */}
             <div className="text-center mb-4">
               {item.win && (
                 <motion.div 
@@ -36,14 +35,16 @@ export const Podium = ({ topThree }: { topThree: any[] }) => {
                 size={item.win ? 32 : 24} 
               />
               
-              <h3 className="text-[10px] lg:text-sm font-black uppercase truncate max-w-[80px] lg:max-w-full leading-tight">
-                {item.user.full_name}
+              {/* USERNAME POSITIONED HERE */}
+              <h3 className="text-[10px] lg:text-sm font-black uppercase truncate max-w-[80px] lg:max-w-full leading-tight text-[#2D3142]">
+                {item.user.username || "Unknown"}
               </h3>
               
               <div className="flex flex-col items-center mt-1">
-                <p className="text-xs lg:text-2xl font-black leading-none">
+                <p className="text-xs lg:text-2xl font-black leading-none text-[#2D3142]">
                   {item.user.average_score}%
                 </p>
+                {/* ROUNDS BELOW USERNAME */}
                 <p className="text-[7px] lg:text-[10px] font-bold text-gray-500 uppercase flex items-center gap-1 mt-1 tracking-tighter">
                   <Target size={8} className="lg:w-3 lg:h-3" />
                   {item.user.quizzes_played} Rounds
@@ -51,7 +52,6 @@ export const Podium = ({ topThree }: { topThree: any[] }) => {
               </div>
             </div>
 
-            {/* BAR: Fixed Rectangles */}
             <motion.div
               initial={{ height: 0 }}
               animate={{ height: "auto" }}

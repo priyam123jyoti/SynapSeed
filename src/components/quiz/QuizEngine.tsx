@@ -1,4 +1,3 @@
-// Force refresh 1
 "use client";
 
 import React, { useState, useMemo, memo, useCallback } from 'react';
@@ -11,7 +10,7 @@ interface QuizEngineProps {
   selectedTopic: string;
   onRestart: () => void | Promise<void>;
   onTerminate: () => void;
-  onFinishQuiz?: (score: number) => void | Promise<void>; // Optional prop
+  onFinishQuiz?: (score: number) => void | Promise<void>;
 }
 
 const QuizEngine = ({ 
@@ -28,6 +27,8 @@ const QuizEngine = ({
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [isRecapMode, setIsRecapMode] = useState(false);
 
+  // --- CALCULATE SCORE ---
+  // Compares user index to the AI's "correct" index
   const scorePercentage = useMemo(() => {
     if (questions.length === 0) return 0;
     const correctCount = userAnswers.reduce((total, ans, idx) => 
@@ -37,7 +38,7 @@ const QuizEngine = ({
   }, [userAnswers, questions]);
 
   const handleAnswer = useCallback((answerIndex: number) => {
-    if (isRecapMode) return;
+    if (isRecapMode) return; // Prevent changing answers during review
     setUserAnswers(prev => {
       const newAnswers = [...prev];
       newAnswers[currentIdx] = answerIndex;
@@ -54,7 +55,6 @@ const QuizEngine = ({
   }, []);
 
   const handleFinish = useCallback(() => {
-    // Safety check: Only call if the function exists
     if (onFinishQuiz) {
       onFinishQuiz(scorePercentage);
     }
@@ -82,10 +82,11 @@ const QuizEngine = ({
           onReview={() => {
             setIsRecapMode(true);
             setShowResultsModal(false);
-            setCurrentIdx(0);
+            setCurrentIdx(0); // Start review from question 1
           }}
           onTerminate={onTerminate}
           onRestart={() => {
+            // Full Reset
             setUserAnswers(new Array(questions.length).fill(-1));
             setCurrentIdx(0);
             setIsRecapMode(false);

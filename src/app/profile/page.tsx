@@ -4,236 +4,124 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/contexts/AuthProvider';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { 
-  User, Mail, Crown, LogOut, ShieldCheck, 
-  BarChart3, Settings, ChevronRight, AlertCircle, ArrowLeft, Briefcase, GraduationCap
-} from 'lucide-react';
-import Link from 'next/link';
+import { Crown, LogOut, ShieldCheck, BarChart3, ChevronRight } from 'lucide-react';
 
-// --- INTEGRATING YOUR EXISTING COMPONENTS ---
 import Navbar from '@/components/layout/Navbar';
 import MobileBottomNavbar from '@/components/layout/MobileBottomNavbar';
+import { ProfileIdentity } from '@/components/profile/ProfileIdentity';
 
 export default function ProfilePage() {
   const { user, signOut }: any = useAuth();
   const router = useRouter();
-  
-  // Profile State
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch user profile from Supabase
   useEffect(() => {
-    const fetchProfile = async () => {
+    async function fetchProfile() {
       if (!user?.id) return;
-      
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single();
-        
-      if (data) {
-        setProfile(data);
-      }
+      const { data } = await supabase.from('profiles').select('*').eq('id', user.id).single();
+      if (data) setProfile(data);
       setLoading(false);
-    };
-
+    }
     fetchProfile();
   }, [user]);
 
-  const handleLogout = async () => {
-    await signOut();
-    router.push('/');
-  };
-
-  // Avatar Logic: First letter of username (or email if loading)
-  const displayString = profile?.username || user?.email || "U";
-  const firstLetter = displayString.charAt(0).toUpperCase();
+  // Use username exactly as typed, fall back only if loading is finished and no name found
+  const displayUsername = profile?.username || "User";
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-900 flex flex-col">
-      <Navbar />
+    <>
+      <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-900 flex flex-col">
+        <Navbar />
 
-      <div className="flex-1 pb-32 lg:pb-12">
-        {/* Profile Header / Banner */}
-        <div className="h-48 bg-[#020617] w-full relative">
-          <div className="max-w-7xl mx-auto h-full px-8 md:px-20 relative">
-            <div className="absolute -bottom-16 flex items-end gap-6">
-              
-              {/* Profile Avatar Component */}
-              <div className="w-32 h-32 rounded-[40px] bg-emerald-500 border-8 border-slate-50 flex items-center justify-center text-4xl font-black text-white shadow-xl select-none overflow-hidden">
-                {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  firstLetter
-                )}
-              </div>
-              
-              <div className="mb-4">
-                <h1 className="text-3xl font-black text-slate-900 tracking-tight flex items-center gap-2">
-                  {loading ? '...' : `@${profile?.username || user?.email?.split('@')[0]}`}
-                </h1>
-                <p className="text-slate-500 font-bold text-sm flex items-center gap-2 mt-1">
-                  <Mail size={14} /> {user?.email}
-                </p>
+        <div className="flex-1 pb-32 lg:pb-12">
+          {/* Header Banner */}
+          <div className="h-64 bg-[#020617] w-full relative overflow-hidden">
+            <div className="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
+            <div className="max-w-7xl mx-auto h-full px-6 md:px-12 relative flex items-end pb-12">
+              <div className="flex items-center gap-8 translate-y-20">
+                {/* Square Avatar */}
+                <div className="w-40 h-40 bg-emerald-500 border-[10px] border-[#f8fafc] flex items-center justify-center text-5xl font-black text-white shadow-2xl overflow-hidden">
+                  {profile?.avatar_url ? (
+                    <img src={profile.avatar_url} alt={displayUsername} className="w-full h-full object-cover" />
+                  ) : (
+                    displayUsername.charAt(0).toUpperCase()
+                  )}
+                </div>
+                
+                <div className="mb-4 bg-white/10 backdrop-blur-md p-6 border border-white/20 min-w-[200px]">
+                  {/* FIXED: Removed @ and conversion. Added Skeleton loader. */}
+                  <h1 className="text-4xl font-black text-white tracking-tighter">
+                    {loading ? (
+                       <div className="w-32 h-8 bg-white/20 animate-pulse rounded" />
+                    ) : (
+                      displayUsername
+                    )}
+                  </h1>
+                </div>
               </div>
             </div>
-            
-            <Link 
-              href="/ai-hub" 
-              className="absolute top-8 right-8 hidden lg:flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 backdrop-blur-md rounded-xl text-white text-[10px] font-black uppercase tracking-widest transition-all"
-            >
-              <ArrowLeft size={14} /> Back to AI Hub
-            </Link>
           </div>
+
+          <main className="max-w-7xl mx-auto mt-32 px-6 md:px-12 grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="lg:col-span-2 space-y-8">
+              <ProfileIdentity profile={profile} loading={loading} />
+
+              <section className="bg-white p-8 border-l-8 border-emerald-900 border-y border-r border-slate-200 shadow-sm relative overflow-hidden group">
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-6">
+                    <Crown size={14} /> System Access Level
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <h3 className="text-2xl font-black uppercase tracking-tighter text-slate-900">Neural Pro Node</h3>
+                      <p className="text-slate-500 text-xs font-bold mt-1 uppercase tracking-wider">Unrestricted AI Hub Privileges</p>
+                    </div>
+                    <div className="bg-emerald-900 text-white px-4 py-1 text-[10px] font-black uppercase">Active</div>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <div className="space-y-6">
+              {/* Stats Block */}
+              <div className="grid grid-cols-2 gap-px bg-slate-200 border border-slate-200 shadow-sm">
+                <div className="bg-white p-6 flex flex-col items-center">
+                  <BarChart3 className="text-slate-300 mb-2" size={24} />
+                  <div className="text-3xl font-black text-slate-900 tracking-tighter">42</div>
+                  <div className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400 mt-1 text-center">Neural Syncs</div>
+                </div>
+                <div className="bg-white p-6 flex flex-col items-center">
+                  <ShieldCheck className="text-emerald-500 mb-2" size={24} />
+                  <div className="text-xl font-black text-slate-900 tracking-tighter uppercase">Verified</div>
+                  <div className="text-[8px] font-black uppercase tracking-[0.2em] text-slate-400 mt-1 text-center">Node Integrity</div>
+                </div>
+              </div>
+
+              {/* Console Commands */}
+              <div className="bg-slate-900 text-white p-6 border border-slate-900 shadow-lg">
+                <h4 className="text-[9px] font-black uppercase tracking-[0.3em] text-emerald-400 mb-6 border-b border-emerald-400/20 pb-2">Console Commands</h4>
+                <div className="space-y-1">
+                  {['Edit Profile', 'App Preferences'].map((item) => (
+                    <button key={item} className="w-full flex items-center justify-between p-3 hover:bg-emerald-500 hover:text-white transition-all group border border-transparent hover:border-white/20">
+                      <span className="text-[11px] font-black uppercase tracking-widest">{item}</span>
+                      <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                    </button>
+                  ))}
+                  <button 
+                    onClick={async () => { await signOut(); router.push('/'); }}
+                    className="w-full flex items-center gap-3 p-3 text-red-400 hover:bg-red-500 hover:text-white transition-all font-black text-[11px] uppercase tracking-widest mt-4 border border-red-500/20"
+                  >
+                    <LogOut size={14} /> Disconnect Link
+                  </button>
+                </div>
+              </div>
+            </div>
+          </main>
         </div>
 
-        {/* Main Content Grid */}
-        <main className="max-w-7xl mx-auto mt-24 px-8 md:px-20 grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
-          {/* LEFT: IDENTITY, SUBSCRIPTION & USAGE */}
-          <div className="lg:col-span-2 space-y-8">
-            
-            {/* NEW: Neural Identity Card */}
-            <section className="bg-white rounded-[40px] p-8 border border-slate-200 shadow-sm relative overflow-hidden">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-6 flex items-center gap-2">
-                <User size={14} /> Neural Identity
-              </h4>
-              
-              {loading ? (
-                <div className="animate-pulse flex space-x-4">
-                  <div className="flex-1 space-y-4 py-1">
-                    <div className="h-2 bg-slate-200 rounded w-3/4"></div>
-                    <div className="h-2 bg-slate-200 rounded w-1/2"></div>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-6">
-                  {/* Bio */}
-                  {profile?.bio && (
-                    <p className="text-slate-700 font-medium leading-relaxed">
-                      "{profile.bio}"
-                    </p>
-                  )}
-                  
-                  {/* Occupation & Institution */}
-                  <div className="flex flex-wrap gap-4 pt-2">
-                    {profile?.occupation && (
-                      <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-xl text-xs font-bold text-slate-600 border border-slate-100">
-                        <Briefcase size={14} className="text-emerald-500" />
-                        {profile.occupation}
-                      </div>
-                    )}
-                    {profile?.institution && (
-                      <div className="flex items-center gap-2 px-4 py-2 bg-slate-50 rounded-xl text-xs font-bold text-slate-600 border border-slate-100">
-                        <GraduationCap size={14} className="text-emerald-500" />
-                        {profile.institution}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Interests Tags */}
-                  {profile?.interests && profile.interests.length > 0 && (
-                    <div className="pt-6 border-t border-slate-100">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Trained Interests</p>
-                      <div className="flex flex-wrap gap-2">
-                        {profile.interests.map((tag: string, index: number) => (
-                          <span key={index} className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[11px] font-bold border border-emerald-100">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-            </section>
-
-            {/* Subscription Card */}
-            <section className="bg-white rounded-[40px] p-8 border border-slate-200 shadow-sm relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-8 opacity-5 group-hover:scale-110 transition-transform duration-700">
-                <Crown size={120} className="text-emerald-500" />
-              </div>
-              
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-emerald-500 mb-6">
-                  <Crown size={14} /> Membership Status
-                </div>
-                
-                <div className="flex justify-between items-start md:items-center mb-8">
-                  <div>
-                    <h3 className="text-2xl font-black uppercase tracking-tight">Neural Pro Plan</h3>
-                    <p className="text-slate-500 font-medium mt-1">Full access to advanced mapping logic & AI Hub</p>
-                  </div>
-                  <div className="px-4 py-2 bg-emerald-50 text-emerald-600 rounded-full font-black text-[10px] uppercase tracking-widest">
-                    Active
-                  </div>
-                </div>
-
-                <div className="pt-6 border-t border-slate-100 flex flex-wrap gap-4">
-                  <button className="px-6 py-3 bg-emerald-900 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-emerald-800 transition-all shadow-md active:scale-95">
-                    Manage Billing
-                  </button>
-                </div>
-              </div>
-            </section>
-          </div>
-
-          {/* RIGHT: ACCOUNT SETTINGS */}
-          <div className="space-y-6">
-            
-            {/* Stats (Moved to right column to balance the layout) */}
-            <div className="grid grid-cols-2 gap-4">
-               <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm">
-                  <BarChart3 className="text-slate-300 mb-3" size={20} />
-                  <div className="text-2xl font-black text-slate-900 tracking-tighter">42</div>
-                  <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-1">Neural Links</div>
-               </div>
-               <div className="bg-white p-6 rounded-[32px] border border-slate-200 shadow-sm">
-                  <ShieldCheck className="text-emerald-400 mb-3" size={20} />
-                  <div className="text-2xl font-black text-slate-900 tracking-tighter">Active</div>
-                  <div className="text-[9px] font-black uppercase tracking-widest text-slate-400 mt-1">Identity Status</div>
-               </div>
-            </div>
-
-            {/* Account Control */}
-            <div className="bg-white rounded-[40px] p-6 border border-slate-200 shadow-sm overflow-hidden">
-              <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-4 px-2">Account Control</h4>
-              
-              <div className="space-y-2">
-                <button className="w-full flex items-center justify-between p-4 hover:bg-slate-50 rounded-2xl transition-all group">
-                  <div className="flex items-center gap-3 text-emerald-900">
-                    <User size={18} className="text-slate-400" />
-                    <span className="text-sm font-bold">Edit Profile</span>
-                  </div>
-                  <ChevronRight size={16} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
-                </button>
-                
-                <button className="w-full flex items-center justify-between p-4 hover:bg-slate-50 rounded-2xl transition-all group">
-                  <div className="flex items-center gap-3 text-emerald-900">
-                    <Settings size={18} className="text-slate-400" />
-                    <span className="text-sm font-bold">App Preferences</span>
-                  </div>
-                  <ChevronRight size={16} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
-                </button>
-
-                <div className="pt-4 mt-4 border-t border-slate-100">
-                  <button 
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-3 p-4 text-red-500 hover:bg-red-50 rounded-2xl transition-all font-bold text-sm"
-                  >
-                    <LogOut size={18} />
-                    Disconnect Link
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </main>
+        <MobileBottomNavbar />
       </div>
-
-      <MobileBottomNavbar />
-    </div>
+    </>
   );
 }

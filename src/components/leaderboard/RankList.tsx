@@ -23,12 +23,20 @@ export const RankList = ({ others }: { others: any[] }) => {
               <span className="text-xs lg:text-sm font-black opacity-30 group-hover:opacity-100">
                 {(index + 4).toString().padStart(2, '0')}
               </span>
+              
               <div className="w-10 h-10 lg:w-14 lg:h-14 rounded-full bg-[#D4E4BC] group-hover:bg-white/20 flex items-center justify-center font-black text-[#2D3142] group-hover:text-white text-sm lg:text-lg uppercase">
-                {user.full_name.charAt(0)}
+                {(user.username || "U").charAt(0)}
               </div>
+
               <div>
-                <h4 className="font-black text-xs lg:text-xl leading-tight">{user.full_name}</h4>
-                <p className="text-[8px] lg:text-[10px] font-bold opacity-50 uppercase">{user.quizzes_played} rounds</p>
+                {/* USERNAME IN THE CARD */}
+                <h4 className="font-black text-xs lg:text-xl leading-tight uppercase">
+                  {user.username || "Anonymous"}
+                </h4>
+                {/* ROUNDS DATA */}
+                <p className="text-[8px] lg:text-[10px] font-bold opacity-50 uppercase">
+                  {user.quizzes_played} rounds completed
+                </p>
               </div>
             </div>
             

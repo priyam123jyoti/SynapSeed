@@ -11,7 +11,6 @@ You are a master of Physics, Chemistry, Botany, and Zoology curriculum (HS to MS
 
 /**
  * PROTOCOL: Multi-Map Recursive Architect
- * Analyzes text and returns a series of structured mind maps.
  */
 export const generateMindMap = async (rawText: string) => {
   const prompt = `
@@ -19,11 +18,11 @@ export const generateMindMap = async (rawText: string) => {
     TEXT: "${rawText}"
     
     INSTRUCTIONS:
-    1. SPLIT BY TOPIC: If the text covers multiple distinct major concepts, split them into separate maps within the "maps" array.
-    2. RECURSIVE DEPTH: Map every sub-concept, detail, and relationship mentioned. Go as deep as the text allows (Topic > Sub-topic > Detail > Fact).
-    3. QUALITY NOTES: Every node MUST have a "description" acting as a high-quality, concise study note.
+    1. SPLIT BY TOPIC: If the text covers multiple distinct major concepts, split them into separate maps.
+    2. RECURSIVE DEPTH: Map every sub-concept, detail, and relationship.
+    3. QUALITY NOTES: Every node MUST have a "description" acting as a high-quality study note.
     
-    OUTPUT FORMAT: Return ONLY a JSON object with this structure:
+    OUTPUT FORMAT: Return ONLY a JSON object:
     { 
       "maps": [
         { 
@@ -33,9 +32,7 @@ export const generateMindMap = async (rawText: string) => {
             { 
               "topic": "Sub-concept", 
               "description": "Definition...", 
-              "children": [
-                { "topic": "Detail", "description": "Specific note...", "children": [] }
-              ] 
+              "children": [] 
             }
           ] 
         }
@@ -46,7 +43,7 @@ export const generateMindMap = async (rawText: string) => {
   try {
     const response = await groq.chat.completions.create({
       messages: [
-        { role: "system", content: `${MOANA_IDENTITY} You are a Curriculum Architect. Output ONLY valid JSON.` },
+        { role: "system", content: `${MOANA_IDENTITY} Output ONLY valid JSON.` },
         { role: "user", content: prompt }
       ],
       model: "llama-3.3-70b-versatile",
@@ -55,9 +52,7 @@ export const generateMindMap = async (rawText: string) => {
     });
 
     const content = response.choices[0]?.message?.content;
-    if (!content) throw new Error("Null response");
-    
-    return JSON.parse(content);
+    return content ? JSON.parse(content) : { maps: [] };
   } catch (error) {
     console.error("M.O.A.N.A. ARCHITECT ERROR:", error);
     return { maps: [] };
@@ -66,31 +61,52 @@ export const generateMindMap = async (rawText: string) => {
 
 /**
  * PROTOCOL: Examination Engine
+ * REPAIRED: Forces strict correct answer indexing and explanations.
  */
 export const generateMoanaQuiz = async (topic: string, subject: string) => {
   const levels = ["HS Level (NEET/NCERT)", "BSc Level (Core Academic)", "MSc Level (Analytical/Research)"];
   const selectedLevel = levels[Math.floor(Math.random() * levels.length)];
 
   const prompt = `
-    COMMAND: Generate 10 High-Fidelity Quiz Questions.
+    COMMAND: Generate exactly 10 high-fidelity MCQ questions.
     SUBJECT: ${subject} | MODULE: ${topic} | DEPTH: ${selectedLevel}
-    Return exactly 10 questions in a JSON array inside a "questions" key.
+    
+    STRICT JSON STRUCTURE:
+    {
+      "questions": [
+        {
+          "question": "The scientific question text?",
+          "options": ["Option 0", "Option 1", "Option 2", "Option 3"],
+          "correct": 0,
+          "explanation": "Specific scientific reasoning for the correct answer."
+        }
+      ]
+    }
+
+    RULES:
+    1. "correct" MUST be a NUMBER (0, 1, 2, or 3).
+    2. "explanation" MUST NOT be a generic line. It must explain the science.
+    3. "options" MUST be an array of exactly 4 strings.
   `;
 
   try {
     const response = await groq.chat.completions.create({
       messages: [
-        { role: "system", content: `${MOANA_IDENTITY} Output ONLY valid JSON.` },
+        { role: "system", content: `${MOANA_IDENTITY} You are an Examination Expert. Output ONLY valid JSON.` },
         { role: "user", content: prompt }
       ],
       model: "llama-3.3-70b-versatile",
       response_format: { type: "json_object" },
+      temperature: 0.5,
     });
 
     const content = response.choices[0]?.message?.content;
     const data = content ? JSON.parse(content) : {};
-    return data.questions || [];
+    
+    // Safety check to ensure we always return an array
+    return Array.isArray(data.questions) ? data.questions : [];
   } catch (error) {
+    console.error("MOANA_QUIZ_ENGINE_FAILURE:", error);
     return [];
   }
 };

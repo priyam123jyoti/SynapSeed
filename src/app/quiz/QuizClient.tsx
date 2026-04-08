@@ -15,10 +15,10 @@ export default function QuizClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // Dynamic URL Params
+  // URL Params parsing
   const subjectKey = searchParams.get('subject') || 'botany';
   const subjectName = searchParams.get('name') || 'Botany Quiz';
-  const queryTopic = searchParams.get('query'); // Potential direct topic start
+  const queryTopic = searchParams.get('query'); 
   
   const subjectTitle = useMemo(() => subjectName.toUpperCase(), [subjectName]);
   
@@ -27,18 +27,17 @@ export default function QuizClient() {
   [subjectKey]);
 
   const [user, setUser] = useState<any>(null);
-  const [isAuthChecking, setIsAuthChecking] = useState(true); // Security State
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [loading, setLoading] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [questions, setQuestions] = useState<any[]>([]);
 
-  // --- THE SECURITY GUARD ---
+  // --- AUTH & INITIALIZATION ---
   useEffect(() => {
     const validateAccess = async () => {
       const { data: { user }, error } = await supabase.auth.getUser();
 
       if (error || !user) {
-        // Kick out unauthorized users
         router.replace('/?error=unauthorized');
         return;
       }
@@ -46,7 +45,7 @@ export default function QuizClient() {
       setUser(user);
       setIsAuthChecking(false);
 
-      // If a 'query' exists in URL, start quiz for that topic automatically
+      // Auto-start if query exists
       if (queryTopic && !selectedTopic) {
         handleStartQuiz(queryTopic);
       }
@@ -54,6 +53,7 @@ export default function QuizClient() {
     validateAccess();
   }, [router, queryTopic]);
 
+  // --- SCORE SYNC TO DATABASE ---
   const saveQuizScore = useCallback(async (percentage: number) => {
     if (!user) return;
     const { error } = await supabase
@@ -64,31 +64,37 @@ export default function QuizClient() {
         topic: selectedTopic || "General", 
         subject: subjectTitle 
       }]);
-    if (error) console.error("Database Sync Error:", error.message);
+    
+    if (error) console.error("MOANA_DATABASE_SYNC_ERROR:", error.message);
   }, [user, selectedTopic, subjectTitle]);
 
+  // --- QUIZ GENERATION HANDLER ---
   const handleStartQuiz = useCallback(async (topic: string) => {
     setLoading(true);
     setSelectedTopic(topic);
+    setQuestions([]); // Clear previous state
+    
     try {
       const data = await generateMoanaQuiz(topic, subjectTitle);
-      if (data && Array.isArray(data)) {
+      
+      // Ensure we received a valid array from Script 1
+      if (data && Array.isArray(data) && data.length > 0) {
         setQuestions(data);
+      } else {
+        throw new Error("Invalid question format received from Neural Link");
       }
     } catch (err) {
-      console.error(err);
+      console.error("MOANA_SYNC_FAILURE:", err);
       setSelectedTopic(null);
     } finally {
       setLoading(false);
     }
   }, [subjectTitle]);
 
-  // Initial Auth Loading Screen
   if (isAuthChecking) {
     return <LoadingScreen topic="Authenticating Researcher..." />;
   }
 
-  // Quiz Generation Loading Screen
   if (loading) {
     return <LoadingScreen topic={`${subjectTitle}: ${selectedTopic}`} />;
   }
@@ -96,6 +102,7 @@ export default function QuizClient() {
   return (
     <main className="min-h-screen bg-[#020617] relative overflow-hidden">
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_50%,#0f172a_0%,#020617_100%)] pointer-events-none" />
+      
       <div className="relative z-10">
         {!selectedTopic ? (
           <TopicSelectionView
@@ -110,8 +117,8 @@ export default function QuizClient() {
             questions={questions}
             subjectTitle={subjectTitle}
             selectedTopic={selectedTopic}
-            onRestart={() => { handleStartQuiz(selectedTopic); }}
-            onFinishQuiz={(score) => { saveQuizScore(score); }}
+            onRestart={() => handleStartQuiz(selectedTopic)}
+            onFinishQuiz={(score) => saveQuizScore(score)}
             onTerminate={() => {
               setSelectedTopic(null);
               setQuestions([]);

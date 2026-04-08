@@ -1,7 +1,8 @@
 "use client";
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldAlert, CheckCircle2, X } from 'lucide-react';
+import { ShieldAlert, LogIn, X } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface AuthGuardModalProps {
   isOpen: boolean;
@@ -10,6 +11,16 @@ interface AuthGuardModalProps {
 }
 
 export default function AuthGuardModal({ isOpen, onClose, title = "MOANA AI" }: AuthGuardModalProps) {
+  
+  const handleLogin = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/onboarding`,
+      },
+    });
+  };
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -20,7 +31,7 @@ export default function AuthGuardModal({ isOpen, onClose, title = "MOANA AI" }: 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-slate-950/40 backdrop-blur-md z-[100]"
+            className="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-[100]"
           />
 
           {/* Modal Container */}
@@ -31,9 +42,6 @@ export default function AuthGuardModal({ isOpen, onClose, title = "MOANA AI" }: 
               exit={{ opacity: 0, scale: 0.9, y: 20 }}
               className="pointer-events-auto w-full max-w-sm p-8 bg-slate-950 border-2 border-red-500/50 rounded-[2.5rem] shadow-[0_0_50px_rgba(239,68,68,0.2)] relative overflow-hidden"
             >
-              {/* Decorative Glow */}
-              <div className="absolute -top-24 -right-24 w-48 h-48 bg-red-600/20 blur-[80px] rounded-full" />
-              
               <button 
                 onClick={onClose}
                 className="absolute top-6 right-6 text-slate-500 hover:text-white transition-colors"
@@ -46,27 +54,21 @@ export default function AuthGuardModal({ isOpen, onClose, title = "MOANA AI" }: 
                   <ShieldAlert size={40} className="animate-pulse" />
                 </div>
 
-                <div className="flex items-center gap-2 mb-2">
-                   <div className="h-1 w-8 bg-red-500 rounded-full" />
-                   <span className="text-red-500 text-[10px] font-black uppercase tracking-[0.3em]">Security Alert</span>
-                   <div className="h-1 w-8 bg-red-500 rounded-full" />
-                </div>
-
                 <h3 className="text-white text-3xl font-black tracking-tighter mb-4 leading-tight">
-                  LOGIN TO USE <br />
+                  ACCESS DENIED <br />
                   <span className="text-red-500 uppercase">{title}</span>
                 </h3>
 
                 <p className="text-slate-400 text-sm font-medium mb-8 px-4">
-                  This research module requires an active neural link. Please sign in with your Google account to proceed.
+                  This module requires an active neural link. Please sign in to verify your identity.
                 </p>
 
                 <button
-                  onClick={onClose}
-                  className="w-full py-4 bg-red-600 hover:bg-red-700 text-white text-xs font-black uppercase tracking-[0.2em] rounded-2xl transition-all flex items-center justify-center gap-2 group shadow-lg shadow-red-900/40 active:scale-95 cursor-pointer"
+                  onClick={handleLogin}
+                  className="w-full py-4 bg-white text-black text-xs font-black uppercase tracking-[0.2em] rounded-2xl transition-all flex items-center justify-center gap-2 group hover:bg-red-500 hover:text-white active:scale-95 cursor-pointer shadow-xl"
                 >
-                  <CheckCircle2 size={16} />
-                  Acknowledge
+                  <LogIn size={16} />
+                  Authorize via Google
                 </button>
               </div>
             </motion.div>
