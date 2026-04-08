@@ -53,7 +53,6 @@ export default function MindMapPage() {
 
   const nodeTypes = useMemo(() => ({ neuralNode: NeuralNode }), []);
 
-  // FORCE RESIZE HELPER: Fixes React Flow container size bugs
   const forceFit = () => {
     setTimeout(() => {
       window.dispatchEvent(new Event('resize'));
@@ -90,26 +89,27 @@ export default function MindMapPage() {
       if (result?.maps) {
         const allNodes: any[] = [];
         const allEdges: any[] = [];
-        const NODE_WIDTH = 320;
-        const HORIZONTAL_GAP = 120;
-        const VERTICAL_GAP = 450;
+        
+        // DYNAMIC LAYOUT CONSTANTS
+        const NODE_WIDTH = 300;
+        const HORIZONTAL_GAP = 80; 
+        const VERTICAL_GAP = 350;
 
-        result.maps.forEach((mapData: any, mapIndex: number) => {
-          // FIX: Changed mapYOffset to 0 since maps are saved individually
-          const mapYOffset = 0; 
-
-          const getBranchWidth = (node: any): number => {
+        result.maps.forEach((mapData: any) => {
+          // Helper to calculate required width for a branch recursively
+          const getSubtreeWidth = (node: any): number => {
             if (!node.children || node.children.length === 0) return NODE_WIDTH + HORIZONTAL_GAP;
-            return node.children.reduce((acc: number, child: any) => acc + getBranchWidth(child), 0);
+            return node.children.reduce((acc: number, child: any) => acc + getSubtreeWidth(child), 0);
           };
 
           const buildTree = (nodeData: any, parentId: string | null = null, level = 0, currentXBoundary = 0, branchColor = '#4ade80') => {
             const id = parentId ? `${parentId}-${Math.random().toString(36).substr(2, 5)}` : `root-${Date.now()}`;
             const isRoot = level === 0;
-            const totalBranchWidth = getBranchWidth(nodeData);
+            const totalBranchWidth = getSubtreeWidth(nodeData);
 
+            // Center the node within its allocated branch width
             const xPos = currentXBoundary + (totalBranchWidth / 2) - (NODE_WIDTH / 2);
-            const yPos = mapYOffset + (level * VERTICAL_GAP);
+            const yPos = level * VERTICAL_GAP;
 
             allNodes.push({
               id,
@@ -119,24 +119,25 @@ export default function MindMapPage() {
               style: { 
                 background: isRoot ? '#020617' : 'white', 
                 border: `3px solid ${isRoot ? '#38bdf8' : branchColor}`, 
-                borderRadius: '24px', padding: '12px', width: NODE_WIDTH, cursor: 'pointer',
-                boxShadow: '0 10px 30px rgba(0,0,0,0.08)'
+                borderRadius: '24px', padding: '16px', width: NODE_WIDTH, cursor: 'pointer',
+                boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
+                zIndex: 100 - level
               },
             });
 
             if (parentId) {
               allEdges.push({ 
                 id: `e-${parentId}-${id}`, source: parentId, target: id, type: ConnectionLineType.SmoothStep, animated: true,
-                style: { stroke: branchColor, strokeWidth: 4, opacity: 0.6 } 
+                style: { stroke: branchColor, strokeWidth: 3, opacity: 0.5 } 
               });
             }
 
             if (nodeData.children) {
-              let nextChildXBoundary = currentXBoundary;
+              let childXCursor = currentXBoundary;
               nodeData.children.forEach((child: any, i: number) => {
                 const childColor = level === 0 ? COLOR_PALETTE[i % COLOR_PALETTE.length] : branchColor;
-                buildTree(child, id, level + 1, nextChildXBoundary, childColor);
-                nextChildXBoundary += getBranchWidth(child);
+                buildTree(child, id, level + 1, childXCursor, childColor);
+                childXCursor += getSubtreeWidth(child);
               });
             }
           };
@@ -146,7 +147,7 @@ export default function MindMapPage() {
         setNodes(allNodes);
         setEdges(allEdges);
         setActiveView('canvas');
-        forceFit(); // Center camera after generation
+        forceFit(); 
         await saveMapToCloud(inputText, allNodes, allEdges);
       }
     } finally { setIsGenerating(false); }
@@ -169,7 +170,7 @@ export default function MindMapPage() {
               inputText={inputText} setInputText={setInputText} isGenerating={isGenerating} handleGenerate={handleGenerate} 
               maps={maps || []} setMaps={setMaps} activeView={activeView} setActiveView={setActiveView} 
               setHovering={setIsHovering} setNodes={setNodes} setEdges={setEdges} 
-              forceFit={forceFit} // Pass resize trigger to sidebar
+              forceFit={forceFit}
             />
           )}
           <FlowCanvas 

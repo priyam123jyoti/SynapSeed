@@ -1,6 +1,12 @@
 "use client";
 import React, { useEffect } from 'react';
-import ReactFlow, { Background, Controls, MiniMap, useReactFlow } from 'reactflow';
+import ReactFlow, { 
+  Background, 
+  Controls, 
+  MiniMap, 
+  useReactFlow, 
+  BackgroundVariant // Fix for the "dots" type error
+} from 'reactflow';
 
 export const FlowCanvas = ({ 
   nodes, edges, onNodesChange, onEdgesChange, onConnect, 
@@ -9,21 +15,22 @@ export const FlowCanvas = ({
 }: any) => {
   
   const { fitView } = useReactFlow();
+  
+  // Track root ID to only trigger zoom when the data actually changes
   const rootNodeId = nodes[0]?.id;
 
   useEffect(() => {
     if (nodes.length > 0) {
       const timer = setTimeout(() => {
-        // TIGHT FIT LOGIC:
         fitView({ 
-          padding: 0.1, // Reduced from 0.4 to 0.1 (Makes the map 30% BIGGER on screen)
+          padding: 0.15, // Large view without touching edges
           duration: 800,
           includeHiddenNodes: true
         });
       }, 400); 
       return () => clearTimeout(timer);
     }
-  }, [rootNodeId, activeView, fitView]);
+  }, [rootNodeId, nodes.length, activeView, fitView]);
 
   return (
     <div className={`${activeView === 'dashboard' ? 'hidden lg:block' : 'block'} flex-1 h-full relative bg-slate-50 z-10`}>
@@ -38,24 +45,28 @@ export const FlowCanvas = ({
         onNodeMouseEnter={() => setHovering(true)}
         onNodeMouseLeave={() => setHovering(false)}
         
-        // ZOOM CONTROL:
-        minZoom={0.4} // Changed from 0.1 -> Stops the map from ever being "tiny"
-        maxZoom={1.5}
+        // Boundaries and Zoom
+        minZoom={0.2} 
+        maxZoom={1.2}
         
-        // SPACE LIMITER:
-        translateExtent={[[-2000, -2000], [5000, 5000]]} // Prevents dragging into infinite darkness
-        nodeExtent={[[-1000, -1000], [4000, 4000]]} // Keeps nodes within a "Reasonable" box
+        // Interaction Fixes
+        panOnDrag={[0, 1, 2]} 
+        onPaneContextMenu={(e) => e.preventDefault()} 
+        zoomOnDoubleClick={false} 
         
-        fitView
-        fitViewOptions={{ padding: 0.1 }} // Ensures initial load is tight
-        
-        panOnDrag={[0, 1, 2]}
-        onPaneContextMenu={(e) => e.preventDefault()}
-        zoomOnDoubleClick={false}
+        // Aesthetic 
+        snapToGrid={true}
+        snapGrid={[15, 15]}
       >
-        <Background color="#cbd5e1" gap={30} size={1} />
-        <Controls position="bottom-right" className="!bg-white !shadow-2xl" />
-        <MiniMap position="bottom-left" className="!bg-white" />
+        {/* Using BackgroundVariant.Dots resolves the TS(2322) error */}
+        <Background 
+          color="#cbd5e1" 
+          gap={25} 
+          size={1} 
+          variant={BackgroundVariant.Dots} 
+        />
+        <Controls position="bottom-right" className="!bg-white !shadow-xl !border-none !rounded-lg" />
+        <MiniMap position="bottom-left" className="!bg-white !rounded-xl !shadow-lg hidden md:block" />
       </ReactFlow>
     </div>
   );
