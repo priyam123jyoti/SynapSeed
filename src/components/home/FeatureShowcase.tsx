@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from 'framer-motion';
 import { BrainCircuit, Globe2, Target, Zap } from 'lucide-react';
 
 const FeatureShowcase = () => {

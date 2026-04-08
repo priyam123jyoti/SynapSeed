@@ -13,15 +13,21 @@ const BackgroundAIModel = () => {
 
   // 2. Optimized Animation Loop
   useLayoutEffect(() => {
-    if (names.length > 0) {
-      const action = actions[names[0]];
-      action?.reset().fadeIn(0.5).play();
+    const currentActionName = names[0];
+    const action = actions[currentActionName];
+
+    if (action) {
+      action.reset().fadeIn(0.5).play();
       
       // Keep the animation running even if the tab is inactive for a bit
-      action!.paused = false; 
+      action.paused = false; 
     }
+
     return () => {
-      actions[names[0]]?.fadeOut(0.5);
+      // Safely check if the action still exists before fading out to prevent crashes
+      if (actions[currentActionName]) {
+        actions[currentActionName]?.fadeOut(0.5);
+      }
     };
   }, [actions, names]);
 

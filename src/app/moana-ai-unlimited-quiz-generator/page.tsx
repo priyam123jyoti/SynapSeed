@@ -53,9 +53,10 @@ export default function MoanaGateway() {
   }, [router]);
 
   // Memoized navigation to prevent re-renders
-  const handleNavigate = useCallback((path: string, subject: string, title: string) => {
-    router.push(`${path}?subject=${subject}&name=${title}`);
-  }, [router]);
+const handleNavigate = useCallback((path: string, subject: string) => {
+  // We only send the subject. The Quiz page will handle the title.
+  router.push(`${path}?subject=${subject}`);
+}, [router]);
 
   // --- NEURAL LOADING STATE ---
   if (isLoading) {

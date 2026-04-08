@@ -1,84 +1,35 @@
-"use client";
+import React from 'react';
 
-import { motion } from 'framer-motion';
-import { Users, GraduationCap, Cpu, Globe } from 'lucide-react';
+export default function ImpactStats() {
+  const stats = [
+    { label: "Research History", value: "50+", sub: "Years of Excellence" },
+    { label: "Alumni Network", value: "1,200+", sub: "Graduated Botanists" },
+    { label: "Facilities", value: "03", sub: "Climate Greenhouses" },
+    { label: "Collaboration", value: "15+", sub: "Global Partners" },
+  ];
 
-const STATS = [
-  {
-    label: 'Questions Generated',
-    value: '850K+',
-    icon: <Cpu size={24} />,
-    color: 'text-emerald-600',
-    bg: 'bg-emerald-50'
-  },
-  {
-    label: 'Active Scholars',
-    value: '12,400+',
-    icon: <Users size={24} />,
-    color: 'text-blue-600',
-    bg: 'bg-blue-50'
-  },
-  {
-    label: 'Scholarships Tracked',
-    value: '450+',
-    icon: <GraduationCap size={24} />,
-    color: 'text-purple-600',
-    bg: 'bg-purple-50'
-  },
-  {
-    label: 'Global Partners',
-    value: '24',
-    icon: <Globe size={24} />,
-    color: 'text-amber-600',
-    bg: 'bg-amber-50'
-  }
-];
-
-const ImpactStats = () => {
   return (
-    <section className="py-20 bg-white border-y border-gray-100">
-      <div className="max-w-6xl mx-auto px-4">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-8">
-          {STATS.map((stat, index) => (
-            <motion.div
-              key={index}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: index * 0.1 }}
-              className="flex flex-col items-center text-center group"
-            >
-              <div className={`mb-4 p-4 rounded-2xl ${stat.bg} ${stat.color} transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}>
-                {stat.icon}
-              </div>
-              <h4 className="text-3xl md:text-4xl font-black text-gray-900 mb-1 tracking-tighter">
+    <section className="py-12 md:py-20 border-y border-slate-100 bg-white/50 backdrop-blur-sm">
+      <div className="max-w-7xl mx-auto px-6">
+        {/* SEO Item 4: Semantic Description List */}
+        <dl className="grid grid-cols-2 lg:grid-cols-4 gap-8 md:gap-12">
+          {stats.map((stat, i) => (
+            <div key={i} className="flex flex-col items-center text-center group">
+              {/* dt: The Term (The Number) */}
+              <dt className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter group-hover:text-emerald-600 transition-colors duration-300">
                 {stat.value}
-              </h4>
-              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-gray-400">
+              </dt>
+              {/* dd: The Description */}
+              <dd className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-emerald-600">
                 {stat.label}
-              </p>
-            </motion.div>
+              </dd>
+              <dd className="text-slate-400 text-xs font-medium mt-1">
+                {stat.sub}
+              </dd>
+            </div>
           ))}
-        </div>
-
-        {/* Dynamic Trust Note */}
-        <motion.div 
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          className="mt-16 p-6 bg-gray-50 rounded-[2rem] border border-dashed border-gray-200 flex flex-col md:flex-row items-center justify-center gap-6"
-        >
-          <p className="text-sm font-bold text-gray-500 flex items-center gap-2">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            Neural Network updated 4 minutes ago
-          </p>
-          <div className="h-px w-12 bg-gray-200 hidden md:block" />
-          <p className="text-sm font-bold text-gray-900">
-            Trusted by students from <span className="underline decoration-emerald-400">TUM Germany</span>, <span className="underline decoration-blue-400">MIT USA</span>, and more.
-          </p>
-        </motion.div>
+        </dl>
       </div>
     </section>
   );
-};
-
-export default ImpactStats;
+}

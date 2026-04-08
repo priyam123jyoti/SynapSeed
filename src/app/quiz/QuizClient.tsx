@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import { generateMoanaQuiz } from '@/services/moanaAI';
 
-// Constants & Components
 import { SUBJECT_TOPICS } from '@/components/quiz/constants'; 
 import TopicSelectionView from '@/components/quiz/TopicSelectionView';
 import QuizEngine from '@/components/quiz/QuizEngine';
@@ -15,9 +14,9 @@ export default function QuizClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
-  // URL Params parsing
   const subjectKey = searchParams.get('subject') || 'botany';
-  const subjectName = searchParams.get('name') || 'Botany Quiz';
+  // SEO Fix: If 'name' is missing, we prettify the subjectKey (e.g., 'botany' -> 'BOTANY QUIZ')
+  const subjectName = searchParams.get('name') || `${subjectKey.charAt(0).toUpperCase() + subjectKey.slice(1)} Quiz`;
   const queryTopic = searchParams.get('query'); 
   
   const subjectTitle = useMemo(() => subjectName.toUpperCase(), [subjectName]);
@@ -32,31 +31,28 @@ export default function QuizClient() {
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [questions, setQuestions] = useState<any[]>([]);
 
-  // --- AUTH & INITIALIZATION ---
   useEffect(() => {
     const validateAccess = async () => {
-      const { data: { user }, error } = await supabase.auth.getUser();
+      const { data: { user: authUser }, error } = await supabase.auth.getUser();
 
-      if (error || !user) {
+      if (error || !authUser) {
         router.replace('/?error=unauthorized');
         return;
       }
 
-      setUser(user);
+      setUser(authUser);
       setIsAuthChecking(false);
 
-      // Auto-start if query exists
       if (queryTopic && !selectedTopic) {
         handleStartQuiz(queryTopic);
       }
     };
     validateAccess();
-  }, [router, queryTopic]);
+  }, [router, queryTopic, selectedTopic]); // Added selectedTopic to deps for safety
 
-  // --- SCORE SYNC TO DATABASE ---
   const saveQuizScore = useCallback(async (percentage: number) => {
     if (!user) return;
-    const { error } = await supabase
+    await supabase
       .from('quiz_scores')
       .insert([{ 
         user_id: user.id, 
@@ -64,24 +60,19 @@ export default function QuizClient() {
         topic: selectedTopic || "General", 
         subject: subjectTitle 
       }]);
-    
-    if (error) console.error("MOANA_DATABASE_SYNC_ERROR:", error.message);
   }, [user, selectedTopic, subjectTitle]);
 
-  // --- QUIZ GENERATION HANDLER ---
   const handleStartQuiz = useCallback(async (topic: string) => {
     setLoading(true);
     setSelectedTopic(topic);
-    setQuestions([]); // Clear previous state
+    setQuestions([]); 
     
     try {
       const data = await generateMoanaQuiz(topic, subjectTitle);
-      
-      // Ensure we received a valid array from Script 1
       if (data && Array.isArray(data) && data.length > 0) {
         setQuestions(data);
       } else {
-        throw new Error("Invalid question format received from Neural Link");
+        throw new Error("Invalid question format");
       }
     } catch (err) {
       console.error("MOANA_SYNC_FAILURE:", err);
@@ -91,18 +82,12 @@ export default function QuizClient() {
     }
   }, [subjectTitle]);
 
-  if (isAuthChecking) {
-    return <LoadingScreen topic="Authenticating Researcher..." />;
-  }
-
-  if (loading) {
-    return <LoadingScreen topic={`${subjectTitle}: ${selectedTopic}`} />;
-  }
+  if (isAuthChecking) return <LoadingScreen topic="Authenticating..." />;
+  if (loading) return <LoadingScreen topic={`${subjectTitle}: ${selectedTopic}`} />;
 
   return (
     <main className="min-h-screen bg-[#020617] relative overflow-hidden">
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_50%,#0f172a_0%,#020617_100%)] pointer-events-none" />
-      
       <div className="relative z-10">
         {!selectedTopic ? (
           <TopicSelectionView
@@ -110,7 +95,7 @@ export default function QuizClient() {
             topics={currentTopics} 
             researcherName={user?.user_metadata?.full_name?.split(' ')[0] || "Researcher"}
             onStart={handleStartQuiz}
-            onBack={() => router.push('/moana-gateway')}
+            onBack={() => router.push('/moana-ai-unlimited-quiz-generator')}
           />
         ) : (
           <QuizEngine 
@@ -121,8 +106,7 @@ export default function QuizClient() {
             onFinishQuiz={(score) => saveQuizScore(score)}
             onTerminate={() => {
               setSelectedTopic(null);
-              setQuestions([]);
-              router.push('/moana-gateway');
+              router.push('/moana-ai-unlimited-quiz-generator');
             }}
           />
         )}

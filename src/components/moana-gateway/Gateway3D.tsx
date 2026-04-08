@@ -23,8 +23,8 @@ const Gateway3D = () => {
           <Preload all />
         </Suspense>
       </Canvas>
-      {/* Optimized Gradient Overlay - uses transform-z to stay on top of WebGL */}
-      <div className="absolute inset-0 z-[1] bg-gradient-to-b from-[#B4FF00]/40 via-transparent from-[#B4FF00] pointer-events-none transform-gpu" />
+      {/* Fixed: Replaced the second 'from-' with 'to-' for a valid gradient */}
+      <div className="absolute inset-0 z-[1] bg-gradient-to-b from-[#B4FF00]/40 via-transparent to-[#0B1A12] pointer-events-none transform-gpu" />
     </div>
   );
 };

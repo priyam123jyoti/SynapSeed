@@ -5,8 +5,6 @@ import { ArrowLeft, Search } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { Topic } from '@/components/quiz/constants'; 
 
-// --- 1. DEFINE PROPS INTERFACE ---
-// This fixes: "Cannot find name 'TopicSelectionProps'"
 interface TopicSelectionProps {
   subjectTitle: string;
   topics: Topic[];
@@ -14,14 +12,7 @@ interface TopicSelectionProps {
   onBack: () => void;
 }
 
-// --- 2. SUB-COMPONENT: TOPIC CARD ---
-interface TopicCardProps {
-  name: string;
-  icon: string;
-  onClick: (topic: string) => void;
-} 
-
-const TopicCard = memo(({ name, icon, onClick }: TopicCardProps) => (
+const TopicCard = memo(({ name, icon, onClick }: { name: string, icon: string, onClick: (t: string) => void }) => (
   <motion.button
     layout="position"
     initial={{ opacity: 0, scale: 0.9 }}
@@ -33,52 +24,32 @@ const TopicCard = memo(({ name, icon, onClick }: TopicCardProps) => (
     className="relative p-6 bg-slate-900/40 backdrop-blur-sm border border-emerald-600/20 rounded-3xl hover:border-emerald-500/50 transition-colors text-left group overflow-hidden"
   >
     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#29ccbe] to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-    
-    <div className="text-3xl mb-3 filter drop-shadow-lg group-hover:drop-shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all">
-      {icon}
-    </div>
-    <div className="text-[9px] text-emerald-500/60 mb-1 font-bold uppercase tracking-widest">
-      Quiz Topic
-    </div>
-    <h3 className="font-bold uppercase text-slate-200 group-hover:text-white transition-all text-sm leading-tight">
-      {name}
-    </h3>
+    <div className="text-3xl mb-3 filter drop-shadow-lg group-hover:drop-shadow-[0_0_8px_rgba(16,185,129,0.5)] transition-all">{icon}</div>
+    <div className="text-[9px] text-emerald-500/60 mb-1 font-bold uppercase tracking-widest">Module</div>
+    <h3 className="font-bold uppercase text-slate-200 group-hover:text-white transition-all text-sm leading-tight">{name}</h3>
   </motion.button>
 ));
 
 TopicCard.displayName = 'TopicCard';
 
-// --- 3. MAIN COMPONENT ---
 export const TopicSelection = ({ subjectTitle, topics, onStart, onBack }: TopicSelectionProps) => {
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Fixes: "Parameter 't' implicitly has an 'any' type"
   const filteredTopics = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
-    if (!query) return topics;
-    return topics.filter((t: Topic) => t.name.toLowerCase().includes(query));
+    return query ? topics.filter(t => t.name.toLowerCase().includes(query)) : topics;
   }, [searchQuery, topics]);
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: { 
-      opacity: 1,
-      transition: { staggerChildren: 0.03 } 
-    }
-  };
 
   return (
     <div className="min-h-screen p-6 md:p-12 text-white font-mono selection:bg-emerald-500/30">
       <div className="max-w-7xl mx-auto">
-        
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-16">
           <motion.div initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }}>
             <button 
               onClick={onBack} 
               className="group flex items-center gap-2 text-slate-500 font-bold hover:text-emerald-400 transition-all text-[10px] tracking-[0.2em] mb-4"
             >
-              <ArrowLeft size={12} /> 
-              Raturn
+              <ArrowLeft size={12} /> Return
             </button>
             <h1 className="text-4xl font-black tracking-tighter uppercase text-white">
               {subjectTitle} <span className="text-emerald-500">Archive</span>
@@ -97,22 +68,10 @@ export const TopicSelection = ({ subjectTitle, topics, onStart, onBack }: TopicS
           </div>
         </div>
 
-        <motion.div 
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          layout 
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pb-20"
-        >
+        <motion.div layout className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pb-20">
           <AnimatePresence mode="popLayout">
-            {/* Fixes: 'topic' and 'idx' any type errors */}
-            {filteredTopics.map((topic: Topic, idx: number) => (
-              <TopicCard 
-                key={`${topic.name}-${idx}`} 
-                name={topic.name} 
-                icon={topic.icon} 
-                onClick={onStart} 
-              />
+            {filteredTopics.map((topic, idx) => (
+              <TopicCard key={`${topic.name}-${idx}`} {...topic} onClick={onStart} />
             ))}
           </AnimatePresence>
         </motion.div>

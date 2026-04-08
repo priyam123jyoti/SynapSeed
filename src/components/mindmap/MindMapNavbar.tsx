@@ -38,7 +38,7 @@ export const MindMapNavbar = ({ isFullScreen, setIsFullScreen, activeView, setAc
             MoanaAI
           </h1>
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-             Mind Map Generator
+             Mind Map Gen
           </span>
         </div>
       </div>

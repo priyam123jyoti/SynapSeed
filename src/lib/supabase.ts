@@ -15,7 +15,6 @@ export const supabase = createClient(
   supabaseAnonKey || ''
 );
 
-// Optional: Debugging logs (will show in browser console)
 if (process.env.NODE_ENV === 'development') {
     console.log("Supabase initialized with URL:", supabaseUrl);
 }

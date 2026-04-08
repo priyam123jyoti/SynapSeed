@@ -1,8 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShieldAlert, LogIn, X } from 'lucide-react';
-import { supabase } from '@/lib/supabase';
+import { ShieldAlert, CheckCircle2 } from 'lucide-react';
 
 interface AuthGuardModalProps {
   isOpen: boolean;
@@ -11,16 +10,6 @@ interface AuthGuardModalProps {
 }
 
 export default function AuthGuardModal({ isOpen, onClose, title = "MOANA AI" }: AuthGuardModalProps) {
-  
-  const handleLogin = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/onboarding`,
-      },
-    });
-  };
-
   return (
     <AnimatePresence>
       {isOpen && (
@@ -31,44 +20,39 @@ export default function AuthGuardModal({ isOpen, onClose, title = "MOANA AI" }: 
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={onClose}
-            className="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-[100]"
+            className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-[100]"
           />
 
           {/* Modal Container */}
           <div className="fixed inset-0 flex items-center justify-center z-[110] p-4 pointer-events-none">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="pointer-events-auto w-full max-w-sm p-8 bg-slate-950 border-2 border-red-500/50 rounded-[2.5rem] shadow-[0_0_50px_rgba(239,68,68,0.2)] relative overflow-hidden"
+              exit={{ opacity: 0, scale: 0.95, y: 10 }}
+              className="pointer-events-auto w-full max-w-sm p-10 bg-slate-950 border border-red-500/30 rounded-[3rem] shadow-[0_0_60px_rgba(239,68,68,0.15)] relative overflow-hidden"
             >
-              <button 
-                onClick={onClose}
-                className="absolute top-6 right-6 text-slate-500 hover:text-white transition-colors"
-              >
-                <X size={20} />
-              </button>
-
               <div className="flex flex-col items-center text-center">
-                <div className="bg-red-500/10 p-4 rounded-2xl text-red-500 mb-6">
-                  <ShieldAlert size={40} className="animate-pulse" />
+                {/* Visual Icon */}
+                <div className="w-20 h-20 bg-red-500/10 rounded-full flex items-center justify-center text-red-500 mb-8">
+                  <ShieldAlert size={42} className="animate-pulse" />
                 </div>
 
-                <h3 className="text-white text-3xl font-black tracking-tighter mb-4 leading-tight">
-                  ACCESS DENIED <br />
-                  <span className="text-red-500 uppercase">{title}</span>
+                <h3 className="text-white text-3xl font-black tracking-tighter mb-4 leading-tight uppercase">
+                  Access Denied <br />
+                  <span className="text-red-500">{title}</span>
                 </h3>
 
-                <p className="text-slate-400 text-sm font-medium mb-8 px-4">
-                  This module requires an active neural link. Please sign in to verify your identity.
+                <p className="text-slate-400 text-sm font-medium mb-10 px-2 leading-relaxed">
+                  This neural module is currently restricted. Please ensure your link is verified before attempting access.
                 </p>
 
+                {/* Single Action Button */}
                 <button
-                  onClick={handleLogin}
-                  className="w-full py-4 bg-white text-black text-xs font-black uppercase tracking-[0.2em] rounded-2xl transition-all flex items-center justify-center gap-2 group hover:bg-red-500 hover:text-white active:scale-95 cursor-pointer shadow-xl"
+                  onClick={onClose}
+                  className="w-full py-4 bg-red-600 hover:bg-red-500 text-white text-[11px] font-black uppercase tracking-[0.25em] rounded-2xl transition-all flex items-center justify-center gap-3 active:scale-95 shadow-lg shadow-red-900/20"
                 >
-                  <LogIn size={16} />
-                  Authorize via Google
+                  <CheckCircle2 size={16} />
+                  Acknowledge
                 </button>
               </div>
             </motion.div>

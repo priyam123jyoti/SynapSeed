@@ -1,10 +1,9 @@
 "use client";
 
 import { memo } from 'react';
-import { motion, Variants } from 'framer-motion'; // Added Variants type import
-import { Sparkles } from 'lucide-react';
+import { motion, Variants } from 'framer-motion'; 
+import { Sparkles, LucideIcon } from 'lucide-react'; // Added LucideIcon import
 
-// Using 'as const' fixes the "type: string is not assignable" error
 const cardVariants = {
   hidden: { opacity: 0, y: 20, filter: "blur(10px)" },
   visible: { 
@@ -20,14 +19,25 @@ const cardVariants = {
 } as const; 
 
 interface BattleCardProps {
-  mode: any;
+  mode: {
+    id: string | number;
+    title: string;
+    desc: string;
+    color: string;
+    path: string;
+    subjectKey: string;
+    icon: LucideIcon; // FIX: Changed from any/ElementType to LucideIcon
+  };
   onNavigate: (path: string, subject: string, title: string) => void;
 }
 
 const BattleCard = ({ mode, onNavigate }: BattleCardProps) => {
+  // Extract the icon component to a capitalized variable for React rendering
+  const IconComponent = mode.icon;
+
   return (
     <motion.button
-      variants={cardVariants as Variants} // Cast here to satisfy the prop type
+      variants={cardVariants as Variants} 
       whileHover={{ scale: 1.02, backgroundColor: "rgba(255, 255, 255, 0.03)" }}
       whileTap={{ scale: 0.98 }}
       onClick={() => onNavigate(mode.path, mode.subjectKey, mode.title)}
@@ -35,7 +45,8 @@ const BattleCard = ({ mode, onNavigate }: BattleCardProps) => {
     >
       <div className="flex items-start gap-5 relative z-10">
         <div className={`p-4 rounded-2xl bg-gradient-to-br ${mode.color} shadow-lg group-hover:rotate-6 transition-transform`}>
-          <mode.icon size={26} className="text-white" />
+          {/* Passing size and className now works because IconComponent is typed as LucideIcon */}
+          <IconComponent size={26} className="text-white" />
         </div>
         
         <div className="flex-1">

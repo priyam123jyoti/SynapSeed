@@ -20,7 +20,7 @@ export default function MobileBottomNavbar() {
     { name: 'Home', icon: Home, path: '/' },
     { name: 'Study Abroad', icon: Globe, path: '/global-study' },
     { name: 'Leaderboard', icon: Trophy, path: '/leaderboard' },
-    { name: 'Mind Map', icon: Network, path: '/ai-hub' },
+    { name: 'Mind Map', icon: Network, path: '/text-to-mind-maps', protected: true },
     { name: 'SynapStore', icon: BookOpen, path: '/affiliate-store' },
   ];
 

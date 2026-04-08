@@ -9,7 +9,6 @@ import { useAuth } from '@/contexts/AuthProvider';
 import { generateMindMap } from '@/services/moanaAI';
 import { supabase } from '@/lib/supabase';
 
-// Modular Components
 import { Sidebar } from '@/components/mindmap/Sidebar';
 import { FlowCanvas } from '@/components/mindmap/FlowCanvas';
 import { MindMapNavbar } from '@/components/mindmap/MindMapNavbar';
@@ -17,11 +16,10 @@ import { NodeFocusModal } from '@/components/mindmap/NodeFocusModal';
 
 const COLOR_PALETTE = ['#38bdf8', '#4ade80', '#f472b6', '#fb923c', '#facc15', '#a78bfa', '#94a3b8', '#fb7185'];
 
-// --- CUSTOM NODE COMPONENT (STOPS TEXT DISAPPEARING) ---
 const NeuralNode = ({ data }: any) => {
   const isRoot = data.isRoot;
-  const topic = data.topic || data.fullData?.topic || "Neural Link";
-  const description = data.description || data.fullData?.description || "";
+  const topic = data.topic || "Neural Link";
+  const description = data.description || "";
 
   return (
     <div className="w-full h-full relative">
@@ -54,6 +52,13 @@ export default function MindMapPage() {
   const [isFullScreen, setIsFullScreen] = useState(false);
 
   const nodeTypes = useMemo(() => ({ neuralNode: NeuralNode }), []);
+
+  // FORCE RESIZE HELPER: Fixes React Flow container size bugs
+  const forceFit = () => {
+    setTimeout(() => {
+      window.dispatchEvent(new Event('resize'));
+    }, 200);
+  };
 
   useEffect(() => {
     if (!loading && !user) router.push('/?error=unauthorized');
@@ -90,17 +95,16 @@ export default function MindMapPage() {
         const VERTICAL_GAP = 450;
 
         result.maps.forEach((mapData: any, mapIndex: number) => {
-          const mapYOffset = mapIndex * 10000;
+          // FIX: Changed mapYOffset to 0 since maps are saved individually
+          const mapYOffset = 0; 
 
-          // --- RESTORED: CALCULATE WIDTH OF BRANCHES ---
           const getBranchWidth = (node: any): number => {
             if (!node.children || node.children.length === 0) return NODE_WIDTH + HORIZONTAL_GAP;
             return node.children.reduce((acc: number, child: any) => acc + getBranchWidth(child), 0);
           };
 
-          // --- RESTORED: BUILD TREE WITH BOUNDARY LOGIC ---
           const buildTree = (nodeData: any, parentId: string | null = null, level = 0, currentXBoundary = 0, branchColor = '#4ade80') => {
-            const id = parentId ? `${parentId}-${Math.random().toString(36).substr(2, 5)}` : `root-${mapIndex}`;
+            const id = parentId ? `${parentId}-${Math.random().toString(36).substr(2, 5)}` : `root-${Date.now()}`;
             const isRoot = level === 0;
             const totalBranchWidth = getBranchWidth(nodeData);
 
@@ -132,7 +136,7 @@ export default function MindMapPage() {
               nodeData.children.forEach((child: any, i: number) => {
                 const childColor = level === 0 ? COLOR_PALETTE[i % COLOR_PALETTE.length] : branchColor;
                 buildTree(child, id, level + 1, nextChildXBoundary, childColor);
-                nextChildXBoundary += getBranchWidth(child); // Ensure siblings don't overlap
+                nextChildXBoundary += getBranchWidth(child);
               });
             }
           };
@@ -142,6 +146,7 @@ export default function MindMapPage() {
         setNodes(allNodes);
         setEdges(allEdges);
         setActiveView('canvas');
+        forceFit(); // Center camera after generation
         await saveMapToCloud(inputText, allNodes, allEdges);
       }
     } finally { setIsGenerating(false); }
@@ -164,6 +169,7 @@ export default function MindMapPage() {
               inputText={inputText} setInputText={setInputText} isGenerating={isGenerating} handleGenerate={handleGenerate} 
               maps={maps || []} setMaps={setMaps} activeView={activeView} setActiveView={setActiveView} 
               setHovering={setIsHovering} setNodes={setNodes} setEdges={setEdges} 
+              forceFit={forceFit} // Pass resize trigger to sidebar
             />
           )}
           <FlowCanvas 

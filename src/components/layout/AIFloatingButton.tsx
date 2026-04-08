@@ -19,7 +19,7 @@ const AIFloatingButton = () => {
 
   const handleProtectedNavigation = () => {
     if (user) {
-      router.push('/moana-gateway'); 
+      router.push('/moana-ai-unlimited-quiz-generator'); 
     } else {
       setIsDenied(true); 
     }
@@ -44,7 +44,7 @@ const AIFloatingButton = () => {
             </div>
 
             <h3 className="text-white text-xl font-black tracking-tighter mb-4 leading-none">
-              LOGIN TO USE <span className="text-red-500 uppercase">MOANA</span>
+              LOGIN TO USE <span className="text-red-500 uppercase"> MoanaAI</span>
             </h3>
 
             <button
