@@ -5,7 +5,7 @@ import ReactFlow, {
   Controls, 
   MiniMap, 
   useReactFlow, 
-  BackgroundVariant // Fix for the "dots" type error
+  BackgroundVariant 
 } from 'reactflow';
 
 export const FlowCanvas = ({ 
@@ -15,15 +15,13 @@ export const FlowCanvas = ({
 }: any) => {
   
   const { fitView } = useReactFlow();
-  
-  // Track root ID to only trigger zoom when the data actually changes
   const rootNodeId = nodes[0]?.id;
 
   useEffect(() => {
     if (nodes.length > 0) {
       const timer = setTimeout(() => {
         fitView({ 
-          padding: 0.15, // Large view without touching edges
+          padding: 0.15, 
           duration: 800,
           includeHiddenNodes: true
         });
@@ -44,29 +42,38 @@ export const FlowCanvas = ({
         onNodeDoubleClick={onNodeDoubleClick}
         onNodeMouseEnter={() => setHovering(true)}
         onNodeMouseLeave={() => setHovering(false)}
-        
-        // Boundaries and Zoom
         minZoom={0.2} 
         maxZoom={1.2}
-        
-        // Interaction Fixes
         panOnDrag={[0, 1, 2]} 
         onPaneContextMenu={(e) => e.preventDefault()} 
         zoomOnDoubleClick={false} 
-        
-        // Aesthetic 
         snapToGrid={true}
         snapGrid={[15, 15]}
       >
-        {/* Using BackgroundVariant.Dots resolves the TS(2322) error */}
         <Background 
           color="#cbd5e1" 
           gap={25} 
           size={1} 
           variant={BackgroundVariant.Dots} 
         />
+        
         <Controls position="bottom-right" className="!bg-white !shadow-xl !border-none !rounded-lg" />
-        <MiniMap position="bottom-left" className="!bg-white !rounded-xl !shadow-lg hidden md:block" />
+
+        {/* --- MINIMAP CUSTOMIZATION --- */}
+        <MiniMap 
+          position="bottom-left" 
+          className="!bg-white !rounded-xl !shadow-lg hidden md:block !border-2 !border-slate-200"
+          
+          // 1. Make the nodes inside the minimap Red
+          nodeColor="#ef4444" 
+          
+          // 2. Make the 'mask' (the area outside the camera) a light transparent red if desired
+          // maskColor="rgba(239, 68, 68, 0.1)" 
+          
+          // 3. Make the Camera Angle (Viewport) border Bold Black
+          maskStrokeColor="#000000"
+          maskStrokeWidth={4} 
+        />
       </ReactFlow>
     </div>
   );
