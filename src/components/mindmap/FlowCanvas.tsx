@@ -19,7 +19,7 @@ export const FlowCanvas = ({
       const timer = setTimeout(() => {
         fitView({ 
           padding: 0.4, 
-          duration: 1000 
+          duration: 100000
         });
       }, 300); 
       return () => clearTimeout(timer);
