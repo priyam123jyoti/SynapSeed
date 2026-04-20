@@ -5,7 +5,9 @@ import ReactFlow, {
   Controls, 
   MiniMap, 
   useReactFlow, 
-  BackgroundVariant 
+  BackgroundVariant,
+  getRectOfNodes,
+  getTransformForBounds
 } from 'reactflow';
 
 export const FlowCanvas = ({ 
@@ -14,21 +16,40 @@ export const FlowCanvas = ({
   nodeTypes 
 }: any) => {
   
-  const { fitView } = useReactFlow();
+  const { setViewport, fitView } = useReactFlow();
   const rootNodeId = nodes[0]?.id;
 
   useEffect(() => {
     if (nodes.length > 0) {
       const timer = setTimeout(() => {
-        fitView({ 
-          padding: 0.15, 
-          duration: 800,
-          includeHiddenNodes: true
-        });
-      }, 400); 
+        // 1. Calculate the exact bounding box of all current nodes
+        const nodesRect = getRectOfNodes(nodes);
+        
+        // 2. Get the dimensions of the actual HTML container
+        const container = document.querySelector('.react-flow__renderer');
+        if (!container) return;
+        
+        const width = container.clientWidth;
+        const height = container.clientHeight;
+
+        // 3. Calculate the transform (zoom + position) needed to center this box
+        // We use a slightly smaller area (0.8) to ensure it feels "Middle-focused"
+        const { x, y, zoom } = getTransformForBounds(
+          nodesRect,
+          width,
+          height,
+          0.2, // minZoom
+          1.2, // maxZoom
+          0.15 // padding
+        );
+
+        // 4. Strictly set the viewport to the dead-center
+        setViewport({ x, y, zoom }, { duration: 1000 });
+        
+      }, 500); 
       return () => clearTimeout(timer);
     }
-  }, [rootNodeId, nodes.length, activeView, fitView]);
+  }, [rootNodeId, nodes.length, activeView, setViewport]);
 
   return (
     <div className={`${activeView === 'dashboard' ? 'hidden lg:block' : 'block'} flex-1 h-full relative bg-slate-50 z-10`}>
@@ -42,13 +63,16 @@ export const FlowCanvas = ({
         onNodeDoubleClick={onNodeDoubleClick}
         onNodeMouseEnter={() => setHovering(true)}
         onNodeMouseLeave={() => setHovering(false)}
-        minZoom={0.2} 
-        maxZoom={1.2}
+        
+        // Settings for Strict Centering
+        minZoom={0.1} 
+        maxZoom={1.5}
+        preventScrolling={false}
+        
+        // Interaction
         panOnDrag={[0, 1, 2]} 
         onPaneContextMenu={(e) => e.preventDefault()} 
         zoomOnDoubleClick={false} 
-        snapToGrid={true}
-        snapGrid={[15, 15]}
       >
         <Background 
           color="#cbd5e1" 
@@ -57,20 +81,12 @@ export const FlowCanvas = ({
           variant={BackgroundVariant.Dots} 
         />
         
-        <Controls position="bottom-right" className="!bg-white !shadow-xl !border-none !rounded-lg" />
+        <Controls position="bottom-right" className="!bg-white !shadow-xl !border-none" />
 
-        {/* --- MINIMAP CUSTOMIZATION --- */}
         <MiniMap 
           position="bottom-left" 
           className="!bg-white !rounded-xl !shadow-lg hidden md:block !border-2 !border-slate-200"
-          
-          // 1. Make the nodes inside the minimap Red
           nodeColor="#ef4444" 
-          
-          // 2. Make the 'mask' (the area outside the camera) a light transparent red if desired
-          // maskColor="rgba(239, 68, 68, 0.1)" 
-          
-          // 3. Make the Camera Angle (Viewport) border Bold Black
           maskStrokeColor="#000000"
           maskStrokeWidth={4} 
         />

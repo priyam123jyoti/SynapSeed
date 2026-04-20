@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNodesState, useEdgesState, addEdge, ConnectionLineType, ReactFlowProvider, Handle, Position } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { ShieldAlert } from 'lucide-react';
@@ -90,13 +90,14 @@ export default function MindMapPage() {
         const allNodes: any[] = [];
         const allEdges: any[] = [];
         
-        // DYNAMIC LAYOUT CONSTANTS
-        const NODE_WIDTH = 300;
-        const HORIZONTAL_GAP = 80; 
-        const VERTICAL_GAP = 350;
+        // --- EXTREME SPACING CONSTANTS ---
+        const NODE_WIDTH = 320;
+        // Tripled the horizontal gap so sibling branches stay far away from each other
+        const HORIZONTAL_GAP = 300; 
+        // Increased vertical gap in case node descriptions are very long
+        const VERTICAL_GAP = 500;
 
         result.maps.forEach((mapData: any) => {
-          // Helper to calculate required width for a branch recursively
           const getSubtreeWidth = (node: any): number => {
             if (!node.children || node.children.length === 0) return NODE_WIDTH + HORIZONTAL_GAP;
             return node.children.reduce((acc: number, child: any) => acc + getSubtreeWidth(child), 0);
@@ -107,7 +108,6 @@ export default function MindMapPage() {
             const isRoot = level === 0;
             const totalBranchWidth = getSubtreeWidth(nodeData);
 
-            // Center the node within its allocated branch width
             const xPos = currentXBoundary + (totalBranchWidth / 2) - (NODE_WIDTH / 2);
             const yPos = level * VERTICAL_GAP;
 
@@ -137,7 +137,7 @@ export default function MindMapPage() {
               nodeData.children.forEach((child: any, i: number) => {
                 const childColor = level === 0 ? COLOR_PALETTE[i % COLOR_PALETTE.length] : branchColor;
                 buildTree(child, id, level + 1, childXCursor, childColor);
-                childXCursor += getSubtreeWidth(child);
+                childXCursor += getSubtreeWidth(child); 
               });
             }
           };
