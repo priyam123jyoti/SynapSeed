@@ -29,6 +29,7 @@ export const FlowCanvas = ({
         const width = container.clientWidth;
         const height = container.clientHeight;
 
+        // Destructure array [x, y, zoom] to satisfy TypeScript
         const [x, y, zoom] = getTransformForBounds(
           nodesRect,
           width,
@@ -45,7 +46,7 @@ export const FlowCanvas = ({
   }, [rootNodeId, nodes.length, activeView, setViewport]);
 
   return (
-    <div className={`${activeView === 'dashboard' ? 'hidden lg:block' : 'block'} flex-1 h-full relative bg-black z-10`}>
+    <div className={`${activeView === 'dashboard' ? 'hidden lg:block' : 'block'} flex-1 h-full relative bg-slate-50 z-10`}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -57,38 +58,36 @@ export const FlowCanvas = ({
         onNodeMouseEnter={() => setHovering(true)}
         onNodeMouseLeave={() => setHovering(false)}
         
-        // --- PERFECT VISIBILITY SETTINGS ---
+        // --- CURSOR FIX ---
         className="custom-canvas-cursor"
         style={{ 
-          backgroundColor: '#000000', // Pure Black
-          cursor: 'crosshair'       // Fallback high-visibility cursor
+          backgroundColor: '#f8fafc', // Light slate background
+          cursor: 'cell'              // Thick '+' cursor for visibility
         }}
         
         minZoom={0.1} 
         maxZoom={1.5}
-        preventScrolling={false}
         panOnDrag={[0, 1, 2]} 
         onPaneContextMenu={(e) => e.preventDefault()} 
         zoomOnDoubleClick={false} 
         snapToGrid={true}
-        snapGrid={[20, 20]}
+        snapGrid={[15, 15]}
       >
         <Background 
-          color="#334155" // Slightly brighter blue-grey for "Neon" effect on black
+          color="#cbd5e1" // Soft grey dots
           gap={25} 
           size={1} 
           variant={BackgroundVariant.Dots} 
         />
         
-        <Controls position="bottom-right" className="!bg-slate-900 !border-slate-700 !fill-white !shadow-2xl" />
+        <Controls position="bottom-right" className="!bg-white !shadow-xl !border-none !rounded-lg" />
 
         <MiniMap 
           position="bottom-left" 
-          className="!bg-slate-900 !rounded-xl !shadow-lg hidden md:block !border-2 !border-slate-800"
+          className="!bg-white !rounded-xl !shadow-lg hidden md:block !border-2 !border-slate-200"
           nodeColor="#ef4444" 
-          maskStrokeColor="#ffffff" // White camera border looks better on black
+          maskStrokeColor="#000000" // Bold Black Camera Frame
           maskStrokeWidth={4} 
-          maskColor="rgba(0, 0, 0, 0.6)" // Dim the non-visible area
         />
       </ReactFlow>
     </div>
