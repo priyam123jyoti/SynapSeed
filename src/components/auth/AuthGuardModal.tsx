@@ -43,7 +43,7 @@ export default function AuthGuardModal({ isOpen, onClose, title = "MOANA AI" }: 
                 </h3>
 
                 <p className="text-slate-400 text-sm font-medium mb-10 px-2 leading-relaxed">
-                  This neural module is currently restricted. Please ensure your link is verified before attempting access.
+                  You are not loged in, click 'Register' to log-in or sign-up
                 </p>
 
                 {/* Single Action Button */}

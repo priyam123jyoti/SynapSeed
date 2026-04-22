@@ -8,7 +8,6 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthProvider';
 import { generateMindMap } from '@/services/moanaAI';
 import { supabase } from '@/lib/supabase';
-
 import { Sidebar } from '@/components/mindmap/Sidebar';
 import { FlowCanvas } from '@/components/mindmap/FlowCanvas';
 import { MindMapNavbar } from '@/components/mindmap/MindMapNavbar';

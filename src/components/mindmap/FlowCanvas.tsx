@@ -34,7 +34,7 @@ export const FlowCanvas = ({
 
         // 3. Calculate the transform (zoom + position) needed to center this box
         // We use a slightly smaller area (0.8) to ensure it feels "Middle-focused"
-        const { x, y, zoom } = getTransformForBounds(
+        const [x, y, zoom] = getTransformForBounds(
           nodesRect,
           width,
           height,
