@@ -10,33 +10,33 @@ Created by Priyamjyoti Dihingia.
 You are a master of Physics, Chemistry, Botany, and Zoology curriculum (HS to MSc levels).`;
 
 /**
- * PROTOCOL: Multi-Map Recursive Architect
+ * PROTOCOL: Unified Singular Mind-Map Architect
+ * REVISED: Force a single root node even for long/complex texts.
  */
 export const generateMindMap = async (rawText: string) => {
   const prompt = `
-    COMMAND: Perform an EXHAUSTIVE RECURSIVE ANALYSIS of the following scientific text.
+    COMMAND: Perform an EXHAUSTIVE ANALYSIS of the following scientific text and synthesize it into a SINGLE UNIFIED mind map.
     TEXT: "${rawText}"
     
     INSTRUCTIONS:
-    1. SPLIT BY TOPIC: If the text covers multiple distinct major concepts, split them into separate maps.
-    2. RECURSIVE DEPTH: Map every sub-concept, detail, and relationship.
-    3. QUALITY NOTES: Every node MUST have a "description" acting as a high-quality study note.
+    1. SINGLE ROOT: Everything must branch from ONE central master topic. DO NOT create multiple separate maps.
+    2. HIERARCHICAL SYNTHESIS: If the text covers different subjects, create a broad central title and use those topics as the primary branches (first-level children).
+    3. RECURSIVE DEPTH: Map every sub-concept, detail, and relationship within this single structure.
+    4. QUALITY NOTES: Every node MUST have a "description" acting as a high-quality study note.
     
-    OUTPUT FORMAT: Return ONLY a JSON object:
+    OUTPUT FORMAT: Return ONLY a JSON object with this exact structure:
     { 
-      "maps": [
-        { 
-          "topic": "Main Title", 
-          "description": "Short summary",
-          "children": [
-            { 
-              "topic": "Sub-concept", 
-              "description": "Definition...", 
-              "children": [] 
-            }
-          ] 
-        }
-      ]
+      "map": { 
+        "topic": "Central Master Topic", 
+        "description": "Comprehensive summary of all covered material",
+        "children": [
+          { 
+            "topic": "Branch 1", 
+            "description": "Notes...", 
+            "children": [] 
+          }
+        ] 
+      }
     }
   `;
 
@@ -48,11 +48,18 @@ export const generateMindMap = async (rawText: string) => {
       ],
       model: "llama-3.3-70b-versatile",
       response_format: { type: "json_object" },
-      temperature: 0.4,
+      temperature: 0.3, 
     });
 
     const content = response.choices[0]?.message?.content;
-    return content ? JSON.parse(content) : { maps: [] };
+    const parsed = content ? JSON.parse(content) : null;
+
+    // Convert the single object back into an array to maintain compatibility with your UI
+    if (parsed && parsed.map) {
+      return { maps: [parsed.map] };
+    }
+    
+    return { maps: [] };
   } catch (error) {
     console.error("M.O.A.N.A. ARCHITECT ERROR:", error);
     return { maps: [] };
@@ -103,7 +110,6 @@ export const generateMoanaQuiz = async (topic: string, subject: string) => {
     const content = response.choices[0]?.message?.content;
     const data = content ? JSON.parse(content) : {};
     
-    // Safety check to ensure we always return an array
     return Array.isArray(data.questions) ? data.questions : [];
   } catch (error) {
     console.error("MOANA_QUIZ_ENGINE_FAILURE:", error);
