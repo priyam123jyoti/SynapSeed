@@ -16,34 +16,35 @@ export const FlowCanvas = ({
   nodeTypes 
 }: any) => {
   
-  const { setViewport, fitView } = useReactFlow();
+  const { setViewport } = useReactFlow();
+  
+  // rootNodeId helps detect when a NEW mind map is loaded vs just moving nodes
   const rootNodeId = nodes[0]?.id;
 
   useEffect(() => {
     if (nodes.length > 0) {
       const timer = setTimeout(() => {
-        // 1. Calculate the exact bounding box of all current nodes
+        // 1. Calculate the exact bounding box of the entire mind map
         const nodesRect = getRectOfNodes(nodes);
         
-        // 2. Get the dimensions of the actual HTML container
+        // 2. Target the React Flow container to get current window dimensions
         const container = document.querySelector('.react-flow__renderer');
         if (!container) return;
         
         const width = container.clientWidth;
         const height = container.clientHeight;
 
-        // 3. Calculate the transform (zoom + position) needed to center this box
-        // We use a slightly smaller area (0.8) to ensure it feels "Middle-focused"
+        // 3. FIX: Use Array destructuring [x, y, zoom] to avoid TS(2339) error
         const [x, y, zoom] = getTransformForBounds(
           nodesRect,
           width,
           height,
-          0.2, // minZoom
-          1.2, // maxZoom
-          0.15 // padding
+          0.1,  // minZoom
+          1.5,  // maxZoom
+          0.15  // padding (15% margin around the map)
         );
 
-        // 4. Strictly set the viewport to the dead-center
+        // 4. Smoothly glide the camera to the dead center
         setViewport({ x, y, zoom }, { duration: 1000 });
         
       }, 500); 
@@ -64,15 +65,23 @@ export const FlowCanvas = ({
         onNodeMouseEnter={() => setHovering(true)}
         onNodeMouseLeave={() => setHovering(false)}
         
-        // Settings for Strict Centering
+        // --- VISIBILITY & CONTRAST FIX ---
+        style={{ 
+          cursor: 'cell', // Bold '+' cursor with black outline: impossible to lose
+          backgroundColor: '#f8fafc' 
+        }}
+        
+        // Camera Boundaries
         minZoom={0.1} 
         maxZoom={1.5}
         preventScrolling={false}
         
-        // Interaction
+        // Interaction Logic
         panOnDrag={[0, 1, 2]} 
         onPaneContextMenu={(e) => e.preventDefault()} 
         zoomOnDoubleClick={false} 
+        snapToGrid={true}
+        snapGrid={[15, 15]}
       >
         <Background 
           color="#cbd5e1" 
@@ -81,13 +90,13 @@ export const FlowCanvas = ({
           variant={BackgroundVariant.Dots} 
         />
         
-        <Controls position="bottom-right" className="!bg-white !shadow-xl !border-none" />
+        <Controls position="bottom-right" className="!bg-white !shadow-xl !border-none !rounded-lg" />
 
         <MiniMap 
           position="bottom-left" 
           className="!bg-white !rounded-xl !shadow-lg hidden md:block !border-2 !border-slate-200"
-          nodeColor="#ef4444" 
-          maskStrokeColor="#000000"
+          nodeColor="#ef4444" // Nodes are Red in the minimap
+          maskStrokeColor="#000000" // Camera border is Bold Black
           maskStrokeWidth={4} 
         />
       </ReactFlow>
