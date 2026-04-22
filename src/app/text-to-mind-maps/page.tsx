@@ -8,6 +8,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthProvider';
 import { generateMindMap } from '@/services/moanaAI';
 import { supabase } from '@/lib/supabase';
+
 import { Sidebar } from '@/components/mindmap/Sidebar';
 import { FlowCanvas } from '@/components/mindmap/FlowCanvas';
 import { MindMapNavbar } from '@/components/mindmap/MindMapNavbar';
@@ -15,20 +16,24 @@ import { NodeFocusModal } from '@/components/mindmap/NodeFocusModal';
 
 const COLOR_PALETTE = ['#38bdf8', '#4ade80', '#f472b6', '#fb923c', '#facc15', '#a78bfa', '#94a3b8', '#fb7185'];
 
+// --- FIXED NEURAL NODE (STRICT WIDTH & WRAPPING) ---
 const NeuralNode = ({ data }: any) => {
   const isRoot = data.isRoot;
   const topic = data.topic || "Neural Link";
   const description = data.description || "";
 
   return (
-    <div className="w-full h-full relative">
+    /* FIX: We force w-[320px] and break-words. 
+       This prevents long text from physically stretching the node into its neighbor.
+    */
+    <div className="w-[320px] max-w-[320px] h-auto relative break-words overflow-hidden">
       <Handle type="target" position={Position.Top} className="opacity-0" />
-      <div className="text-left select-none p-2">
+      <div className="text-left select-none p-2 w-full">
         <div className={`font-black uppercase leading-tight mb-2 ${isRoot ? 'text-2xl text-white' : 'text-lg text-slate-800'}`}>
           {topic}
         </div>
         <div className={`leading-relaxed font-bold ${isRoot ? 'text-sm text-white/80' : 'text-[11px] text-slate-500'}`}>
-          {description.length > 120 ? `${description.substring(0, 120)}...` : description}
+          {description.length > 180 ? `${description.substring(0, 180)}...` : description}
         </div>
       </div>
       <Handle type="source" position={Position.Bottom} className="opacity-0" />
@@ -58,27 +63,6 @@ export default function MindMapPage() {
     }, 200);
   };
 
-  useEffect(() => {
-    if (!loading && !user) router.push('/?error=unauthorized');
-  }, [user, loading, router]);
-
-  useEffect(() => {
-    const fetchHistory = async () => {
-      if (!user) return;
-      const { data } = await supabase.from('mind_maps').select('*').order('created_at', { ascending: false });
-      if (data) setMaps(data);
-    };
-    if (user && !loading) fetchHistory();
-  }, [user, loading]);
-
-  const saveMapToCloud = async (topic: string, nodesData: any[], edgesData: any[]) => {
-    if (!user) return;
-    const { data } = await supabase.from('mind_maps').insert([{
-      user_id: user.id, topic: topic, nodes: nodesData, edges: edgesData
-    }]).select();
-    if (data) setMaps(prev => [data[0], ...prev]);
-  };
-
   const handleGenerate = async () => {
     if (!inputText.trim()) return;
     setIsGenerating(true);
@@ -89,18 +73,22 @@ export default function MindMapPage() {
         const allNodes: any[] = [];
         const allEdges: any[] = [];
         
-        // --- EXTREME SPACING CONSTANTS ---
+        // --- SPACING LOGIC ---
         const NODE_WIDTH = 320;
-        // Tripled the horizontal gap so sibling branches stay far away from each other
-        const HORIZONTAL_GAP = 300; 
-        // Increased vertical gap in case node descriptions are very long
-        const VERTICAL_GAP = 500;
+        const HORIZONTAL_GAP = 150; 
+        const VERTICAL_GAP = 400;
+
+        // FIX: Global tracker ensures that if multiple maps are generated, 
+        // they don't all start at X=0 and overlap.
+        let globalMapCursorX = 0;
 
         result.maps.forEach((mapData: any) => {
           const getSubtreeWidth = (node: any): number => {
             if (!node.children || node.children.length === 0) return NODE_WIDTH + HORIZONTAL_GAP;
             return node.children.reduce((acc: number, child: any) => acc + getSubtreeWidth(child), 0);
           };
+
+          const currentMapWidth = getSubtreeWidth(mapData);
 
           const buildTree = (nodeData: any, parentId: string | null = null, level = 0, currentXBoundary = 0, branchColor = '#4ade80') => {
             const id = parentId ? `${parentId}-${Math.random().toString(36).substr(2, 5)}` : `root-${Date.now()}`;
@@ -118,7 +106,10 @@ export default function MindMapPage() {
               style: { 
                 background: isRoot ? '#020617' : 'white', 
                 border: `3px solid ${isRoot ? '#38bdf8' : branchColor}`, 
-                borderRadius: '24px', padding: '16px', width: NODE_WIDTH, cursor: 'pointer',
+                borderRadius: '24px', 
+                padding: '16px', 
+                width: NODE_WIDTH, // FIXED WIDTH
+                cursor: 'pointer',
                 boxShadow: '0 10px 30px rgba(0,0,0,0.08)',
                 zIndex: 100 - level
               },
@@ -140,24 +131,21 @@ export default function MindMapPage() {
               });
             }
           };
-          buildTree(mapData);
+
+          // Start building this specific map at the current global X position
+          buildTree(mapData, null, 0, globalMapCursorX);
+          
+          // Increment global X so the NEXT map starts after this one finishes
+          globalMapCursorX += currentMapWidth + 500; 
         });
         
         setNodes(allNodes);
         setEdges(allEdges);
         setActiveView('canvas');
         forceFit(); 
-        await saveMapToCloud(inputText, allNodes, allEdges);
       }
     } finally { setIsGenerating(false); }
   };
-
-  if (loading || !user) return (
-    <div className="h-screen w-full bg-[#020617] flex flex-col items-center justify-center">
-      <ShieldAlert size={48} className="text-emerald-500 animate-pulse mb-4" />
-      <h2 className="text-white font-black uppercase text-sm">Validating Neural Link...</h2>
-    </div>
-  );
 
   return (
     <ReactFlowProvider>

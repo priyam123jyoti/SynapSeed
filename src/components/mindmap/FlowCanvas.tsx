@@ -29,17 +29,17 @@ export const FlowCanvas = ({
         const width = container.clientWidth;
         const height = container.clientHeight;
 
-        // Destructure array [x, y, zoom] to satisfy TypeScript
+        // FIXED: Using Array destructuring [x, y, zoom]
         const [x, y, zoom] = getTransformForBounds(
           nodesRect,
           width,
           height,
-          0.1, 
+          0.05, // minZoom (smaller to accommodate massive maps)
           1.5, 
-          0.15 
+          0.1 
         );
 
-        setViewport({ x, y, zoom }, { duration: 1000 });
+        setViewport({ x, y, zoom }, { duration: 1200 });
       }, 500); 
       return () => clearTimeout(timer);
     }
@@ -58,35 +58,32 @@ export const FlowCanvas = ({
         onNodeMouseEnter={() => setHovering(true)}
         onNodeMouseLeave={() => setHovering(false)}
         
-        // --- CURSOR FIX ---
         className="custom-canvas-cursor"
         style={{ 
-          backgroundColor: '#f8fafc', // Light slate background
-          cursor: 'cell'              // Thick '+' cursor for visibility
+          backgroundColor: '#f8fafc',
+          cursor: 'cell' 
         }}
         
-        minZoom={0.1} 
-        maxZoom={1.5}
+        minZoom={0.05} 
+        maxZoom={2}
         panOnDrag={[0, 1, 2]} 
         onPaneContextMenu={(e) => e.preventDefault()} 
         zoomOnDoubleClick={false} 
         snapToGrid={true}
-        snapGrid={[15, 15]}
+        snapGrid={[20, 20]}
       >
         <Background 
-          color="#cbd5e1" // Soft grey dots
+          color="#cbd5e1" 
           gap={25} 
           size={1} 
           variant={BackgroundVariant.Dots} 
         />
-        
         <Controls position="bottom-right" className="!bg-white !shadow-xl !border-none !rounded-lg" />
-
         <MiniMap 
           position="bottom-left" 
           className="!bg-white !rounded-xl !shadow-lg hidden md:block !border-2 !border-slate-200"
           nodeColor="#ef4444" 
-          maskStrokeColor="#000000" // Bold Black Camera Frame
+          maskStrokeColor="#000000"
           maskStrokeWidth={4} 
         />
       </ReactFlow>
