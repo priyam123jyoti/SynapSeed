@@ -17,43 +17,35 @@ export const FlowCanvas = ({
 }: any) => {
   
   const { setViewport } = useReactFlow();
-  
-  // rootNodeId helps detect when a NEW mind map is loaded vs just moving nodes
   const rootNodeId = nodes[0]?.id;
 
   useEffect(() => {
     if (nodes.length > 0) {
       const timer = setTimeout(() => {
-        // 1. Calculate the exact bounding box of the entire mind map
         const nodesRect = getRectOfNodes(nodes);
-        
-        // 2. Target the React Flow container to get current window dimensions
         const container = document.querySelector('.react-flow__renderer');
         if (!container) return;
         
         const width = container.clientWidth;
         const height = container.clientHeight;
 
-        // 3. FIX: Use Array destructuring [x, y, zoom] to avoid TS(2339) error
         const [x, y, zoom] = getTransformForBounds(
           nodesRect,
           width,
           height,
-          0.1,  // minZoom
-          1.5,  // maxZoom
-          0.15  // padding (15% margin around the map)
+          0.1, 
+          1.5, 
+          0.15 
         );
 
-        // 4. Smoothly glide the camera to the dead center
         setViewport({ x, y, zoom }, { duration: 1000 });
-        
       }, 500); 
       return () => clearTimeout(timer);
     }
   }, [rootNodeId, nodes.length, activeView, setViewport]);
 
   return (
-    <div className={`${activeView === 'dashboard' ? 'hidden lg:block' : 'block'} flex-1 h-full relative bg-slate-50 z-10`}>
+    <div className={`${activeView === 'dashboard' ? 'hidden lg:block' : 'block'} flex-1 h-full relative bg-black z-10`}>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -65,39 +57,38 @@ export const FlowCanvas = ({
         onNodeMouseEnter={() => setHovering(true)}
         onNodeMouseLeave={() => setHovering(false)}
         
-        // --- VISIBILITY & CONTRAST FIX ---
+        // --- PERFECT VISIBILITY SETTINGS ---
+        className="custom-canvas-cursor"
         style={{ 
-          cursor: 'cell', // Bold '+' cursor with black outline: impossible to lose
-          backgroundColor: '#f8fafc' 
+          backgroundColor: '#000000', // Pure Black
+          cursor: 'crosshair'       // Fallback high-visibility cursor
         }}
         
-        // Camera Boundaries
         minZoom={0.1} 
         maxZoom={1.5}
         preventScrolling={false}
-        
-        // Interaction Logic
         panOnDrag={[0, 1, 2]} 
         onPaneContextMenu={(e) => e.preventDefault()} 
         zoomOnDoubleClick={false} 
         snapToGrid={true}
-        snapGrid={[15, 15]}
+        snapGrid={[20, 20]}
       >
         <Background 
-          color="#cbd5e1" 
+          color="#334155" // Slightly brighter blue-grey for "Neon" effect on black
           gap={25} 
           size={1} 
           variant={BackgroundVariant.Dots} 
         />
         
-        <Controls position="bottom-right" className="!bg-white !shadow-xl !border-none !rounded-lg" />
+        <Controls position="bottom-right" className="!bg-slate-900 !border-slate-700 !fill-white !shadow-2xl" />
 
         <MiniMap 
           position="bottom-left" 
-          className="!bg-white !rounded-xl !shadow-lg hidden md:block !border-2 !border-slate-200"
-          nodeColor="#ef4444" // Nodes are Red in the minimap
-          maskStrokeColor="#000000" // Camera border is Bold Black
+          className="!bg-slate-900 !rounded-xl !shadow-lg hidden md:block !border-2 !border-slate-800"
+          nodeColor="#ef4444" 
+          maskStrokeColor="#ffffff" // White camera border looks better on black
           maskStrokeWidth={4} 
+          maskColor="rgba(0, 0, 0, 0.6)" // Dim the non-visible area
         />
       </ReactFlow>
     </div>

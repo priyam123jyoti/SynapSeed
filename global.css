@@ -1,9 +1,0 @@
-/* Make the background cursor high-contrast and thick */
-.react-flow__pane {
-  cursor: crosshair !important; /* Crosshairs are much easier to see on grids */
-}
-
-/* Optional: Make the cursor a "Grabbing" hand when actually panning */
-.react-flow__pane.dragging {
-  cursor: grabbing !important;
-}
