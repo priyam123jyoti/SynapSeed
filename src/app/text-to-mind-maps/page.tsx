@@ -1,7 +1,15 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNodesState, useEdgesState, addEdge, ConnectionLineType, ReactFlowProvider, Handle, Position } from 'reactflow';
+import { 
+  useNodesState, 
+  useEdgesState, 
+  addEdge, 
+  ConnectionLineType, 
+  ReactFlowProvider, 
+  Handle, 
+  Position 
+} from 'reactflow';
 import 'reactflow/dist/style.css';
 import { ShieldAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
@@ -16,20 +24,24 @@ import { NodeFocusModal } from '@/components/mindmap/NodeFocusModal';
 
 const COLOR_PALETTE = ['#38bdf8', '#4ade80', '#f472b6', '#fb923c', '#facc15', '#a78bfa', '#94a3b8', '#fb7185'];
 
+// --- NEURAL NODE: FIXED DIMENSIONS ---
 const NeuralNode = ({ data }: any) => {
   const isRoot = data.isRoot;
   const topic = data.topic || "Neural Link";
   const description = data.description || "";
 
   return (
-    <div className="w-[320px] max-w-[320px] h-auto relative break-words overflow-hidden">
+    /* FIX: W-320 and Max-H-350 ensures the node size is predictable.
+      overflow-y-auto allows users to scroll if text is too long.
+    */
+    <div className="w-[320px] max-w-[320px] max-h-[350px] relative break-words overflow-y-auto bg-inherit rounded-[inherit]">
       <Handle type="target" position={Position.Top} className="opacity-0" />
       <div className="text-left select-none p-2 w-full">
         <div className={`font-black uppercase leading-tight mb-2 ${isRoot ? 'text-2xl text-white' : 'text-lg text-slate-800'}`}>
           {topic}
         </div>
         <div className={`leading-relaxed font-bold ${isRoot ? 'text-sm text-white/80' : 'text-[11px] text-slate-500'}`}>
-          {description.length > 180 ? `${description.substring(0, 180)}...` : description}
+          {description}
         </div>
       </div>
       <Handle type="source" position={Position.Bottom} className="opacity-0" />
@@ -59,39 +71,33 @@ export default function MindMapPage() {
     }, 200);
   };
 
-  // --- FIXED DB FETCH LOGIC ---
+  // Fetch history on load
   useEffect(() => {
     const fetchHistory = async () => {
       if (!user) return;
       const { data, error } = await supabase
         .from('mind_maps')
         .select('*')
-        .eq('user_id', user.id) // Security constraint: only get this user's maps
+        .eq('user_id', user.id)
         .order('created_at', { ascending: false });
         
-      if (error) {
-        console.error("DB Fetch Error:", error);
-      } else if (data) {
-        setMaps(data);
-      }
+      if (!error && data) setMaps(data);
     };
     if (user && !loading) fetchHistory();
   }, [user, loading]);
 
-  // --- FIXED DB SAVE LOGIC ---
   const saveMapToCloud = async (topic: string, nodesData: any[], edgesData: any[]) => {
     if (!user) return;
+    // Truncate topic to 100 chars to avoid DB errors
+    const safeTopic = topic.substring(0, 100);
     const { data, error } = await supabase.from('mind_maps').insert([{
       user_id: user.id, 
-      topic: topic, 
+      topic: safeTopic, 
       nodes: nodesData, 
       edges: edgesData
     }]).select();
 
-    if (error) {
-      console.error("DB Save Error:", error);
-      alert("Failed to save to history. Check console for details: " + error.message);
-    } else if (data) {
+    if (!error && data) {
       setMaps(prev => [data[0], ...prev]);
     }
   };
@@ -106,9 +112,10 @@ export default function MindMapPage() {
         const allNodes: any[] = [];
         const allEdges: any[] = [];
         
+        // --- SPACING CONSTANTS ---
         const NODE_WIDTH = 320;
-        const HORIZONTAL_GAP = 150; 
-        const VERTICAL_GAP = 400;
+        const HORIZONTAL_GAP = 250; 
+        const VERTICAL_GAP = 600; // Increased to accommodate max-height nodes
 
         let globalMapCursorX = 0;
 
@@ -125,6 +132,7 @@ export default function MindMapPage() {
             const isRoot = level === 0;
             const totalBranchWidth = getSubtreeWidth(nodeData);
 
+            // Center the node within its allocated subtree space
             const xPos = currentXBoundary + (totalBranchWidth / 2) - (NODE_WIDTH / 2);
             const yPos = level * VERTICAL_GAP;
 
@@ -147,7 +155,11 @@ export default function MindMapPage() {
 
             if (parentId) {
               allEdges.push({ 
-                id: `e-${parentId}-${id}`, source: parentId, target: id, type: ConnectionLineType.SmoothStep, animated: true,
+                id: `e-${parentId}-${id}`, 
+                source: parentId, 
+                target: id, 
+                type: ConnectionLineType.SmoothStep, 
+                animated: true,
                 style: { stroke: branchColor, strokeWidth: 3, opacity: 0.5 } 
               });
             }
@@ -163,7 +175,7 @@ export default function MindMapPage() {
           };
 
           buildTree(mapData, null, 0, globalMapCursorX);
-          globalMapCursorX += currentMapWidth + 500; 
+          globalMapCursorX += currentMapWidth + 500; // Gap between different maps
         });
         
         setNodes(allNodes);
@@ -171,16 +183,20 @@ export default function MindMapPage() {
         setActiveView('canvas');
         forceFit(); 
 
-        // --- FIXED TOPIC NAMING FOR DB ---
-        // Grab the actual root topic generated by the AI to save as the title, 
-        // OR fallback to a truncated version of the notes if it fails.
-        const dbTopicName = result.maps[0].topic || inputText.substring(0, 40) + "...";
-        await saveMapToCloud(dbTopicName, allNodes, allEdges);
+        const displayTopic = result.maps[0].topic || inputText.substring(0, 40);
+        await saveMapToCloud(displayTopic, allNodes, allEdges);
       }
     } finally { 
       setIsGenerating(false); 
     }
   };
+
+  if (loading || !user) return (
+    <div className="h-screen w-full bg-[#020617] flex flex-col items-center justify-center">
+      <ShieldAlert size={48} className="text-emerald-500 animate-pulse mb-4" />
+      <h2 className="text-white font-black uppercase text-sm">Validating Neural Link...</h2>
+    </div>
+  );
 
   return (
     <ReactFlowProvider>
