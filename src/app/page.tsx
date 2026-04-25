@@ -12,24 +12,23 @@ import ImpactStats from '@/components/home/ImpactStats';
 import ResearchMosaic from '@/components/home/ResearchMosaic';
 
 // PERFORMANCE: Incremental Static Regeneration (ISR)
-// This fixes the "Server responded slowly" error by caching the page.
-export const revalidate = 3600; // Revalidate data at most once per hour
+export const revalidate = 3600; 
 
-// 2. Extreme Metadata (SEO Item 2)
+// 2. Extreme Metadata (SEO)
 export const metadata: Metadata = {
-  title: "Department of Botany | Excellence in Plant Science",
-  description: "Advancing global plant science through research, biodiversity studies, and academic excellence at the University Botany Department.",
-  alternates: { canonical: 'https://synap-seed.vercel.app' }, // Replace with your actual URL
+  title: "Department of Botany | Dhakuakhana College - AI Learning Portal",
+  description: "Official Botany Department portal at Dhakuakhana College. Explore interactive AI mind maps, take science quizzes in Physics, Chemistry, Botany, and Zoology, and view our research.",
+  alternates: { canonical: 'https://botany-department-dhakuakhana-college.com' }, 
+  keywords: ["Botany Dhakuakhana College", "Assam Botany Research", "AI Quiz Generator Science", "Botany Mind Maps"],
   openGraph: {
-    title: "Department of Botany",
-    description: "Excellence in Plant Science and Research.",
-    images: ['/og-image.jpg'], // Make sure this exists in your public folder
+    title: "Botany Department | Dhakuakhana College",
+    description: "Visualizing Plant Science with AI-powered mind maps and quizzes.",
+    images: '/og-image.jpg',
   }
 };
 
-// 3. SSR Data Fetching (SEO Item 1)
+// 3. SSR Data Fetching
 async function getLatestEvents() {
-  // We fetch here on the server so the HTML is fully populated for Google
   const { data, error } = await supabase
     .from('events')
     .select('id, title, slug, category, date_short, description_short, thumbnail')
@@ -44,15 +43,28 @@ async function getLatestEvents() {
 }
 
 export default async function Home() {
-  // Fetching data at the top level of the Server Component
   const initialEvents = await getLatestEvents();
 
   return (
     <div className="w-full bg-[#f8fafc] flex flex-col min-h-screen">
-      {/* Navigation should be outside <main> but inside the wrapper */}
+      
+      {/* 4. JSON-LD SEO Script (Must be inside the main div) */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "EducationalOrganization",
+            "name": "Dhakuakhana College Botany Department",
+            "url": "https://botany-department-dhakuakhana-college.com",
+            "description": "A college department offering AI-powered tools for Botany and Science students.",
+            "knowsAbout": ["Botany", "Zoology", "Physics", "Chemistry", "Artificial Intelligence"]
+          })
+        }}
+      />
+
       <Navbar /> 
       
-      {/* 4. Semantic Main (SEO Item 4) */}
       <main id="main-content" className="flex-grow">
         <BotanyHero />
         
@@ -61,10 +73,7 @@ export default async function Home() {
 
         <div className="p-1 md:p-10">
           <div className="max-w-[1600px] mx-auto w-full space-y-20">
-            
-            {/* PERFORMANCE: Passing initialEvents prevents a second fetch on the client */}
-
-            
+            {/* Subject Pillars, Feature Showcase, and Stats */}
             <SubjectPillars />
             <FeatureShowcase />
             <ImpactStats />
@@ -72,7 +81,6 @@ export default async function Home() {
         </div>
       </main>
       
-      {/* Footer / Interactive Elements */}
       <AIFloatingButton />
       <MobileBottomNavbar />
     </div>

@@ -39,10 +39,10 @@ export default function BotanyHero() {
              </p>
           </div>
           
-          {/* Creative Stylish Heading */}
-          <h1 className={`${playfair.className} text-6xl sm:text-7xl lg:text-9xl leading-[0.95] mb-4 text-[#1a3c34] tracking-tight`}>
-            Department <span className="block text-[#2d5a4c]">of Botany</span>
-          </h1>
+ {/* Creative Stylish Heading */}
+<h1 className={`${playfair.className} text-6xl sm:text-7xl lg:text-9xl leading-[0.95] mb-4 text-[#1a3c34] tracking-tight`}>
+  Botany <span className="block text-[#2d5a4c] text-5xl lg:text-7xl">Dhakuakhana College</span>
+</h1>
 
           {/* Dhakuakhana College - Color adjusted for Accessibility (Contrast) */}
           <p className="text-lg lg:text-2xl font-semibold text-emerald-800 mb-12 tracking-wide ml-1">
