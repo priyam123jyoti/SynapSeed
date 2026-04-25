@@ -14,54 +14,27 @@ export default function QuizClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   
+  // 1. Initial Route Parameters
   const subjectKey = searchParams.get('subject') || 'botany';
-  // SEO Fix: If 'name' is missing, we prettify the subjectKey (e.g., 'botany' -> 'BOTANY QUIZ')
   const subjectName = searchParams.get('name') || `${subjectKey.charAt(0).toUpperCase() + subjectKey.slice(1)} Quiz`;
   const queryTopic = searchParams.get('query'); 
   
+  // 2. Memoized Values
   const subjectTitle = useMemo(() => subjectName.toUpperCase(), [subjectName]);
   
   const currentTopics = useMemo(() => 
     SUBJECT_TOPICS[subjectKey as keyof typeof SUBJECT_TOPICS] || SUBJECT_TOPICS.botany, 
   [subjectKey]);
 
+  // 3. State Management
   const [user, setUser] = useState<any>(null);
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [loading, setLoading] = useState(false);
   const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
   const [questions, setQuestions] = useState<any[]>([]);
 
-  useEffect(() => {
-    const validateAccess = async () => {
-      const { data: { user: authUser }, error } = await supabase.auth.getUser();
-
-      if (error || !authUser) {
-        router.replace('/?error=unauthorized');
-        return;
-      }
-
-      setUser(authUser);
-      setIsAuthChecking(false);
-
-      if (queryTopic && !selectedTopic) {
-        handleStartQuiz(queryTopic);
-      }
-    };
-    validateAccess();
-  }, [router, queryTopic, selectedTopic]); // Added selectedTopic to deps for safety
-
-  const saveQuizScore = useCallback(async (percentage: number) => {
-    if (!user) return;
-    await supabase
-      .from('quiz_scores')
-      .insert([{ 
-        user_id: user.id, 
-        score: percentage, 
-        topic: selectedTopic || "General", 
-        subject: subjectTitle 
-      }]);
-  }, [user, selectedTopic, subjectTitle]);
-
+  /** * 4. Callbacks (Defined BEFORE useEffect to avoid TS2448)
+   */
   const handleStartQuiz = useCallback(async (topic: string) => {
     setLoading(true);
     setSelectedTopic(topic);
@@ -82,12 +55,54 @@ export default function QuizClient() {
     }
   }, [subjectTitle]);
 
+  const saveQuizScore = useCallback(async (percentage: number) => {
+    if (!user) return;
+    await supabase
+      .from('quiz_scores')
+      .insert([{ 
+        user_id: user.id, 
+        score: percentage, 
+        topic: selectedTopic || "General", 
+        subject: subjectTitle 
+      }]);
+  }, [user, selectedTopic, subjectTitle]);
+
+  /**
+   * 5. Side Effects (Auth & Auto-start)
+   */
+  useEffect(() => {
+    const validateAccess = async () => {
+      const { data: { user: authUser }, error } = await supabase.auth.getUser();
+
+      if (error || !authUser) {
+        // Direct unauthorized users back to home
+        router.replace('/?error=unauthorized');
+        return;
+      }
+
+      setUser(authUser);
+      setIsAuthChecking(false);
+
+      // Auto-trigger quiz if redirected from SubjectPillars with a query
+      if (queryTopic && !selectedTopic) {
+        handleStartQuiz(queryTopic);
+      }
+    };
+    
+    validateAccess();
+  }, [router, queryTopic, selectedTopic, handleStartQuiz]);
+
+  /**
+   * 6. View Logic
+   */
   if (isAuthChecking) return <LoadingScreen topic="Authenticating..." />;
   if (loading) return <LoadingScreen topic={`${subjectTitle}: ${selectedTopic}`} />;
 
   return (
     <main className="min-h-screen bg-[#020617] relative overflow-hidden">
+      {/* Visual Background layer */}
       <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_50%,#0f172a_0%,#020617_100%)] pointer-events-none" />
+      
       <div className="relative z-10">
         {!selectedTopic ? (
           <TopicSelectionView
