@@ -7,12 +7,54 @@ import { AuthProvider } from "@/contexts/AuthProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
+  // 1. Metadata Base is required for relative OG images to work in Next.js
+  metadataBase: new URL('https://botany-department-dhakuakhana-college.com'),
+  
   title: {
     default: "Botany Department | Dhakuakhana College Autonomous, Lakhimpur, Assam",
     template: "%s | Botany Department, Dhakuakhana College Autonomous"
   },
-  description: "Official website of the Department of Botany, Dhakuakhana College Autonomous. AI-powered mindmaps, unlimited quizzes for physics, chemistry, botany, zoology, and academic resources for students.",
-  keywords: ["Botany Department", "Dhakuakhana College", "Science AI", "Moana AI", "Text to Mindmaps generator Moana AI, Unlimited quiz generation by Moana AI, Quiz Game and Leaderboard ranking"],
+  description: "Official website of the Department of Botany, Dhakuakhana College Autonomous. Featuring AI-powered mindmaps, Moana AI unlimited quizzes for Physics, Chemistry, Botany, Zoology, and academic resources.",
+  
+  // 2. Optimized Keywords: Short, punchy phrases are better than long sentences
+  keywords: [
+    "Botany Department", 
+    "Dhakuakhana College", 
+    "Lakhimpur College Assam", 
+    "Moana AI", 
+    "AI Mindmap Generator", 
+    "Botany Quiz Game", 
+    "Zoology Quiz", 
+    "Chemistry Quiz Generator", 
+    "Physics Quiz",
+    "Academic Leaderboard"
+  ],
+
+  // 3. Social Media Sharing (Open Graph)
+  openGraph: {
+    title: "Botany Department | Dhakuakhana College",
+    description: "AI-powered study tools and academic resources for Science students.",
+    url: 'https://botany-department-dhakuakhana-college.com',
+    siteName: 'Dhakuakhana College Botany Portal',
+    images: [
+      {
+        url: '/botany-department-dhakuakhana-college.png', // This points to the image in your public folder
+        width: 1200,
+        height: 630,
+        alt: 'Dhakuakhana College Botany Department AI Portal',
+      },
+    ],
+    locale: 'en_IN',
+    type: 'website',
+  },
+
+  // 4. Twitter Card (For better sharing on X)
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Botany Department | Dhakuakhana College',
+    description: 'Transforming science education with Moana AI Mindmaps and Quizzes.',
+    images: ['/og-image.jpg'],
+  },
 };
 
 export default function RootLayout({
@@ -24,7 +66,6 @@ export default function RootLayout({
     <html lang="en" className="scroll-smooth">
       <body className={`${inter.className} antialiased bg-[#fdfdfd] text-slate-900`}>
         <AuthProvider>
-          {/* You might want to add a Global Navbar here later */}
           {children}
         </AuthProvider>
       </body>

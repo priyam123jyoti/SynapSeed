@@ -23,7 +23,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Botany Department | Dhakuakhana College",
     description: "Visualizing Plant Science with AI-powered mind maps and quizzes.",
-    images: '/og-image.jpg',
+    images: '/botany-department-dhakuakhana-college.png',
   }
 };
 
