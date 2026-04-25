@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   // 1. Metadata Base is required for relative OG images to work in Next.js
-  metadataBase: new URL('https://botany-department-dhakuakhana-college.com'),
+  metadataBase: new URL('https://synap-seed.vercel.app'),
   
   title: {
     default: "Botany Department | Dhakuakhana College Autonomous, Lakhimpur, Assam",
@@ -34,7 +34,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Botany Department | Dhakuakhana College",
     description: "AI-powered study tools and academic resources for Science students.",
-    url: 'https://botany-department-dhakuakhana-college.com',
+    url: 'https://synap-seed.vercel.app',
     siteName: 'Dhakuakhana College Botany Portal',
     images: [
       {

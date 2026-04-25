@@ -18,7 +18,7 @@ export const revalidate = 3600;
 export const metadata: Metadata = {
   title: "Department of Botany | Dhakuakhana College - AI Learning Portal",
   description: "Official Botany Department portal at Dhakuakhana College. Explore interactive AI mind maps, take science quizzes in Physics, Chemistry, Botany, and Zoology, and view our research.",
-  alternates: { canonical: 'https://botany-department-dhakuakhana-college.com' }, 
+  alternates: { canonical: 'https://synap-seed.vercel.app' }, 
   keywords: ["Botany Dhakuakhana College", "Assam Botany Research", "AI Quiz Generator Science", "Botany Mind Maps"],
   openGraph: {
     title: "Botany Department | Dhakuakhana College",
@@ -56,7 +56,7 @@ export default async function Home() {
             "@context": "https://schema.org",
             "@type": "EducationalOrganization",
             "name": "Dhakuakhana College Botany Department",
-            "url": "https://botany-department-dhakuakhana-college.com",
+            "url": "https://synap-seed.vercel.app",
             "description": "A college department offering AI-powered tools for Botany and Science students.",
             "knowsAbout": ["Botany", "Zoology", "Physics", "Chemistry", "Artificial Intelligence"]
           })
