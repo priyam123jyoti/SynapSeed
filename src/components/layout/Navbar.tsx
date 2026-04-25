@@ -50,7 +50,6 @@ export default function Navbar({ user: propUser }: { user?: any }) {
 
   const navLinks = [
     { name: 'Home', hasDropdown: false, path: '/' },
-    { name: 'Study Abroad', hasDropdown: false, path: '/global-study' },
     { name: 'Leaderboard', hasDropdown: true, path: '/leaderboard' },
     { name: 'Mind Maps', hasDropdown: false, path: '/text-to-mind-maps', protected: true },
     { name: 'SynapStore', hasDropdown: false, path: '/affiliate-store' },

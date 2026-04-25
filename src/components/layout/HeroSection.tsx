@@ -51,23 +51,23 @@ export default function BotanyHero() {
 
           {/* Navigation Grid - Added ARIA labels for Accessibility score */}
           <nav className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-md rounded-2xl overflow-hidden shadow-2xl shadow-emerald-900/10">
-            <Link 
-              href="/admission" 
+            {/* <Link 
+              href="/admission"  
               aria-label="Navigate to Admission page"
               className="group flex items-center justify-between bg-[#ef7b3f] text-white px-8 py-5 transition-all hover:bg-[#d96a2f]"
             >
               <span className="font-black text-xs uppercase tracking-[0.15em]">Admission</span>
               <span className="text-xl transform group-hover:translate-x-1 transition-transform" aria-hidden="true">↗</span>
-            </Link>
+            </Link> */}
             
-            <Link 
+            {/* <Link 
               href="/research" 
               aria-label="View Research and Publications"
               className="group flex items-center justify-between bg-white text-emerald-950 px-8 py-5 hover:bg-emerald-50 transition-colors border-l border-emerald-50"
             >
               <span className="font-black text-xs uppercase tracking-[0.15em]">Research</span>
               <span className="text-emerald-300 transform group-hover:translate-x-1 transition-transform" aria-hidden="true">→</span>
-            </Link>
+            </Link> */}
             
             <Link 
               href="/faculty" 
