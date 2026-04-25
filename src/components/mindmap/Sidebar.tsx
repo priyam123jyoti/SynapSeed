@@ -147,12 +147,13 @@ export const Sidebar = ({
               </button>
 
               {/* DELETE BUTTON */}
-              <button 
-                onClick={(e) => handleDelete(e, m.id)} 
-                className="absolute -top-2 -right-2 p-2 bg-white shadow-xl rounded-full text-slate-300 hover:text-red-500 hover:scale-110 opacity-0 group-hover:opacity-100 transition-all border border-slate-100 z-10"
-              >
-                <Trash2 size={14} />
-              </button>
+{/* DELETE BUTTON */}
+<button 
+  onClick={(e) => handleDelete(e, m.id)} 
+  className="absolute -top-2 -right-2 p-2 bg-white shadow-xl rounded-full text-red-400 lg:text-slate-300 lg:hover:text-red-500 hover:scale-110 opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all border border-slate-100 z-10"
+>
+  <Trash2 size={14} />
+</button>
             </div>
           ))}
         </div>
