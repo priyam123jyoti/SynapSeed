@@ -24,25 +24,32 @@ import { NodeFocusModal } from '@/components/mindmap/NodeFocusModal';
 
 const COLOR_PALETTE = ['#38bdf8', '#4ade80', '#f472b6', '#fb923c', '#facc15', '#a78bfa', '#94a3b8', '#fb7185'];
 
-// --- NEURAL NODE: FIXED DIMENSIONS ---
+// --- NEURAL NODE: CLEAN UNIFORM CARDS (NO SCROLLBARS) ---
 const NeuralNode = ({ data }: any) => {
-  const isRoot = data.isRoot;
-  const topic = data.topic || "Neural Link";
-  const description = data.description || "";
+  // Safe extraction based on your snippet
+  const topic = data.fullData?.topic || data.topic || "Neural Link";
+  const description = data.fullData?.description || data.description || "";
+  const isRoot = data.isRoot || false;
 
   return (
-    /* FIX: W-320 and Max-H-350 ensures the node size is predictable.
-      overflow-y-auto allows users to scroll if text is too long.
-    */
-    <div className="w-[320px] max-w-[320px] max-h-[350px] relative break-words overflow-y-auto bg-inherit rounded-[inherit]">
+    <div className="w-full h-full relative break-words">
       <Handle type="target" position={Position.Top} className="opacity-0" />
       <div className="text-left select-none p-2 w-full">
         <div className={`font-black uppercase leading-tight mb-2 ${isRoot ? 'text-2xl text-white' : 'text-lg text-slate-800'}`}>
           {topic}
         </div>
-        <div className={`leading-relaxed font-bold ${isRoot ? 'text-sm text-white/80' : 'text-[11px] text-slate-500'}`}>
-          {description}
-        </div>
+        {description && (
+          <div className={`leading-relaxed font-bold ${isRoot ? 'text-sm text-white/80' : 'text-[11px] text-slate-500'}`}>
+            {description.length > 120 ? `${description.substring(0, 120)}...` : description}
+          </div>
+        )}
+        
+        {/* Helper text so users know to use your modal */}
+        {description.length > 120 && (
+          <div className={`mt-3 text-[9px] font-black uppercase tracking-widest ${isRoot ? 'text-sky-300' : 'text-emerald-500'}`}>
+            Double-click to expand
+          </div>
+        )}
       </div>
       <Handle type="source" position={Position.Bottom} className="opacity-0" />
     </div>
@@ -71,7 +78,6 @@ export default function MindMapPage() {
     }, 200);
   };
 
-  // Fetch history on load
   useEffect(() => {
     const fetchHistory = async () => {
       if (!user) return;
@@ -88,7 +94,6 @@ export default function MindMapPage() {
 
   const saveMapToCloud = async (topic: string, nodesData: any[], edgesData: any[]) => {
     if (!user) return;
-    // Truncate topic to 100 chars to avoid DB errors
     const safeTopic = topic.substring(0, 100);
     const { data, error } = await supabase.from('mind_maps').insert([{
       user_id: user.id, 
@@ -112,10 +117,11 @@ export default function MindMapPage() {
         const allNodes: any[] = [];
         const allEdges: any[] = [];
         
-        // --- SPACING CONSTANTS ---
+        // --- PERFECTED SPACING CONSTANTS ---
         const NODE_WIDTH = 320;
-        const HORIZONTAL_GAP = 250; 
-        const VERTICAL_GAP = 600; // Increased to accommodate max-height nodes
+        const HORIZONTAL_GAP = 150; 
+        // 350px vertical gap is plenty because truncating text keeps node height < 150px
+        const VERTICAL_GAP = 350; 
 
         let globalMapCursorX = 0;
 
@@ -132,7 +138,6 @@ export default function MindMapPage() {
             const isRoot = level === 0;
             const totalBranchWidth = getSubtreeWidth(nodeData);
 
-            // Center the node within its allocated subtree space
             const xPos = currentXBoundary + (totalBranchWidth / 2) - (NODE_WIDTH / 2);
             const yPos = level * VERTICAL_GAP;
 
@@ -140,7 +145,8 @@ export default function MindMapPage() {
               id,
               type: 'neuralNode',
               position: { x: xPos, y: yPos },
-              data: { topic: nodeData.topic, description: nodeData.description, isRoot, color: branchColor },
+              // IMPORTANT: Pass the full object so the modal gets the whole description, not just the truncated part
+              data: { ...nodeData, isRoot, color: branchColor },
               style: { 
                 background: isRoot ? '#020617' : 'white', 
                 border: `3px solid ${isRoot ? '#38bdf8' : branchColor}`, 
@@ -175,7 +181,7 @@ export default function MindMapPage() {
           };
 
           buildTree(mapData, null, 0, globalMapCursorX);
-          globalMapCursorX += currentMapWidth + 500; // Gap between different maps
+          globalMapCursorX += currentMapWidth + 500; 
         });
         
         setNodes(allNodes);
@@ -220,6 +226,8 @@ export default function MindMapPage() {
             setHovering={setIsHovering} activeView={isFullScreen ? 'canvas' : activeView} 
           />
         </main>
+        
+        {/* Modal handles the heavy lifting when they double click! */}
         <NodeFocusModal node={focusedNode} onClose={() => setFocusedNode(null)} />
       </div>
     </ReactFlowProvider>
