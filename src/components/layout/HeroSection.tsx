@@ -44,11 +44,6 @@ export default function BotanyHero() {
   Botany <span className="block text-[#2d5a4c] text-5xl lg:text-7xl">Dhakuakhana College</span>
 </h1>
 
-          {/* Dhakuakhana College - Color adjusted for Accessibility (Contrast) */}
-          <p className="text-lg lg:text-2xl font-semibold text-emerald-800 mb-12 tracking-wide ml-1">
-            Dhakuakhana College
-          </p>
-
           {/* Navigation Grid - Added ARIA labels for Accessibility score */}
           <nav className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-md rounded-2xl overflow-hidden shadow-2xl shadow-emerald-900/10">
             <Link 
