@@ -53,7 +53,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'Botany Department | Dhakuakhana College',
     description: 'Transforming science education with Moana AI Mindmaps and Quizzes.',
-    images: ['/og-image.jpg'],
+    images: '/botany-department-dhakuakhana-college.png',
   },
 };
 
