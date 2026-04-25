@@ -35,7 +35,7 @@ export default function BotanyHero() {
           <div className="flex items-center gap-3 mb-6">
              <div className="w-10 h-[2px] bg-emerald-800"></div>
              <p className="text-emerald-800 font-bold tracking-[0.3em] text-[10px] uppercase">
-               Combine Quality with Morality
+              Opportunities don't happen, you create them
              </p>
           </div>
           
@@ -43,6 +43,11 @@ export default function BotanyHero() {
 <h1 className={`${playfair.className} text-6xl sm:text-7xl lg:text-9xl leading-[0.95] mb-4 text-[#1a3c34] tracking-tight`}>
   Botany <span className="block text-[#2d5a4c] text-5xl lg:text-7xl">Dhakuakhana College</span>
 </h1>
+
+          {/* Dhakuakhana College - Color adjusted for Accessibility (Contrast) */}
+          <p className="text-lg lg:text-2xl font-semibold text-emerald-800 mb-12 tracking-wide ml-1">
+            You don't get what you want, you get what you deserve!
+          </p>
 
           {/* Navigation Grid - Added ARIA labels for Accessibility score */}
           <nav className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-md rounded-2xl overflow-hidden shadow-2xl shadow-emerald-900/10">
