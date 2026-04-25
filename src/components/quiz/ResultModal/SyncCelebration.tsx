@@ -13,7 +13,6 @@ export const SyncCelebration = ({ score, onComplete }: SyncCelebrationProps) => 
   const [status, setStatus] = useState('INITIALIZING...');
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  // OPTIMIZATION: Memoize Tier Data to prevent object recreation
   const tier = useMemo(() => {
     if (score === 100) return { color: '#fbbf24', audio: '/audio/hundred-percent.mp3', delay: 7000, label: "Super Intelligent, Unbeatable", particles: 'rocket' };
     if (score >= 80) return { color: '#10b981', audio: '/audio/eighty-nineghty-percent.mp3', delay: 5000, label: "Master Of Science", particles: 'standard' };
@@ -21,7 +20,6 @@ export const SyncCelebration = ({ score, onComplete }: SyncCelebrationProps) => 
     return { color: '#ef4444', audio: '/audio/below-thirty-percent.mp3', delay: 4000, label: "Genius Learn from mistakes", particles: 'none' };
   }, [score]);
 
-  // OPTIMIZATION: Use useCallback for side-effect triggers
   const triggerConfetti = useCallback(() => {
     if (tier.particles === 'rocket') {
       const duration = 5000;
@@ -60,34 +58,35 @@ export const SyncCelebration = ({ score, onComplete }: SyncCelebrationProps) => 
   }, [tier, onComplete, triggerConfetti]);
 
   return (
-    <motion.div 
-      initial={{ opacity: 0 }} 
-      animate={{ opacity: 1 }} 
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[250] flex flex-col items-center justify-center bg-[#020617] overflow-hidden will-change-opacity"
+      className="fixed inset-0 z-[250] flex flex-col items-center justify-center bg-[#020617] overflow-hidden"
+      role="dialog" // SEO/Accessibility: Define this as a modal dialog
+      aria-modal="true"
+      aria-labelledby="celebration-status"
     >
-      {/* 0 LAG: Using CSS Variables for dynamic colors to avoid inline style re-paints */}
-      <div className="absolute inset-0 opacity-20 pointer-events-none" 
-           style={{ background: `radial-gradient(circle at center, ${tier.color}33 0%, transparent 70%)` }} />
-      
+      <div className="absolute inset-0 opacity-20 pointer-events-none"
+        style={{ background: `radial-gradient(circle at center, ${tier.color}33 0%, transparent 70%)` }} aria-hidden="true" />
+
       <div className="relative z-20 flex flex-col items-center">
-        <motion.div 
-          animate={{ scale: [1, 1.03, 1] }} 
-          transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+        <div 
           className="w-64 h-64 rounded-full border-2 flex flex-col items-center justify-center backdrop-blur-3xl shadow-2xl"
           style={{ borderColor: tier.color, backgroundColor: `${tier.color}05` }}
         >
           <span className="text-8xl font-black text-white italic tracking-tighter">{score}%</span>
-        </motion.div>
+        </div>
 
-        <div className="mt-16 text-center h-20"> {/* Fixed height prevents layout shift */}
+        <div className="mt-16 text-center h-20" aria-live="assertive">
           <AnimatePresence mode="wait">
-            <motion.h2 
+            <motion.h2
               key={status}
+              id="celebration-status"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="text-white text-5xl md:text-7xl font-black italic uppercase tracking-tighter"
+              className="text-white text-4xl md:text-6xl font-black italic uppercase tracking-tighter"
             >
               {status}
             </motion.h2>

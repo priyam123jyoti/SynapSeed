@@ -8,45 +8,31 @@ interface ScoreDisplayProps {
   color: string;
 }
 
-// 1. Ensure 'export const' is used for Named Imports
 export const ScoreDisplay = memo(({ score, color }: ScoreDisplayProps) => {
-  // Defensive check: If color is missing, fallback to emerald
   const safeColor = color || "text-emerald-400";
   const glowColor = safeColor.replace('text', 'bg');
 
   return (
-    <div className="relative mb-4 flex flex-col items-center select-none">
+    <div className="relative mb-4 flex flex-col items-center select-none" aria-label={`Final Score: ${score} percent`}>
+      {/* SEO DATA: Hidden text for search engine crawlers */}
+      <span className="sr-only">The student achieved an accuracy score of {score}%.</span>
+
       <motion.div
-        initial={{ opacity: 0, scale: 0.5, filter: "blur(10px)" }}
-        animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-        transition={{ 
-          type: "spring", 
-          stiffness: 260, 
-          damping: 20,
-          delay: 0.2 
-        }}
-        className="relative flex items-center justify-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="relative flex items-center justify-center min-h-[160px]" // Min-height prevents Layout Shift
       >
-        {/* Background Pulse Shadow */}
-        <div className={`absolute inset-0 blur-3xl opacity-20 ${glowColor} rounded-full animate-pulse`} />
+        <div className={`absolute inset-0 blur-3xl opacity-20 ${glowColor} rounded-full animate-pulse`} aria-hidden="true" />
         
-        {/* Main Score Number */}
         <span className={`text-9xl font-black ${safeColor} tracking-tighter drop-shadow-2xl italic z-10`}>
           {score}
         </span>
         
-        {/* Percentage Symbol */}
-        <motion.span 
-          initial={{ x: -20, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ delay: 0.5 }}
-          className={`text-3xl font-black ${safeColor} absolute -right-8 bottom-4`}
-        >
+        <span className={`text-3xl font-black ${safeColor} absolute -right-8 bottom-4`} aria-hidden="true">
           %
-        </motion.span>
+        </span>
       </motion.div>
       
-      {/* Technical Metadata Line */}
       <div className="mt-2 text-[8px] text-white/20 font-bold tracking-[0.6em] uppercase">
         Accuracy_Coefficient_Syncing
       </div>
@@ -54,5 +40,4 @@ export const ScoreDisplay = memo(({ score, color }: ScoreDisplayProps) => {
   );
 });
 
-// 2. Set DisplayName for memoized components (fixes Turbopack debugging)
 ScoreDisplay.displayName = 'ScoreDisplay';

@@ -19,7 +19,6 @@ interface ResultsModalProps {
 export const ResultsModal = ({ score, onReview, onTerminate, onRestart }: ResultsModalProps) => {
   const [phase, setPhase] = useState<'syncing' | 'display'>('syncing');
 
-  // Determine Rank and Visual Theme based on performance
   const rank = useMemo(() => {
     if (score === 100) return { 
         title: "BIOLOGICAL DEITY • MOANA_SAPIEN", 
@@ -54,22 +53,38 @@ export const ResultsModal = ({ score, onReview, onTerminate, onRestart }: Result
           animate={{ opacity: 1 }} 
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[100] flex items-center justify-center bg-[#020617]/98 backdrop-blur-3xl p-4 overflow-hidden"
+          role="dialog"
+          aria-labelledby="result-rank-title"
+          aria-modal="true"
         >
-          {/* Ambient Background Glow */}
-          <div className={`absolute inset-0 opacity-10 ${rank.bg} animate-pulse pointer-events-none`} />
+          {/* SEO DATA: Background information for bots */}
+          <div className="sr-only">
+            <h2>Examination Results Summary</h2>
+            <p>Academic performance index reached: {rank.title}</p>
+            <p>Score: {score}% accuracy in biological data processing.</p>
+          </div>
+
+          <div className={`absolute inset-0 opacity-10 ${rank.bg} animate-pulse pointer-events-none`} aria-hidden="true" />
           
           <motion.div 
             initial={{ scale: 0.9, y: 20, opacity: 0 }} 
             animate={{ scale: 1, y: 0, opacity: 1 }}
             className={`bg-slate-950/80 backdrop-blur-md border ${rank.border} p-8 md:p-10 rounded-[3rem] max-w-md w-full text-center relative ${rank.glow}`}
           >
-            <RankBadge title={rank.title} color={rank.color} bg={rank.bg} />
+            {/* SEO Headings: Using H3 for the Rank to maintain hierarchy */}
+            <header className="mb-2">
+               <RankBadge title={rank.title} color={rank.color} bg={rank.bg} />
+            </header>
             
             <ScoreDisplay score={score} color={rank.color} />
             
             <div className="space-y-3 mb-10 relative z-10">
-                <h3 className={`text-xl font-black uppercase tracking-tight ${rank.color}`}>{rank.sub}</h3>
-                <p className="text-[9px] text-emerald-200/30 uppercase font-black tracking-[0.5em]">MOANA_NEURAL_INDEX_V1.0</p>
+                <h3 id="result-rank-title" className={`text-xl font-black uppercase tracking-tight ${rank.color}`}>
+                  {rank.sub}
+                </h3>
+                <p className="text-[9px] text-emerald-200/30 uppercase font-black tracking-[0.5em]">
+                  MOANA_NEURAL_INDEX_V1.0 • Dhakuakhana College Botany
+                </p>
             </div>
 
             <ActionButtons 
@@ -78,6 +93,11 @@ export const ResultsModal = ({ score, onReview, onTerminate, onRestart }: Result
               onReview={onReview} 
               onTerminate={onTerminate} 
             />
+
+            {/* SEO FOOTER: Reinforcing local authority */}
+            <footer className="sr-only">
+              Verified by Moana AI. Educational content under the Department of Botany.
+            </footer>
           </motion.div>
         </motion.div>
       )}

@@ -37,7 +37,6 @@ export const QuizInterface = ({
   onFinish
 }: QuizInterfaceProps) => {
 
-  // Visual logic for Option Buttons
   const getOptionStyle = (index: number) => {
     const isSelected = userAnswer === index;
     const isCorrect = question.correct === index;
@@ -55,13 +54,23 @@ export const QuizInterface = ({
   if (!question) return null;
 
   return (
-    <div className="min-h-screen bg-[#020617] p-0.1 flex items-center justify-center font-mono">
+    // SEO FIX: Changed div to semantic article for the main content block
+    <article 
+      className="min-h-screen bg-[#020617] p-0.1 flex items-center justify-center font-mono"
+      aria-label={`Question ${currentIdx + 1} of ${totalQuestions}`}
+    >
       <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/5 blur-[140px] pointer-events-none rounded-full" />
 
       <div className="max-w-3xl w-full bg-slate-900/40 border border-emerald-500/10 rounded-[1.5rem] p-4 md:p-12 relative shadow-2xl backdrop-blur-xl overflow-hidden">
         
+        {/* SEO Metadata for Crawlers */}
+        <div className="sr-only">
+          <h3>Current Assessment: {subjectLabel}</h3>
+          <p>Scientific Question Analysis: {question.question}</p>
+        </div>
+
         {/* PROGRESS BAR */}
-        <div className="absolute top-0 left-0 w-full h-1.5 bg-white/5">
+        <div className="absolute top-0 left-0 w-full h-1.5 bg-white/5" role="progressbar" aria-valuenow={currentIdx + 1} aria-valuemin={1} aria-valuemax={totalQuestions}>
           <motion.div 
             className="h-full bg-gradient-to-r from-emerald-600 via-emerald-400 to-teal-300" 
             animate={{ width: `${((currentIdx + 1) / totalQuestions) * 100}%` }}
@@ -70,7 +79,7 @@ export const QuizInterface = ({
         </div>
 
         {/* HEADER */}
-        <div className="flex justify-between items-center mb-10">
+        <header className="flex justify-between items-center mb-10">
           <div className="flex items-center gap-3">
             <Leaf size={16} className="text-emerald-500" />
             <span className="text-[10px] font-black text-emerald-500 tracking-[0.25em] uppercase bg-emerald-500/10 px-2 py-1 rounded-full border border-emerald-500/20">
@@ -80,7 +89,7 @@ export const QuizInterface = ({
           <span className="text-[10px] text-emerald-200/50 font-bold tracking-widest uppercase">
             NODE {currentIdx + 1} / {totalQuestions}
           </span>
-        </div>
+        </header>
 
         {/* QUESTION */}
         <AnimatePresence mode='wait'>
@@ -91,42 +100,45 @@ export const QuizInterface = ({
             exit={{ opacity: 0, x: -20 }}
             className="min-h-[100px]"
           >
-            <h2 className="text-xl md:text-2xl font-bold text-white mb-10 leading-relaxed italic">
+            <h2 id="question-text" className="text-xl md:text-2xl font-bold text-white mb-10 leading-relaxed italic">
               {question.question}
             </h2>
           </motion.div>
         </AnimatePresence>
 
-        {/* OPTIONS */}
-        <div className="grid grid-cols-1 gap-3 mb-10">
+        {/* OPTIONS - SEO FIX: Wrapped in semantic <ul> and <li> */}
+        <ul className="grid grid-cols-1 gap-3 mb-10 p-0" role="listbox" aria-labelledby="question-text">
           {question.options.map((opt, i) => (
-            <button
-              key={i}
-              disabled={isRecap}
-              onClick={() => onAnswer(i)}
-              className={`w-full p-5 rounded-2xl border text-left text-sm font-medium transition-all duration-300 flex justify-between items-center group ${getOptionStyle(i)}`}
-            >
-              <div className="flex items-center gap-4">
-                <span className={`text-[10px] font-bold w-7 h-7 rounded-lg flex items-center justify-center border ${userAnswer === i ? 'bg-emerald-400 text-slate-950' : 'border-white/10 text-emerald-500'}`}>
-                  {String.fromCharCode(65 + i)}
-                </span>
-                <span>{opt}</span>
-              </div>
-              
-              {isRecap && (
-                <div className="flex gap-2">
-                  {question.correct === i && <CheckCircle size={20} className="text-emerald-400" />}
-                  {userAnswer === i && question.correct !== i && <XCircle size={20} className="text-red-500" />}
+            <li key={i} className="list-none">
+              <button
+                disabled={isRecap}
+                onClick={() => onAnswer(i)}
+                aria-selected={userAnswer === i}
+                role="option"
+                className={`w-full p-5 rounded-2xl border text-left text-sm font-medium transition-all duration-300 flex justify-between items-center group ${getOptionStyle(i)}`}
+              >
+                <div className="flex items-center gap-4">
+                  <span className={`text-[10px] font-bold w-7 h-7 rounded-lg flex items-center justify-center border ${userAnswer === i ? 'bg-emerald-400 text-slate-950' : 'border-white/10 text-emerald-500'}`}>
+                    {String.fromCharCode(65 + i)}
+                  </span>
+                  <span>{opt}</span>
                 </div>
-              )}
-            </button>
+                
+                {isRecap && (
+                  <div className="flex gap-2">
+                    {question.correct === i && <CheckCircle size={20} className="text-emerald-400" aria-label="Correct Answer" />}
+                    {userAnswer === i && question.correct !== i && <XCircle size={20} className="text-red-500" aria-label="Incorrect Selection" />}
+                  </div>
+                )}
+              </button>
+            </li>
           ))}
-        </div>
+        </ul>
 
         {/* ANALYSIS BOX (Explanation) */}
         <AnimatePresence>
           {isRecap && (
-            <motion.div 
+            <motion.aside 
               initial={{ opacity: 0, y: 10 }} 
               animate={{ opacity: 1, y: 0 }} 
               className="p-6 bg-emerald-950/20 rounded-2xl border border-emerald-500/20 text-[12px] text-emerald-100/80 mb-8 leading-relaxed"
@@ -135,28 +147,28 @@ export const QuizInterface = ({
                 <Dna size={12} /> MOANA_ANALYSIS_DATA:
               </span> 
               {question.explanation}
-            </motion.div>
+            </motion.aside>
           )}
         </AnimatePresence>
 
         {/* NAVIGATION */}
-        <div className="flex justify-between items-center pt-8 border-t border-emerald-500/10">
+        <nav className="flex justify-between items-center pt-8 border-t border-emerald-500/10" aria-label="Quiz Navigation">
           <button 
             disabled={currentIdx === 0} 
             onClick={onPrev} 
-            className="text-emerald-500/50 hover:text-emerald-400 disabled:opacity-0 text-xs font-bold uppercase tracking-widest flex items-center gap-2"
+            className="text-emerald-500/50 hover:text-emerald-400 disabled:opacity-0 text-xs font-bold uppercase tracking-widest flex items-center gap-2 transition-opacity"
           >
-            <ChevronLeft size={16} /> Prev
+            <ChevronLeft size={16} /> PREV_NODE
           </button>
           
           <button 
             onClick={currentIdx === totalQuestions - 1 ? onFinish : onNext} 
-            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center gap-2"
+            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-8 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg flex items-center gap-2 transition-colors"
           >
-            {currentIdx === totalQuestions - 1 ? (isRecap ? "EXIT" : "FINISH") : "Next"} <ChevronRight size={14} />
+            {currentIdx === totalQuestions - 1 ? (isRecap ? "EXIT_PROTOCOL" : "FINISH_ARCHIVE") : "NEXT_NODE"} <ChevronRight size={14} />
           </button>
-        </div>
+        </nav>
       </div>
-    </div>
+    </article>
   );
 };

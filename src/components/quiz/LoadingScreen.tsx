@@ -9,13 +9,27 @@ interface Props {
 }
 
 export const LoadingScreen = ({ topic }: Props) => (
-  <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center font-mono selection:bg-emerald-500/30">
+  // SEO FIX: Added aria-busy and semantic section tag
+  <section 
+    className="min-h-screen bg-[#020617] flex flex-col items-center justify-center font-mono selection:bg-emerald-500/30"
+    aria-busy="true"
+    aria-live="polite"
+    aria-label="Moana AI Loading Archives"
+  >
+    {/* SEO Metadata: Hidden content for crawler indexing */}
+    <div className="sr-only">
+      <h1>Moana AI Quiz Generator - Dhakuakhana College</h1>
+      <p>Loading biological research data and academic assessments for: {topic || "General Botany"}.</p>
+      <p>Initializing neural links and biometric security protocols.</p>
+    </div>
+
     <div className="relative">
       {/* Moana Orbital Ring */}
       <motion.div 
         animate={{ rotate: 360 }} 
         transition={{ repeat: Infinity, duration: 2.5, ease: "linear" }}
         className="absolute inset-0 border-2 border-t-emerald-500 border-r-transparent border-b-emerald-900/30 border-l-transparent rounded-full w-24 h-24 -m-6"
+        aria-hidden="true"
       />
       
       {/* Core Biological Scanner Icon */}
@@ -27,7 +41,7 @@ export const LoadingScreen = ({ topic }: Props) => (
         transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
         className="flex items-center justify-center"
       >
-        <Beaker size={48} className="text-emerald-400" />
+        <Beaker size={48} className="text-emerald-400" aria-hidden="true" />
       </motion.div>
 
       {/* Rotating Data Bits */}
@@ -35,6 +49,7 @@ export const LoadingScreen = ({ topic }: Props) => (
         animate={{ rotate: -360 }} 
         transition={{ repeat: Infinity, duration: 10, ease: "linear" }}
         className="absolute inset-0 w-24 h-24 -m-6 flex items-start justify-center"
+        aria-hidden="true"
       >
         <Zap size={10} className="text-emerald-500" />
       </motion.div>
@@ -42,6 +57,7 @@ export const LoadingScreen = ({ topic }: Props) => (
 
     {/* Text Logic */}
     <div className="mt-16 text-center space-y-4">
+      {/* SEO FIX: Use H2 here for hierarchy */}
       <motion.h2 
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -55,7 +71,12 @@ export const LoadingScreen = ({ topic }: Props) => (
           Neural Link: Establishing Connection
         </p>
         
-        <div className="h-1 w-48 bg-slate-800 rounded-full overflow-hidden relative">
+        {/* Progress Bar with Role */}
+        <div 
+          className="h-1 w-48 bg-slate-800 rounded-full overflow-hidden relative"
+          role="progressbar"
+          aria-valuetext="Initializing neural connection"
+        >
           <motion.div 
             initial={{ x: "-100%" }}
             animate={{ x: "100%" }}
@@ -70,9 +91,9 @@ export const LoadingScreen = ({ topic }: Props) => (
       </div>
     </div>
 
-    {/* Technical Footnote */}
-    <div className="absolute flex text-center items-center justify-center bottom-10 text-[8px] text-emerald-900 font-bold tracking-[0.5em] uppercase">
-      Moana AI Responding // Biometric Check Passed
-    </div>
-  </div>
+    {/* Technical Footnote - Semantic Footer */}
+    <footer className="absolute flex text-center items-center justify-center bottom-10 text-[8px] text-emerald-900 font-bold tracking-[0.5em] uppercase">
+      Moana AI Responding // Dhakuakhana College // Biometric Check Passed
+    </footer>
+  </section>
 );
