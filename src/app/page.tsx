@@ -8,7 +8,6 @@ import MobileBottomNavbar from '@/components/layout/MobileBottomNavbar';
 import AIFloatingButton from '@/components/layout/AIFloatingButton';
 import SubjectPillars from '@/components/home/SubjectPillars';
 import FeatureShowcase from '@/components/home/FeatureShowcase';
-import ImpactStats from '@/components/home/ImpactStats';
 import ResearchMosaic from '@/components/home/ResearchMosaic';
 
 // PERFORMANCE: Incremental Static Regeneration (ISR)
@@ -76,7 +75,6 @@ export default async function Home() {
             {/* Subject Pillars, Feature Showcase, and Stats */}
             <SubjectPillars />
             <FeatureShowcase />
-            <ImpactStats />
           </div>
         </div>
       </main>
