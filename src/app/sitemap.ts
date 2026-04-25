@@ -5,7 +5,8 @@ import { supabase } from '@/lib/supabase';
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = 'https://synap-seed.vercel.app';
 
-  // 1. All Core Pages
+  // 1. Public Core Pages Only
+  // REMOVED: /auth, /onboarding, /profile, /affiliate-store
   const corePages = [
     '',
     '/faculty',
@@ -14,10 +15,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     '/quiz',
     '/synapstore',
     '/moana-ai-unlimited-quiz-generator',
-    '/onboarding',
-    '/auth', 
-    '/profile',
-    '/affiliate-store',
     '/text-to-mind-maps',
   ].map((route) => ({
     url: `${baseUrl}${route}`,
@@ -26,8 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: route === '' ? 1 : 0.9,
   }));
 
-  // 2. Subject Landing Pages (SEO Power-up)
-  // Indexes: /quiz?subject=physics, /quiz?subject=botany, etc.
+  // 2. Subject Landing Pages
   const subjectLandingPages = Object.keys(SUBJECT_TOPICS).map((subject) => ({
     url: `${baseUrl}/quiz?subject=${subject}`,
     lastModified: new Date(),
@@ -48,7 +44,6 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   // 4. Dynamic Quiz Topic Pages (The 120+ deep links)
-  // FIX: Added .replace(/&/g, '&amp;') to prevent the "EntityRef" XML crash
   const quizTopicPages = Object.entries(SUBJECT_TOPICS).flatMap(([subject, topics]) =>
     topics.map((topic) => {
       const rawUrl = `${baseUrl}/quiz?subject=${subject}&topic=${encodeURIComponent(topic.name)}`;
