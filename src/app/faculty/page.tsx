@@ -146,7 +146,7 @@ export default function FacultyPage() {
               </div>
               <h3 className="font-bold text-slate-900 mb-2">Digital Resources</h3>
               <p className="text-sm text-slate-500 leading-relaxed">
-                Access to e-journals, neural mindmaps, and specialized botanical databases.
+                Access to e-journals, mindmaps, and specialized botanical databases.
               </p>
             </div>
 
@@ -156,7 +156,7 @@ export default function FacultyPage() {
               </div>
               <h3 className="font-bold text-slate-900 mb-2">Field Taxonomy</h3>
               <p className="text-sm text-slate-500 leading-relaxed">
-                Regular field visits to the Brahmaputra basin for real-world specimen identification.
+                Regular field visits for real-world specimen identification.
               </p>
             </div>
           </div>
