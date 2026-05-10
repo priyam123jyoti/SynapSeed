@@ -30,19 +30,19 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   
   if (!event) return { title: "Event Not Found" };
 
-  const fullTitle = `${event.title} | Dept of Botany, Dhakuakhana College`;
+  const fullTitle = `${event.title} | Department of Botany, Dhakuakhana College`;
   const description = event.description_short || `Explore details about the botanical expedition: ${event.title}`;
 
   return {
     title: fullTitle,
     description: description,
     alternates: {
-      canonical: `https://yourdomain.com/events/${slug}`,
+      canonical: `https://synap-seed.vercel.app/events/${slug}`,
     },
     openGraph: {
       title: fullTitle,
       description: description,
-      url: `https://yourdomain.com/events/${slug}`,
+      url: `https://synap-seed.vercel.app/events/${slug}`,
       siteName: 'Moana AI Botany Portal',
       images: [{ url: event.thumbnail, width: 1200, height: 630, alt: event.title }],
       type: 'article',
@@ -72,7 +72,7 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ s
     "startDate": event.date_iso || event.date_short, // Ensure this is ISO format for best results
     "location": {
       "@type": "Place",
-      "name": "Dhakuakhana College",
+      "name": "Dhakuakhana College (Autonomous)",
       "address": {
         "@type": "PostalAddress",
         "addressLocality": "Dhakuakhana",
@@ -83,7 +83,7 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ s
     "organizer": {
       "@type": "Organization",
       "name": "Department of Botany",
-      "url": "https://yourdomain.com"
+      "url": "https://synap-seed.vercel.app"
     }
   };
 
