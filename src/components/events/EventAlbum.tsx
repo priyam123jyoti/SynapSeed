@@ -74,7 +74,7 @@ export default function EventAlbum({ images }: EventAlbumProps) {
   if (albumImages.length === 0) return null;
 
   return (
-    <section className="w-full bg-emerald-50/20 py-20">
+    <section className="w-full bg-emerald-50/20 py-20" aria-label="Event Photo Gallery">
       <div className="max-w-7xl mx-auto px-6">
         <div className="mb-12">
           <span className="text-emerald-600 font-black text-[10px] uppercase tracking-[0.4em] mb-2 block">
@@ -92,10 +92,15 @@ export default function EventAlbum({ images }: EventAlbumProps) {
               key={idx} 
               onClick={() => openImage(idx)}
               className="relative break-inside-avoid mb-4 group rounded-xl overflow-hidden border-[4px] border-white shadow-sm hover:shadow-xl transition-all duration-300 bg-white cursor-zoom-in"
+              role="button"
+              aria-label={`View enlarged photo ${idx + 1} of ${albumImages.length}`}
+              tabIndex={0}
+              onKeyDown={(e) => e.key === 'Enter' && openImage(idx)}
             >
               <img 
                 src={img} 
-                alt={`Botany Archive ${idx + 1}`}
+                alt={`Botany Archive event photo ${idx + 1}`}
+                loading="lazy" // SEO PERFORMANCE WIN: Defers loading off-screen images
                 className="w-full h-auto block object-cover transition-transform duration-700 group-hover:scale-105"
               />
             </div>
@@ -111,28 +116,33 @@ export default function EventAlbum({ images }: EventAlbumProps) {
             onTouchStart={onTouchStart}
             onTouchMove={onTouchMove}
             onTouchEnd={onTouchEnd}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Image gallery lightbox"
           >
-            {/* Close Button */}
+            {/* EXTREME SEO FIX: Close Button with aria-label */}
             <button 
               onClick={closeImage}
+              aria-label="Close image gallery"
               className="absolute top-6 right-6 text-white/50 hover:text-white transition-colors z-[110]"
             >
-              <X className="w-8 h-8 md:w-10 md:h-10" />
+              <X className="w-8 h-8 md:w-10 md:h-10" aria-hidden="true" />
             </button>
 
-            {/* Desktop Arrows (Hidden on Mobile) */}
+            {/* EXTREME SEO FIX: Prev Button with aria-label */}
             <button 
               onClick={prevImage}
+              aria-label="Previous image"
               className="hidden md:flex absolute left-8 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-all hover:scale-110 p-4 z-[110]"
             >
-              <ChevronLeft className="w-12 h-12" />
+              <ChevronLeft className="w-12 h-12" aria-hidden="true" />
             </button>
 
             {/* The Main Image */}
             <div className="relative w-full h-full flex items-center justify-center animate-in zoom-in-95 duration-300 select-none">
               <img 
                 src={albumImages[selectedIndex]} 
-                alt="Enlarged view" 
+                alt={`Enlarged view of photo ${selectedIndex + 1}`} 
                 className="max-w-full max-h-full object-contain rounded-lg shadow-2xl pointer-events-none" 
                 onClick={(e) => e.stopPropagation()} 
               />
@@ -143,18 +153,20 @@ export default function EventAlbum({ images }: EventAlbumProps) {
               </div>
             </div>
 
+            {/* EXTREME SEO FIX: Next Button with aria-label */}
             <button 
               onClick={nextImage}
+              aria-label="Next image"
               className="hidden md:flex absolute right-8 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-all hover:scale-110 p-4 z-[110]"
             >
-              <ChevronRight className="w-12 h-12" />
+              <ChevronRight className="w-12 h-12" aria-hidden="true" />
             </button>
           </div>
         )}
 
         <footer className="mt-10 pt-6 border-t border-emerald-100 flex justify-between items-center">
           <p className="text-[9px] font-bold text-emerald-800/40 uppercase tracking-widest">
-            &copy; 2026 Botany Department Archive
+            &copy; {new Date().getFullYear()} Botany Department Archive
           </p>
         </footer>
       </div>
