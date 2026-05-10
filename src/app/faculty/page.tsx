@@ -6,7 +6,7 @@ import { Microscope, Leaf, Library, MicroscopeIcon } from "lucide-react"; // Ass
 
 export const metadata: Metadata = {
   title: "Faculty | Dept. of Botany | Dhakuakhana College",
-  description: "Official faculty directory of the Botany Department, Dhakuakhana College (Autonomous). Expert educators specializing in Plant Sciences, Taxonomy, and Phytopathology.",
+  description: "Official faculty directory of the Botany Department, Dhakuakhana College (Autonomous). Expert educators specializing in Plant Sciences, Taxonomy, Life Science, Ecology and Phytopathology.",
   keywords: ["Dhakuakhana College Botany", "Rabin B Pegu", "Rakesh Kalita", "Botany Faculty Assam"],
 };
 
@@ -88,7 +88,7 @@ export default function FacultyPage() {
               </div>
               <h4 className="font-bold text-slate-900 mb-2">Research Labs</h4>
               <p className="text-sm text-slate-500 leading-relaxed">
-                Equipped with modern diagnostic tools for Microbiology and Plant Pathology studies.
+                Equipped with modern Lab tools for Microbiology and Plant Pathology studies.
               </p>
             </div>
 
@@ -110,7 +110,7 @@ export default function FacultyPage() {
               </div>
               <h4 className="font-bold text-slate-900 mb-2">Field Taxonomy</h4>
               <p className="text-sm text-slate-500 leading-relaxed">
-                Regular field visits to the Brahmaputra basin for real-world specimen identification.
+                Regular field visits for real-world specimen identification.
               </p>
             </div>
           </div>
@@ -119,7 +119,7 @@ export default function FacultyPage() {
       
       {/* Footer Info */}
       <footer className="bg-white border-t border-slate-100 py-12 text-center text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">
-        © {new Date().getFullYear()} Department of Botany • Dhakuakhana College Autonomous
+        © {new Date().getFullYear()} Department of Botany • Dhakuakhana College Autonomous.
       </footer>
     </main>
   );

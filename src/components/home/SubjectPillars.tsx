@@ -16,7 +16,7 @@ const SUBJECTS = [
     icon: <Atom size={32} />,
     stats: '8,500+ Questions',
     topic: 'Mechanics and Thermodynamics',
-    description: 'Master Mechanics to Quantum Physics with AI-driven problem solving.',
+    description: 'Master Mechanics to Quantum Physics with AI-driven Questions.',
     color: 'from-blue-500/20 to-cyan-500/20',
     border: 'hover:border-blue-400',
     iconColor: 'text-blue-500'

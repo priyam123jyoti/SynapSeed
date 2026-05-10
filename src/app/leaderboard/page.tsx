@@ -24,6 +24,7 @@ export default function LeaderboardPage() {
     fetchLeaderboard();
   }, []);
 
+
   // SEO JSON-LD: This helps Google understand the "List" nature of your page
   const jsonLd = {
     "@context": "https://schema.org",
