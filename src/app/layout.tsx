@@ -1,4 +1,3 @@
-// app/layout.tsx
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -7,7 +6,7 @@ import { AuthProvider } from "@/contexts/AuthProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  // 1. Metadata Base is required for relative OG images to work in Next.js
+  // 1. Metadata Base
   metadataBase: new URL('https://synap-seed.vercel.app'),
   
   title: {
@@ -16,7 +15,7 @@ export const metadata: Metadata = {
   },
   description: "Official website of the Department of Botany, Dhakuakhana College Autonomous. Featuring AI-powered mindmaps, Moana AI unlimited quizzes for Physics, Chemistry, Botany, Zoology, and academic resources.",
   
-  // 2. Optimized Keywords: Short, punchy phrases are better than long sentences
+  // 2. Optimized Keywords
   keywords: [
     "Botany Department", 
     "Dhakuakhana College", 
@@ -30,7 +29,20 @@ export const metadata: Metadata = {
     "Academic Leaderboard"
   ],
 
-  // 3. Social Media Sharing (Open Graph)
+  // 3. Search Engine Verification (BING & GOOGLE)
+  verification: {
+    other: {
+      'msvalidate.01': '62A9712E34794B46597398830C36FA29',
+    },
+  },
+
+  // 4. Global Robots Instructions
+  robots: {
+    index: true,
+    follow: true,
+  },
+
+  // 5. Social Media Sharing (Open Graph)
   openGraph: {
     title: "Botany Department | Dhakuakhana College",
     description: "AI-powered study tools and academic resources for Science students.",
@@ -38,7 +50,7 @@ export const metadata: Metadata = {
     siteName: 'Dhakuakhana College Botany Portal',
     images: [
       {
-        url: '/botany-department-dhakuakhana-college.png', // This points to the image in your public folder
+        url: '/botany-department-dhakuakhana-college.png',
         width: 1200,
         height: 630,
         alt: 'Dhakuakhana College Botany Department AI Portal',
@@ -48,7 +60,7 @@ export const metadata: Metadata = {
     type: 'website',
   },
 
-  // 4. Twitter Card (For better sharing on X)
+  // 6. Twitter Card
   twitter: {
     card: 'summary_large_image',
     title: 'Botany Department | Dhakuakhana College',
