@@ -1,30 +1,79 @@
 import { Metadata } from "next";
 import FacultyCard from "../../components/faculty/FacultyCard";
 import { botanyFaculty } from "../../lib/faculty";
-import Navbar from "../../components/layout/Navbar"
-import { Microscope, Leaf, Library, MicroscopeIcon } from "lucide-react"; // Assuming you use lucide-react
+import Navbar from "../../components/layout/Navbar";
+import { Microscope, Leaf, Library, MicroscopeIcon } from "lucide-react";
 
+// 1. ELITE METADATA: Explicit canonical links and OpenGraph mapping
 export const metadata: Metadata = {
-  title: "Faculty | Dept. of Botany | Dhakuakhana College",
-  description: "Official faculty directory of the Botany Department, Dhakuakhana College (Autonomous). Expert educators specializing in Plant Sciences, Taxonomy, Life Science, Ecology and Phytopathology.",
-  keywords: ["Dhakuakhana College Botany", "Rabin B Pegu", "Rakesh Kalita", "Botany Faculty Assam"],
+  title: "Faculty Directory | Dept. of Botany | Dhakuakhana College",
+  description: "Official faculty directory of the Botany Department, Dhakuakhana College (Autonomous). Meet our HOD, Assistant, and Associate Professors specializing in Plant Sciences and Taxonomy.",
+  keywords: [
+    "Dhakuakhana College Botany Faculty", 
+    "Botany Professors Assam", 
+    "Rabin B Pegu", 
+    "Rakesh Kalita",
+    "Bishwa Bikash Gogoi",
+    "Tridisha Borgohain", 
+    "Botany Department HOD",
+    "Dhakuakhana College Academic Staff"
+  ],
+  alternates: {
+    canonical: "https://synap-seed.vercel.app/faculty",
+  },
+  openGraph: {
+    title: "Faculty Directory | Dept. of Botany | Dhakuakhana College",
+    description: "Meet the expert educators and researchers leading the Botany Department.",
+    url: "https://synap-seed.vercel.app/faculty",
+    siteName: "Dhakuakhana College Botany Portal",
+    images: [
+      {
+        url: "https://synap-seed.vercel.app/botany-department-dhakuakhana-college.png", // Ensure this exists in /public
+        width: 1200,
+        height: 630,
+        alt: "Botany Department Faculty Directory - Dhakuakhana College",
+      }
+    ],
+    type: "website",
+  }
 };
 
 export default function FacultyPage() {
+  // 2. THE "DEEP INTEGRATION" SCHEMA
+  // This tells Google: "This page is a Collection, and here is the exact structured list of every person in it, including their photos and exact URLs."
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "EducationalOrganization",
-    "name": "Department of Botany, Dhakuakhana College (Autonomous)",
-    "employee": botanyFaculty.map(member => ({
-      "@type": "Person",
-      "name": member.name,
-      "jobTitle": member.designation,
-    }))
+    "@type": "CollectionPage",
+    "name": "Botany Faculty Directory - Dhakuakhana College",
+    "url": "https://synap-seed.vercel.app/faculty",
+    "description": "Official list of academic staff at the Department of Botany, Dhakuakhana College (Autonomous).",
+    "mainEntity": {
+      "@type": "ItemList",
+      "itemListElement": botanyFaculty.map((member, index) => ({
+        "@type": "ListItem",
+        "position": index + 1,
+        "item": {
+          "@type": "Person",
+          "name": member.name,
+          "jobTitle": member.designation,
+          "image": `https://synap-seed.vercel.app${member.imageUrl}`,
+          "url": `https://synap-seed.vercel.app/faculty/${member.slug}`,
+          "description": `${member.name} is a ${member.designation} specializing in ${member.specialization}.`,
+          "affiliation": {
+            "@type": "CollegeOrUniversity",
+            "name": "Dhakuakhana College (Autonomous)",
+            "sameAs": "https://dhakuakhanacollege.ac.in"
+          }
+        }
+      }))
+    }
   };
 
   return (
     <main className="min-h-screen bg-[#fafafa]">
-        <Navbar/>
+      <Navbar />
+      
+      {/* Injecting the Master Schema */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -56,13 +105,14 @@ export default function FacultyPage() {
 
       {/* --- FACULTY GRID --- */}
       <div className="max-w-7xl mx-auto px-6 -mt-12 pb-24">
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Added aria-label for better accessibility/SEO crawling */}
+        <section aria-label="Faculty Directory Grid" className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {botanyFaculty.map((member) => (
             <FacultyCard key={member.id} member={member} />
           ))}
         </section>
 
-        {/* --- DEPARTMENTAL ECOSYSTEM SECTION (Replacement for AI Card) --- */}
+        {/* --- DEPARTMENTAL ECOSYSTEM SECTION --- */}
         <section className="mt-32">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-slate-900 mb-4">Departmental Ecosystem</h2>
@@ -70,47 +120,43 @@ export default function FacultyPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {/* Feature 1 */}
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
               <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center mb-6 text-emerald-600">
                 <Leaf size={24} />
               </div>
-              <h4 className="font-bold text-slate-900 mb-2">Regional Herbarium</h4>
+              <h3 className="font-bold text-slate-900 mb-2">Regional Herbarium</h3>
               <p className="text-sm text-slate-500 leading-relaxed">
                 A vast collection of preserved plant specimens focusing on the unique flora of Upper Assam.
               </p>
             </div>
 
-            {/* Feature 2 */}
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
               <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center mb-6 text-emerald-600">
                 <Microscope size={24} />
               </div>
-              <h4 className="font-bold text-slate-900 mb-2">Research Labs</h4>
+              <h3 className="font-bold text-slate-900 mb-2">Research Labs</h3>
               <p className="text-sm text-slate-500 leading-relaxed">
                 Equipped with modern Lab tools for Microbiology and Plant Pathology studies.
               </p>
             </div>
 
-            {/* Feature 3 */}
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
               <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center mb-6 text-emerald-600">
                 <Library size={24} />
               </div>
-              <h4 className="font-bold text-slate-900 mb-2">Digital Resources</h4>
+              <h3 className="font-bold text-slate-900 mb-2">Digital Resources</h3>
               <p className="text-sm text-slate-500 leading-relaxed">
                 Access to e-journals, neural mindmaps, and specialized botanical databases.
               </p>
             </div>
 
-            {/* Feature 4 */}
             <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
               <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center mb-6 text-emerald-600">
                 <MicroscopeIcon size={24} />
               </div>
-              <h4 className="font-bold text-slate-900 mb-2">Field Taxonomy</h4>
+              <h3 className="font-bold text-slate-900 mb-2">Field Taxonomy</h3>
               <p className="text-sm text-slate-500 leading-relaxed">
-                Regular field visits for real-world specimen identification.
+                Regular field visits to the Brahmaputra basin for real-world specimen identification.
               </p>
             </div>
           </div>
@@ -119,7 +165,7 @@ export default function FacultyPage() {
       
       {/* Footer Info */}
       <footer className="bg-white border-t border-slate-100 py-12 text-center text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">
-        © {new Date().getFullYear()} Department of Botany • Dhakuakhana College Autonomous.
+        © {new Date().getFullYear()} Department of Botany • Dhakuakhana College Autonomous
       </footer>
     </main>
   );

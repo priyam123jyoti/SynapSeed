@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import { Metadata } from "next";
 
+// 1. ELITE METADATA: Forces Google to recognize the "Primary Photo"
 export async function generateMetadata({ 
   params 
 }: { 
@@ -14,12 +15,12 @@ export async function generateMetadata({
   if (!member) return { title: "Faculty Not Found" };
 
   const fullTitle = `${member.name} | ${member.designation} | Botany Department`;
-  // Ensure the image URL is absolute for Google
+  // CRITICAL: Search engines need absolute URLs for images in metadata
   const absoluteImageUrl = `https://synap-seed.vercel.app${member.imageUrl}`;
   
   return {
     title: fullTitle,
-    description: `${member.name} specializes in ${member.specialization} at Dhakuakhana College. Discover research publications, academic background, and botanical expertise.`,
+    description: `${member.name} is a ${member.designation} specializing in ${member.specialization} at Dhakuakhana College. Discover research, academic background, and botanical expertise.`,
     alternates: {
       canonical: `https://synap-seed.vercel.app/faculty/${member.slug}`,
     },
@@ -31,9 +32,9 @@ export async function generateMetadata({
       images: [
         {
           url: absoluteImageUrl,
-          width: 1200,
-          height: 630,
-          alt: `Portrait of ${member.name}, Botany Faculty`,
+          width: 800,
+          height: 800,
+          alt: `Professional academic portrait of ${member.name}, ${member.designation}`,
         },
       ],
       type: 'profile',
@@ -43,6 +44,7 @@ export async function generateMetadata({
     twitter: {
       card: 'summary_large_image',
       title: fullTitle,
+      description: `${member.designation} at Dept. of Botany, Dhakuakhana College.`,
       images: [absoluteImageUrl],
     }
   };
@@ -58,10 +60,10 @@ export default async function FacultyProfile({
 
   if (!member) notFound();
 
-  // 1. ADVANCED PERSON SCHEMA (Crucial for beating the main college site)
+  // 2. DEEP INTEGRATION SCHEMA: Links the Person -> Department -> College
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "ProfilePage",
+    "@type": "ProfilePage", 
     "mainEntity": {
       "@type": "Person",
       "name": member.name,
@@ -72,28 +74,35 @@ export default async function FacultyProfile({
       "description": member.bio,
       "url": `https://synap-seed.vercel.app/faculty/${member.slug}`,
       "affiliation": {
-        "@type": "CollegeOrUniversity",
-        "name": "Dhakuakhana College (Autonomous)",
-        "sameAs": "https://dhakuakhanacollege.ac.in" // Link to main site to show association
+        "@type": "Department",
+        "name": "Department of Botany",
+        "parentOrganization": {
+          "@type": "CollegeOrUniversity",
+          "name": "Dhakuakhana College (Autonomous)",
+          "url": "https://dhakuakhanacollege.ac.in"
+        }
       },
       "knowsAbout": [
-        member.specialization,
-        "Botany",
-        "Plant Taxonomy",
-        "Assam Flora"
+        { "@type": "Text", "name": member.specialization },
+        { "@type": "Text", "name": "Botany" },
+        { "@type": "Text", "name": "Plant Sciences" }
+      ],
+      "credentials": [
+        { "@type": "EducationalOccupationalCredential", "name": member.qualifications }
       ]
     }
   };
 
   return (
     <main className="min-h-screen bg-white">
+      {/* Inject JSON-LD */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* SEO Breadcrumbs with Microdata */}
-      <nav className="max-w-4xl mx-auto px-6 pt-8 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
+      {/* 3. SEO BREADCRUMBS with Microdata */}
+      <nav aria-label="Breadcrumb" className="max-w-4xl mx-auto px-6 pt-8 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
         <ol className="flex items-center gap-2" itemScope itemType="https://schema.org/BreadcrumbList">
           <li itemProp="itemListElement" itemScope itemType="https://schema.org/ListItem">
             <a itemProp="item" href="/"><span itemProp="name">Home</span></a>
@@ -112,35 +121,38 @@ export default async function FacultyProfile({
         </ol>
       </nav>
 
+      {/* PAGE CONTENT */}
       <div className="max-w-4xl mx-auto px-6 py-12">
         <div className="flex flex-col md:flex-row gap-12 items-start">
           
-          {/* Image optimized for Google Image Search */}
+          {/* Image Container */}
           <div className="w-full md:w-1/3">
             <div className="aspect-[4/5] relative rounded-3xl overflow-hidden shadow-2xl border-4 border-emerald-50">
               <Image 
                 src={member.imageUrl} 
                 alt={`Official Academic Portrait of ${member.name}, ${member.designation} at Dhakuakhana College`} 
                 fill 
-                priority 
+                priority // Forces Next.js to load this instantly for Googlebot
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, 350px"
               />
             </div>
           </div>
 
+          {/* Profile Info */}
           <div className="w-full md:w-2/3">
             <header className="mb-8">
-                <h1 className="text-4xl md:text-6xl font-black text-slate-900 mb-2 tracking-tight">
+                <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 mb-2 tracking-tight">
                 {member.name}
                 </h1>
-                <p className="text-emerald-600 font-bold text-xl flex items-center gap-2">
+                <p className="text-emerald-600 font-bold text-lg md:text-xl flex items-center gap-2">
                 <span className="w-6 h-[3px] bg-emerald-600"></span>
                 {member.designation}
                 </p>
             </header>
             
             <div className="space-y-10">
+              {/* Bio Section */}
               <section aria-label="Professional Biography">
                 <h3 className="text-[11px] font-black uppercase tracking-[0.3em] text-slate-400 mb-4 flex items-center gap-3">
                    Academic Profile
@@ -151,16 +163,18 @@ export default async function FacultyProfile({
                 </p>
               </section>
 
+              {/* Credentials Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div className="bg-emerald-50/40 border border-emerald-100 p-6 rounded-3xl">
+                <div className="bg-emerald-50/40 border border-emerald-100 p-6 rounded-3xl transition-colors hover:bg-emerald-50/80">
                   <h4 className="text-[10px] font-black uppercase tracking-widest text-emerald-700 mb-2">Qualifications</h4>
                   <p className="text-slate-900 font-extrabold text-base">{member.qualifications}</p>
                 </div>
-                <div className="bg-slate-50 border border-slate-100 p-6 rounded-3xl">
+                <div className="bg-slate-50 border border-slate-100 p-6 rounded-3xl transition-colors hover:bg-slate-100">
                   <h4 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-2">Research Focus</h4>
                   <p className="text-slate-900 font-extrabold text-base">{member.specialization}</p>
                 </div>
               </div>
+              
             </div>
           </div>
         </div>
