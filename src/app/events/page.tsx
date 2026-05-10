@@ -10,9 +10,9 @@ export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
 export const metadata: Metadata = {
-  title: "Departmental Events | Botany Dept | Dhakuakhana College",
+  title: "Departmental Events | Botany Department| Dhakuakhana College",
   description: "Official calendar of botanical events, seminars, and field trips at Dhakuakhana College (Autonomous).",
-  alternates: { canonical: "https://yourdomain.com/events" },
+  alternates: { canonical: "https://synap-seed.vercel.app/events" },
 };
 
 export default async function EventsPage() {
