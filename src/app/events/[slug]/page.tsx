@@ -16,22 +16,25 @@ import EventSidebar from "@/components/events/EventSidebar";
 
 const crazyFont = Syne({ subsets: ["latin"], weight: ["800"] });
 
-// Cache the fetch to prevent double-calling between Metadata and Page
+// 1. SEO PERFORMANCE WIN: 
+// Allows Google to see this as a fast, static page rather than waiting for a DB query.
+export const revalidate = 3600; 
+
 const getEvent = cache(async (slug: string) => {
   const { data, error } = await supabase.from('events').select('*').eq('slug', slug).single();
   if (error || !data) return null;
   return data;
 });
 
-// 1. DYNAMIC METADATA (EXTREME VERSION)
+// 2. DYNAMIC METADATA
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const event = await getEvent(slug);
   
   if (!event) return { title: "Event Not Found" };
 
-  const fullTitle = `${event.title} | Department of Botany, Dhakuakhana College`;
-  const description = event.description_short || `Explore details about the botanical expedition: ${event.title}`;
+  const fullTitle = `${event.title} | Botany Department, Dhakuakhana College`;
+  const description = event.description_short || `Official documentation of the botanical expedition: ${event.title}`;
 
   return {
     title: fullTitle,
@@ -43,8 +46,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       title: fullTitle,
       description: description,
       url: `https://synap-seed.vercel.app/events/${slug}`,
-      siteName: 'Moana AI Botany Portal',
-      images: [{ url: event.thumbnail, width: 1200, height: 630, alt: event.title }],
+      siteName: 'Dhakuakhana College Botany Portal',
+      images: [{ url: event.thumbnail, width: 1200, height: 630, alt: `Cover image for ${event.title}` }],
       type: 'article',
     },
     twitter: {
@@ -62,14 +65,15 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ s
 
   if (!event) notFound();
 
-  // 2. JSON-LD STRUCTURED DATA (Google Rich Snippets)
+  // 3. ENHANCED JSON-LD STRUCTURED DATA
+  // This "Organiser" section links this page to the already-indexed Faculty page.
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Event",
     "name": event.title,
     "description": event.description_short,
     "image": event.thumbnail,
-    "startDate": event.date_iso || event.date_short, // Ensure this is ISO format for best results
+    "startDate": event.date_iso || event.date_short,
     "location": {
       "@type": "Place",
       "name": "Dhakuakhana College (Autonomous)",
@@ -82,14 +86,17 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ s
     },
     "organizer": {
       "@type": "Organization",
-      "name": "Department of Botany",
-      "url": "https://synap-seed.vercel.app"
+      "name": "Department of Botany, Dhakuakhana College",
+      "url": "https://synap-seed.vercel.app",
+      "sameAs": [
+        "https://synap-seed.vercel.app/faculty", // Links trust to your faculty page
+        "https://dhakuakhanacollege.ac.in"       // Links trust to the main college domain
+      ]
     }
   };
 
   return (
     <>
-      {/* Injecting Schema directly into head */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -100,7 +107,7 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ s
         
         <div className="max-w-6xl mx-auto px-4 lg:px-0 pt-8 pb-24">
           
-          {/* 3. BREADCRUMBS (Bot Navigation & SEO Hierarchy) */}
+          {/* BREADCRUMBS: Helps bots understand site hierarchy */}
           <nav className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-emerald-800/50 mb-6" aria-label="Breadcrumb">
             <Link href="/" className="hover:text-emerald-600 flex items-center gap-1"><Home size={10}/> Home</Link>
             <ChevronRight size={10} />
@@ -124,7 +131,8 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ s
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 mt-16">
             <section className="lg:col-span-8">
               <article className="prose prose-emerald max-w-none">
-                <h2 className={cn(crazyFont.className, "text-xl lg:text-2xl text-emerald-900 mb-8 uppercase tracking-widest")}>
+                <h2 className={cn(crazyFont.className, "text-xl lg:text-2xl text-emerald-900 mb-8 uppercase tracking-widest flex items-center gap-3")}>
+                  <span className="w-10 h-[1px] bg-emerald-300"></span>
                   Expedition Description
                 </h2>
                 <div className="text-slate-700 leading-relaxed font-medium text-lg lg:text-xl first-letter:text-7xl first-letter:font-black first-letter:text-emerald-600 first-letter:mr-3 first-letter:float-left first-letter:leading-[0.7] first-letter:mt-2">
