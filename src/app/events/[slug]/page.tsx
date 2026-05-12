@@ -16,8 +16,19 @@ import EventSidebar from "@/components/events/EventSidebar";
 
 const crazyFont = Syne({ subsets: ["latin"], weight: ["800"] });
 
-// 1. SEO PERFORMANCE WIN: 
-// Allows Google to see this as a fast, static page rather than waiting for a DB query.
+/** * 1. STATIC PRE-RENDERING
+ * This tells Next.js to build these pages as static HTML at build time.
+ * This is why your Faculty page ranks better—it's static. Now Events will be too.
+ */
+export async function generateStaticParams() {
+  const { data: events } = await supabase.from('events').select('slug');
+  if (!events) return [];
+  return events.map((event) => ({
+    slug: event.slug,
+  }));
+}
+
+// Revalidate every hour to keep data fresh without sacrificing speed
 export const revalidate = 3600; 
 
 const getEvent = cache(async (slug: string) => {
@@ -26,7 +37,9 @@ const getEvent = cache(async (slug: string) => {
   return data;
 });
 
-// 2. DYNAMIC METADATA
+/**
+ * 2. DYNAMIC METADATA (SEO)
+ */
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const event = await getEvent(slug);
@@ -47,14 +60,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       description: description,
       url: `https://synap-seed.vercel.app/events/${slug}`,
       siteName: 'Dhakuakhana College Botany Portal',
-      images: [{ url: event.thumbnail, width: 1200, height: 630, alt: `Cover image for ${event.title}` }],
+      images: [{ url: event.thumbnail, width: 1200, height: 630, alt: event.title }],
       type: 'article',
-    },
-    twitter: {
-      card: 'summary_large_image',
-      title: fullTitle,
-      description: description,
-      images: [event.thumbnail],
     },
   };
 }
@@ -65,59 +72,54 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ s
 
   if (!event) notFound();
 
-  // 3. ENHANCED JSON-LD STRUCTURED DATA
-  // This "Organiser" section links this page to the already-indexed Faculty page.
-  // Inside your EventDetailsPage function:
-
-const jsonLd = {
-  "@context": "https://schema.org",
-  "@type": "Event",
-  "name": event.title,
-  "description": event.description_short,
-  "image": event.thumbnail,
-  "startDate": event.date_iso || event.date_short,
-  // ISSUE FIX: endDate (Google likes to know when it ends)
-  // If you don't have an end date in Supabase, we can default it to 4 hours after start
-  "endDate": event.end_date_iso || event.date_iso || event.date_short, 
-  
-  // ISSUE FIX: eventStatus (Tells Google the event isn't cancelled)
-  "eventStatus": "https://schema.org/EventScheduled",
-  
-  // ISSUE FIX: offers (Tells Google it's a free educational event)
-  "offers": {
-    "@type": "Offer",
-    "price": "0",
-    "priceCurrency": "INR",
-    "availability": "https://schema.org/InStock",
-    "url": `https://synap-seed.vercel.app/events/${slug}`
-  },
-
-  // ISSUE FIX: performer (For college events, the Department is the performer)
-  "performer": {
-    "@type": "Organization",
-    "name": "Department of Botany Students & Faculty"
-  },
-
-  "location": {
-    "@type": "Place",
-    "name": "Dhakuakhana College (Autonomous)",
-    "address": {
-      "@type": "PostalAddress",
-      "addressLocality": "Dhakuakhana",
-      "addressRegion": "Assam",
-      "addressCountry": "IN"
+  /**
+   * 3. FULL GOOGLE-COMPLIANT SCHEMA (JSON-LD)
+   * This includes all the missing fields Google Search Console asked for.
+   */
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Event",
+    "name": event.title,
+    "description": event.description_short,
+    "image": event.thumbnail,
+    "startDate": event.date_iso || event.date_short,
+    // Fix: endDate (defaulting to start date if not provided)
+    "endDate": event.end_date_iso || event.date_iso || event.date_short,
+    // Fix: eventStatus
+    "eventStatus": "https://schema.org/EventScheduled",
+    // Fix: offers (Free educational event)
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "INR",
+      "availability": "https://schema.org/InStock",
+      "url": `https://synap-seed.vercel.app/events/${slug}`
+    },
+    // Fix: performer
+    "performer": {
+      "@type": "Organization",
+      "name": "Department of Botany Students & Faculty"
+    },
+    "location": {
+      "@type": "Place",
+      "name": "Dhakuakhana College (Autonomous)",
+      "address": {
+        "@type": "PostalAddress",
+        "addressLocality": "Dhakuakhana",
+        "addressRegion": "Assam",
+        "addressCountry": "IN"
+      }
+    },
+    "organizer": {
+      "@type": "Organization",
+      "name": "Department of Botany, Dhakuakhana College",
+      "url": "https://synap-seed.vercel.app",
+      "sameAs": [
+        "https://synap-seed.vercel.app/faculty",
+        "https://dhakuakhanacollege.ac.in"
+      ]
     }
-  },
-  "organizer": {
-    "@type": "Organization",
-    "name": "Department of Botany, Dhakuakhana College",
-    "url": "https://synap-seed.vercel.app",
-    "sameAs": [
-      "https://synap-seed.vercel.app/faculty",
-      "https://dhakuakhanacollege.ac.in"
-    ]
-  }
-};
+  };
 
   return (
     <>
@@ -131,7 +133,7 @@ const jsonLd = {
         
         <div className="max-w-6xl mx-auto px-4 lg:px-0 pt-8 pb-24">
           
-          {/* BREADCRUMBS: Helps bots understand site hierarchy */}
+          {/* Breadcrumbs for Bot Navigation */}
           <nav className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-emerald-800/50 mb-6" aria-label="Breadcrumb">
             <Link href="/" className="hover:text-emerald-600 flex items-center gap-1"><Home size={10}/> Home</Link>
             <ChevronRight size={10} />
