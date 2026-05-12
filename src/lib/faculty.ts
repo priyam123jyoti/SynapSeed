@@ -1,6 +1,6 @@
 export interface FacultyMember {
   id: string;
-  slug: string; // Used for the URL: /faculty/rakesh-kalita
+  slug: string;
   name: string;
   designation: string;
   qualifications: string;

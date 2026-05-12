@@ -9,6 +9,7 @@ import AIFloatingButton from '@/components/layout/AIFloatingButton';
 import SubjectPillars from '@/components/home/SubjectPillars';
 import FeatureShowcase from '@/components/home/FeatureShowcase';
 import ImpactStats from '@/components/home/ImpactStats';
+import LatestEvents from '@/components/home/LatestEvents';
 
 
 // PERFORMANCE: Incremental Static Regeneration (ISR)
@@ -71,6 +72,7 @@ export default async function Home() {
          <div className="p-1 md:p-10">
           <div className="max-w-[1600px] mx-auto w-full space-y-20">
             {/* Subject Pillars, Feature Showcase, and Stats */}
+            <LatestEvents />
             <SubjectPillars />
             <FeatureShowcase />
             <ImpactStats />
