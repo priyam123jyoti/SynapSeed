@@ -67,33 +67,57 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ s
 
   // 3. ENHANCED JSON-LD STRUCTURED DATA
   // This "Organiser" section links this page to the already-indexed Faculty page.
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Event",
-    "name": event.title,
-    "description": event.description_short,
-    "image": event.thumbnail,
-    "startDate": event.date_iso || event.date_short,
-    "location": {
-      "@type": "Place",
-      "name": "Dhakuakhana College (Autonomous)",
-      "address": {
-        "@type": "PostalAddress",
-        "addressLocality": "Dhakuakhana",
-        "addressRegion": "Assam",
-        "addressCountry": "IN"
-      }
-    },
-    "organizer": {
-      "@type": "Organization",
-      "name": "Department of Botany, Dhakuakhana College",
-      "url": "https://synap-seed.vercel.app",
-      "sameAs": [
-        "https://synap-seed.vercel.app/faculty", // Links trust to your faculty page
-        "https://dhakuakhanacollege.ac.in"       // Links trust to the main college domain
-      ]
+  // Inside your EventDetailsPage function:
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "Event",
+  "name": event.title,
+  "description": event.description_short,
+  "image": event.thumbnail,
+  "startDate": event.date_iso || event.date_short,
+  // ISSUE FIX: endDate (Google likes to know when it ends)
+  // If you don't have an end date in Supabase, we can default it to 4 hours after start
+  "endDate": event.end_date_iso || event.date_iso || event.date_short, 
+  
+  // ISSUE FIX: eventStatus (Tells Google the event isn't cancelled)
+  "eventStatus": "https://schema.org/EventScheduled",
+  
+  // ISSUE FIX: offers (Tells Google it's a free educational event)
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "INR",
+    "availability": "https://schema.org/InStock",
+    "url": `https://synap-seed.vercel.app/events/${slug}`
+  },
+
+  // ISSUE FIX: performer (For college events, the Department is the performer)
+  "performer": {
+    "@type": "Organization",
+    "name": "Department of Botany Students & Faculty"
+  },
+
+  "location": {
+    "@type": "Place",
+    "name": "Dhakuakhana College (Autonomous)",
+    "address": {
+      "@type": "PostalAddress",
+      "addressLocality": "Dhakuakhana",
+      "addressRegion": "Assam",
+      "addressCountry": "IN"
     }
-  };
+  },
+  "organizer": {
+    "@type": "Organization",
+    "name": "Department of Botany, Dhakuakhana College",
+    "url": "https://synap-seed.vercel.app",
+    "sameAs": [
+      "https://synap-seed.vercel.app/faculty",
+      "https://dhakuakhanacollege.ac.in"
+    ]
+  }
+};
 
   return (
     <>
