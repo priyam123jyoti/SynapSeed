@@ -16,9 +16,9 @@ import EventSidebar from "@/components/events/EventSidebar";
 
 const crazyFont = Syne({ subsets: ["latin"], weight: ["800"] });
 
-/** * 1. STATIC PRE-RENDERING
- * This tells Next.js to build these pages as static HTML at build time.
- * This is why your Faculty page ranks better—it's static. Now Events will be too.
+/**
+ * 1. STATIC PRE-RENDERING
+ * Pre-builds pages to improve SEO ranking.
  */
 export async function generateStaticParams() {
   const { data: events } = await supabase.from('events').select('slug');
@@ -28,8 +28,7 @@ export async function generateStaticParams() {
   }));
 }
 
-// Revalidate every hour to keep data fresh without sacrificing speed
-export const revalidate = 3600; 
+export const revalidate = 3600; // Refresh data every hour
 
 const getEvent = cache(async (slug: string) => {
   const { data, error } = await supabase.from('events').select('*').eq('slug', slug).single();
@@ -38,7 +37,7 @@ const getEvent = cache(async (slug: string) => {
 });
 
 /**
- * 2. DYNAMIC METADATA (SEO)
+ * 2. DYNAMIC METADATA
  */
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -72,9 +71,21 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ s
 
   if (!event) notFound();
 
+  // Helper to ensure dates are ISO 8601 compliant for Google
+  const formatISO = (dateStr: string) => {
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr; 
+      return d.toISOString().split('T')[0];
+    } catch {
+      return dateStr;
+    }
+  };
+
+  const validStartDate = event.date_iso || formatISO(event.date_short);
+
   /**
-   * 3. FULL GOOGLE-COMPLIANT SCHEMA (JSON-LD)
-   * This includes all the missing fields Google Search Console asked for.
+   * 3. GOOGLE EVENT SCHEMA
    */
   const jsonLd = {
     "@context": "https://schema.org",
@@ -82,12 +93,9 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ s
     "name": event.title,
     "description": event.description_short,
     "image": event.thumbnail,
-    "startDate": event.date_iso || event.date_short,
-    // Fix: endDate (defaulting to start date if not provided)
-    "endDate": event.end_date_iso || event.date_iso || event.date_short,
-    // Fix: eventStatus
+    "startDate": validStartDate,
+    "endDate": event.end_date_iso || validStartDate,
     "eventStatus": "https://schema.org/EventScheduled",
-    // Fix: offers (Free educational event)
     "offers": {
       "@type": "Offer",
       "price": "0",
@@ -95,7 +103,6 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ s
       "availability": "https://schema.org/InStock",
       "url": `https://synap-seed.vercel.app/events/${slug}`
     },
-    // Fix: performer
     "performer": {
       "@type": "Organization",
       "name": "Department of Botany Students & Faculty"
@@ -113,11 +120,7 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ s
     "organizer": {
       "@type": "Organization",
       "name": "Department of Botany, Dhakuakhana College",
-      "url": "https://synap-seed.vercel.app",
-      "sameAs": [
-        "https://synap-seed.vercel.app/faculty",
-        "https://dhakuakhanacollege.ac.in"
-      ]
+      "url": "https://synap-seed.vercel.app"
     }
   };
 
@@ -133,7 +136,7 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ s
         
         <div className="max-w-6xl mx-auto px-4 lg:px-0 pt-8 pb-24">
           
-          {/* Breadcrumbs for Bot Navigation */}
+          {/* Navigation Breadcrumbs */}
           <nav className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-emerald-800/50 mb-6" aria-label="Breadcrumb">
             <Link href="/" className="hover:text-emerald-600 flex items-center gap-1"><Home size={10}/> Home</Link>
             <ChevronRight size={10} />
@@ -170,9 +173,14 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ s
             <EventSidebar objectives={event.key_objectives} />
           </div>
 
+          {/* --- UPDATED GALLERY SECTION --- */}
           {event.gallery?.length > 0 && (
             <section className="mt-20 border-t border-emerald-100 pt-16" aria-label="Event Image Gallery">
-               <EventAlbum images={event.gallery} />
+               <EventAlbum 
+                 images={event.gallery} 
+                 eventTitle={event.title} 
+                 eventSlug={slug} 
+               />
             </section>
           )}
         </div>
