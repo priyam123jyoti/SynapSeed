@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import FacultyCard from "../../components/faculty/FacultyCard";
 import { botanyFaculty } from "../../lib/faculty";
 import Navbar from "../../components/layout/Navbar";
+import MobileBottomNavbar from '@/components/layout/MobileBottomNavbar';
 import { Microscope, Leaf, Library, MicroscopeIcon } from "lucide-react";
 
 // 1. ELITE METADATA: Explicit canonical links and OpenGraph mapping
@@ -162,6 +163,7 @@ export default function FacultyPage() {
           </div>
         </section>
       </div>
+      <MobileBottomNavbar />
       
       {/* Footer Info */}
       <footer className="bg-white border-t border-slate-100 py-12 text-center text-slate-400 text-[10px] font-bold uppercase tracking-[0.2em]">
