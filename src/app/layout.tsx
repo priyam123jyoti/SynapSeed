@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthProvider";
 import BotanyHub from "@/components/pwa/BotanyHub";
+import PWAInstaller from "@/components/pwa/PWAInstaller";
 
 
 const inter = Inter({ subsets: ["latin"] });
@@ -68,7 +69,7 @@ export default function RootLayout({
 
           {/* Page Content */}
           {children}
-
+          <PWAInstaller />
           {/* PERMANENT WIDGET: AI Quiz, Mindmap, Home */}
           <BotanyHub />
           
