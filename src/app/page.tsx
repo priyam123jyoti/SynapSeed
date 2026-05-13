@@ -11,45 +11,51 @@ import FeatureShowcase from '@/components/home/FeatureShowcase';
 import ImpactStats from '@/components/home/ImpactStats';
 import LatestEvents from '@/components/home/LatestEvents';
 
+// QUIZ WIDGET IMPORT
+import QuizWidget from "@/components/Prof-Quiz/QuizWidget";
 
 // PERFORMANCE: Incremental Static Regeneration (ISR)
 export const revalidate = 3600; 
 
-// 2. Extreme Metadata (SEO)
+// 2. Metadata (SEO)
 export const metadata: Metadata = {
   title: "Department of Botany | Dhakuakhana College - AI Learning Portal",
-  description: "Official Botany Department portal at Dhakuakhana College. Explore interactive AI mind maps, take science quizzes in Physics, Chemistry, Botany, and Zoology, and view our research.",
+  description: "Official Botany Department portal at Dhakuakhana College. Explore interactive AI mind maps, take science quizzes, and view departmental research.",
   alternates: { canonical: 'https://synap-seed.vercel.app' }, 
   keywords: ["Botany Dhakuakhana College", "Assam Botany Research", "AI Quiz Generator Science", "Botany Mind Maps"],
   openGraph: {
     title: "Botany Department | Dhakuakhana College",
     description: "Visualizing Plant Science with AI-powered mind maps and quizzes.",
+    url: 'https://synap-seed.vercel.app',
+    siteName: 'SynapSeed',
     images: '/botany-department-dhakuakhana-college.png',
   }
 };
 
-// 3. SSR Data Fetching
-async function getLatestEvents() {
+// 3. Data Fetching Function
+async function getLatestQuiz() {
   const { data, error } = await supabase
-    .from('events')
-    .select('id, title, slug, category, date_short, description_short, thumbnail')
+    .from('quizzes')
+    .select('*')
     .order('created_at', { ascending: false })
-    .limit(10);
+    .limit(1)
+    .maybeSingle(); 
     
   if (error) {
-    console.error("Supabase Error:", error);
-    return [];
+    console.error("Quiz Fetch Error:", error);
+    return null;
   }
-  return data || [];
+  return data;
 }
 
 export default async function Home() {
-  const initialEvents = await getLatestEvents();
+  // Fetch the quiz data from Supabase
+  const activeQuiz = await getLatestQuiz();
 
   return (
     <div className="w-full bg-[#f8fafc] flex flex-col min-h-screen">
       
-      {/* 4. JSON-LD SEO Script (Must be inside the main div) */}
+      {/* JSON-LD for SEO */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -69,9 +75,32 @@ export default async function Home() {
       <main id="main-content" className="flex-grow">
         <BotanyHero />
         
-         <div className="p-1 md:p-10">
+        {/* --- DYNAMIC CHALLENGE SECTION --- */}
+        <section className="max-w-xl mx-auto px-6 py-12">
+          {activeQuiz ? (
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">Active Challenge</h2>
+              <QuizWidget quiz={activeQuiz} />
+            </div>
+          ) : (
+            /* SIMPLE STAY TUNED FALLBACK */
+            <div className="py-16 border-2 border-dashed border-emerald-100 rounded-[2.5rem] bg-emerald-50/30 flex flex-col items-center text-center space-y-3">
+               <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center shadow-sm">
+                 <div className="w-2 h-2 bg-emerald-400 rounded-full animate-ping" />
+               </div>
+               <p className="text-emerald-900 font-bold text-xs uppercase tracking-widest">
+                 Stay Tuned
+               </p>
+               <p className="text-emerald-800/40 font-medium text-[10px] uppercase tracking-wider px-12">
+                 New departmental quizzes are coming soon. Review your lectures in the meantime!
+               </p>
+            </div>
+          )}
+        </section>
+        {/* --- END CHALLENGE SECTION --- */}
+
+        <div className="p-1 md:p-10">
           <div className="max-w-[1600px] mx-auto w-full space-y-20">
-            {/* Subject Pillars, Feature Showcase, and Stats */}
             <LatestEvents />
             <SubjectPillars />
             <FeatureShowcase />
