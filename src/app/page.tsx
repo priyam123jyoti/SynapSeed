@@ -17,7 +17,7 @@ import QuizWidget from "@/components/Prof-Quiz/QuizWidget";
 export const revalidate = 30; 
 
 export const metadata: Metadata = {
-  title: "Department of Botany | Dhakuakhana College - AI Learning Portal",
+  title: "Department of Botany | Dhakuakhana College | Home Page",
   description: "Official Botany Department portal. Explore interactive AI mind maps and science quizzes.",
   alternates: { canonical: 'https://synap-seed.vercel.app' }, 
   openGraph: {
