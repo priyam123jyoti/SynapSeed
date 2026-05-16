@@ -1,9 +1,8 @@
-import type { Metadata, Viewport } from "next"; // Added Viewport
+import type { Metadata, Viewport } from "next"; 
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/contexts/AuthProvider";
 import PWAInstaller from "@/components/pwa/PWAInstaller";
-
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -60,17 +59,14 @@ export default function RootLayout({
     <html lang="en" className="scroll-smooth">
       <body className={`${inter.className} antialiased bg-[#fdfdfd] text-slate-900 overflow-x-hidden`}>
         <AuthProvider>
-          {/* 
-              PWA BANNER:
-              Pass a dynamic message and type ('alert' or 'quiz').
-              In a real scenario, you can fetch these values from Supabase.
-          */}
-
+          
           {/* Page Content */}
           {children}
 
-          {/* PERMANENT WIDGET: AI Quiz, Mindmap, Home */}
+          {/* FIX: Mounted PWAInstaller here so its event listeners run globally */}
+          <PWAInstaller />
 
+          {/* PERMANENT WIDGET: AI Quiz, Mindmap, Home */}
           
         </AuthProvider>
       </body>

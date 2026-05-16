@@ -8,12 +8,19 @@ export default function PWAInstaller() {
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
-    // 1. Check if already running inside the standalone mobile app wrapper
+    // 1. Programmatically register the mandatory PWA Service Worker script
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((reg) => console.log('PWA Service Worker registered safely:', reg.scope))
+        .catch((err) => console.error('PWA Service Worker registration failed:', err));
+    }
+
+    // 2. Check if already running inside the standalone mobile app wrapper
     if (window.matchMedia('(display-mode: standalone)').matches) {
       return;
     }
 
-    // 2. Capture the default browser PWA install availability trigger
+    // 3. Capture the default browser PWA install availability trigger
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
@@ -25,7 +32,7 @@ export default function PWAInstaller() {
       }
     };
 
-    // 3. FIX: Listen explicitly to the "Install Mobile App" click from the Footer
+    // 4. Listen explicitly to the "Install Mobile App" click from the Footer
     const handleFooterClickTrigger = () => {
       // Force display the installation popup state
       setShowPopup(true);
@@ -34,7 +41,7 @@ export default function PWAInstaller() {
     window.addEventListener('beforeinstallprompt', handler);
     window.addEventListener('open-pwa-installer', handleFooterClickTrigger);
 
-    // 4. Listen for completion confirmation from the mobile OS engine
+    // 5. Listen for completion confirmation from the mobile OS engine
     const handleSuccessInstall = () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
