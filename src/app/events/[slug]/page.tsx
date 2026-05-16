@@ -7,7 +7,6 @@ import Link from "next/link";
 import { cache } from "react";
 import { cn } from "@/lib/utils";
 
-// Component Imports
 import Navbar from "@/components/layout/Navbar";
 import MobileBottomNavbar from "@/components/layout/MobileBottomNavbar";
 import EventAlbum from "@/components/events/EventAlbum";
@@ -16,10 +15,6 @@ import EventSidebar from "@/components/events/EventSidebar";
 
 const crazyFont = Syne({ subsets: ["latin"], weight: ["800"] });
 
-/**
- * 1. STATIC PRE-RENDERING
- * Pre-builds pages to improve SEO ranking.
- */
 export async function generateStaticParams() {
   const { data: events } = await supabase.from('events').select('slug');
   if (!events) return [];
@@ -28,7 +23,9 @@ export async function generateStaticParams() {
   }));
 }
 
-export const revalidate = 3600; // Refresh data every hour
+// CRITICAL FIXES: Allows newly added database events to compile paths on-demand
+export const dynamicParams = true; 
+export const revalidate = 30; 
 
 const getEvent = cache(async (slug: string) => {
   const { data, error } = await supabase.from('events').select('*').eq('slug', slug).single();
@@ -36,9 +33,6 @@ const getEvent = cache(async (slug: string) => {
   return data;
 });
 
-/**
- * 2. DYNAMIC METADATA
- */
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
   const event = await getEvent(slug);
@@ -71,7 +65,6 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ s
 
   if (!event) notFound();
 
-  // Helper to ensure dates are ISO 8601 compliant for Google
   const formatISO = (dateStr: string) => {
     try {
       const d = new Date(dateStr);
@@ -84,9 +77,6 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ s
 
   const validStartDate = event.date_iso || formatISO(event.date_short);
 
-  /**
-   * 3. GOOGLE EVENT SCHEMA
-   */
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Event",
@@ -135,8 +125,6 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ s
         <Navbar />
         
         <div className="max-w-6xl mx-auto px-4 lg:px-0 pt-8 pb-24">
-          
-          {/* Navigation Breadcrumbs */}
           <nav className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-emerald-800/50 mb-6" aria-label="Breadcrumb">
             <Link href="/" className="hover:text-emerald-600 flex items-center gap-1"><Home size={10}/> Home</Link>
             <ChevronRight size={10} />
@@ -162,7 +150,7 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ s
               <article className="prose prose-emerald max-w-none">
                 <h2 className={cn(crazyFont.className, "text-xl lg:text-2xl text-emerald-900 mb-8 uppercase tracking-widest flex items-center gap-3")}>
                   <span className="w-10 h-[1px] bg-emerald-300"></span>
-                  Expedition Description
+                  Expeditions Description
                 </h2>
                 <div className="text-slate-700 leading-relaxed font-medium text-lg lg:text-xl first-letter:text-7xl first-letter:font-black first-letter:text-emerald-600 first-letter:mr-3 first-letter:float-left first-letter:leading-[0.7] first-letter:mt-2">
                   {event.full_description || event.description_short}
@@ -173,13 +161,12 @@ export default async function EventDetailsPage({ params }: { params: Promise<{ s
             <EventSidebar objectives={event.key_objectives} />
           </div>
 
-          {/* --- UPDATED GALLERY SECTION --- */}
           {event.gallery?.length > 0 && (
             <section className="mt-20 border-t border-emerald-100 pt-16" aria-label="Event Image Gallery">
                <EventAlbum 
-                 images={event.gallery} 
-                 eventTitle={event.title} 
-                 eventSlug={slug} 
+                  images={event.gallery} 
+                  eventTitle={event.title} 
+                  eventSlug={slug} 
                />
             </section>
           )}

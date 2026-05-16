@@ -2,15 +2,12 @@ import { supabase } from "@/lib/supabase";
 import { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
-import { Lock, Calendar, MapPin } from "lucide-react"; 
+import { Lock } from "lucide-react"; 
 import Navbar from "@/components/layout/Navbar";
 import MobileBottomNavbar from "@/components/layout/MobileBottomNavbar";
 
-// SEO MASTER MOVE: 
-// We change from "force-dynamic" to a 1-hour revalidation. 
-// This allows Google to "cache" the page like a static file, 
-// making it rank much higher.
-export const revalidate = 3600; 
+// REDUCED FOR LIVE UPDATES: Refreshes cache every 30 seconds instead of an hour
+export const revalidate = 30; 
 
 export const metadata: Metadata = {
   title: "Official Botanical Events & Expeditions | Dhakuakhana College",
@@ -34,7 +31,6 @@ export default async function EventsPage() {
   if (error) console.error("Supabase Error:", error);
   const displayEvents = events || [];
 
-  // Enhanced JSON-LD: Linking these events to the College Authority
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "ItemList",
@@ -154,7 +150,6 @@ function EventCard({ event }: { event: any }) {
           {event.thumbnail ? (
             <Image 
               src={event.thumbnail} 
-              // SEO FIX: Highly descriptive Alt text
               alt={`${event.title} - Botanical event at Dhakuakhana College`} 
               fill 
               className="object-cover transition-transform duration-700 group-hover:scale-110"
@@ -189,7 +184,7 @@ function EventCard({ event }: { event: any }) {
           
           <div className="mt-auto pt-6 border-t border-slate-50 flex items-center justify-between">
             <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest group-hover:gap-4 transition-all flex items-center gap-2">
-              View Expedition Details <span>→</span>
+              View Event Details <span>→</span>
             </span>
           </div>
         </div>

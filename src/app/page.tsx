@@ -1,22 +1,20 @@
 import { supabase } from '@/lib/supabase';
 import { Metadata } from 'next';
 
-// Layout & UI Components
 import Navbar from '@/components/layout/Navbar'; 
 import BotanyHero from '@/components/layout/HeroSection';
 import MobileBottomNavbar from '@/components/layout/MobileBottomNavbar';
 import AIFloatingButton from '@/components/layout/AIFloatingButton';
-import Footer from '@/components/layout/Footer'; // New Client Footer
+import Footer from '@/components/layout/Footer'; 
 
-// Content Sections
 import SubjectPillars from '@/components/home/SubjectPillars';
 import FeatureShowcase from '@/components/home/FeatureShowcase';
 import ImpactStats from '@/components/home/ImpactStats';
 import LatestEvents from '@/components/home/LatestEvents';
 import QuizWidget from "@/components/Prof-Quiz/QuizWidget";
 
-// Performance Settings
-export const revalidate = 3600; 
+// DYNAMIC PERFORMANCE MATCH
+export const revalidate = 30; 
 
 export const metadata: Metadata = {
   title: "Department of Botany | Dhakuakhana College - AI Learning Portal",
@@ -50,8 +48,6 @@ export default async function Home() {
 
   return (
     <div className="w-full bg-[#f8fafc] flex flex-col min-h-screen">
-      
-      {/* Structured Data for Google */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
@@ -69,7 +65,6 @@ export default async function Home() {
       <main id="main-content" className="flex-grow">
         <BotanyHero />
         
-        {/* Dynamic Quiz/Challenge Section */}
         <section className="max-w-xl mx-auto px-6 py-12">
             <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
               <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">
@@ -79,7 +74,6 @@ export default async function Home() {
             </div>
         </section>
 
-        {/* Home Sections */}
         <div className="p-1 md:p-10">
           <div className="max-w-[1600px] mx-auto w-full space-y-20">
             <LatestEvents />
@@ -89,7 +83,6 @@ export default async function Home() {
           </div>
         </div>
 
-        {/* Interactive Footer */}
         <Footer />
       </main>
       
