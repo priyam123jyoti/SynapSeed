@@ -8,39 +8,59 @@ export default function PWAInstaller() {
   const [isInstalled, setIsInstalled] = useState(false);
 
   useEffect(() => {
-    // 1. Check if already in standalone mode (already installed)
+    // 1. Check if already running inside the standalone mobile app wrapper
     if (window.matchMedia('(display-mode: standalone)').matches) {
       return;
     }
 
-    // 2. Capture the Android 'beforeinstallprompt' event
+    // 2. Capture the default browser PWA install availability trigger
     const handler = (e: Event) => {
       e.preventDefault();
       setDeferredPrompt(e);
       
-      // Only show the popup if they haven't dismissed it in this session
+      // Auto-trigger prompt on load only if they haven't closed it this session
       const isDismissed = sessionStorage.getItem('pwa_dismissed');
       if (!isDismissed) {
         setShowPopup(true);
       }
     };
 
-    window.addEventListener('beforeinstallprompt', handler);
+    // 3. FIX: Listen explicitly to the "Install Mobile App" click from the Footer
+    const handleFooterClickTrigger = () => {
+      // Force display the installation popup state
+      setShowPopup(true);
+    };
 
-    // 3. Listen for successful installation
-    window.addEventListener('appinstalled', () => {
+    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('open-pwa-installer', handleFooterClickTrigger);
+
+    // 4. Listen for completion confirmation from the mobile OS engine
+    const handleSuccessInstall = () => {
       setIsInstalled(true);
       setDeferredPrompt(null);
       setTimeout(() => setShowPopup(false), 3000);
-    });
+    };
 
-    return () => window.removeEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', handleSuccessInstall);
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handler);
+      window.removeEventListener('open-pwa-installer', handleFooterClickTrigger);
+      window.removeEventListener('appinstalled', handleSuccessInstall);
+    };
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
+    // FALLBACK RULE: If browser profile hasn't captured the device system capability prompt yet
+    if (!deferredPrompt) {
+      alert(
+        "To install, use your browser options directly (Tap Chrome Menu ⋮ or Safari Share button, then choose 'Add to Home screen')."
+      );
+      setShowPopup(false);
+      return;
+    }
 
-    // Trigger the native Android chrome install dialog
+    // Trigger the native OS system engine prompt overlay
     deferredPrompt.prompt();
 
     const { outcome } = await deferredPrompt.userChoice;
@@ -79,7 +99,7 @@ export default function PWAInstaller() {
           </div>
         ) : (
           <>
-            <h3 className="text-xl font-bold text-slate-900 mb-2">BotanyHub for Android</h3>
+            <h3 className="text-xl font-bold text-slate-900 mb-2">BotanyHub App</h3>
             <p className="text-slate-500 text-sm leading-relaxed mb-8">
               Install the Dhakuakhana College Botany app for instant access to AI tools and departmental updates.
             </p>

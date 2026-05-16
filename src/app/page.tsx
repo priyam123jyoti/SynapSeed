@@ -70,7 +70,6 @@ export default async function Home() {
               <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">
                 {activeQuiz ? "Active Challenge" : "Stay Tuned"}
               </h2>
-              <QuizWidget quiz={activeQuiz} />
             </div>
         </section>
 
@@ -80,6 +79,7 @@ export default async function Home() {
             <SubjectPillars />
             <FeatureShowcase />
             <ImpactStats />
+            <QuizWidget quiz={activeQuiz} />
           </div>
         </div>
 
