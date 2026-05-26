@@ -10,12 +10,11 @@ export async function POST(req: NextRequest) {
 
     let textToAnalyze = "";
 
-    // 1. Process PDF if provided (completely in memory, never saved)
     if (file) {
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       
-      // FIXED: Dynamic require inside the execution block stops Next.js build errors
+      // Dynamic inline require prevents build-time compilation environment glitches
       const pdfParser = require('pdf-parse');
       const pdfData = await pdfParser(buffer);
       textToAnalyze = pdfData.text || "";
@@ -24,14 +23,13 @@ export async function POST(req: NextRequest) {
     }
 
     if (!textToAnalyze.trim()) {
-      return NextResponse.json({ error: "No text contents extracted." }, { status: 400 });
+      return NextResponse.json({ error: "No clear textual data isolated inside request objects." }, { status: 400 });
     }
 
     if (textToAnalyze.length > 45000) {
       textToAnalyze = textToAnalyze.substring(0, 45000);
     }
 
-    // 2. Call the Groq AI Engine
     const systemPrompt = `
       You are an expert academic assessment engine for a college.
       Analyze the provided reference source text and extract or generate high-quality assessment questions.
@@ -80,14 +78,14 @@ export async function POST(req: NextRequest) {
     const aiResult = await response.json();
     
     if (!aiResult.choices?.[0]?.message?.content) {
-      throw new Error("Invalid or empty response structure from Groq API.");
+      throw new Error("Empty compilation metadata response from remote Groq clusters.");
     }
 
-    const quizData = JSON.parse(aiResult.choices[0].message.content);
-    return NextResponse.json(quizData);
+    const testData = JSON.parse(aiResult.choices[0].message.content);
+    return NextResponse.json(testData);
 
   } catch (error: any) {
-    console.error("AI Generation Failure:", error);
-    return NextResponse.json({ error: "Failed to parse document or generate quiz matrix." }, { status: 500 });
+    console.error("AI Evaluation Layer Generation Failure:", error);
+    return NextResponse.json({ error: "Failed to parse document or generate test matrix layout arrays." }, { status: 500 });
   }
 }

@@ -3,9 +3,9 @@ import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Brain, Plus, FileText, Send, UploadCloud, Loader2, Trash2 } from "lucide-react";
 
-export default function QuizCreator() {
+export default function TestCreator() {
   const [mode, setMode] = useState<'scratch' | 'ai'>('scratch');
-  const [quizTitle, setQuizTitle] = useState("");
+  const [testTitle, setTestTitle] = useState("");
   const [questions, setQuestions] = useState<any[]>([]);
   
   // AI Form States
@@ -55,7 +55,6 @@ export default function QuizCreator() {
     setQuestions(updated);
   };
 
-  // --- Call Next.js Router API Handler ---
   const handleAIGenerateDraft = async () => {
     if (!aiText.trim() && !selectedFile) {
       alert("Please paste text notes or upload a standard lecture PDF file first.");
@@ -68,10 +67,17 @@ export default function QuizCreator() {
     if (aiText) formData.append('text', aiText);
 
     try {
-      const res = await fetch('/api/generate-quiz', {
+      const res = await fetch('/api/generate-test', {
         method: 'POST',
-        body: formData // Form headers automatically bound by browser engine
+        body: formData
       });
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error("Server raw response:", errorText);
+        throw new Error(`Server responded with status ${res.status}`);
+      }
+
       const data = await res.json();
       
       if (data.questions && Array.isArray(data.questions)) {
@@ -98,10 +104,10 @@ export default function QuizCreator() {
 
     try {
       const { data, error } = await supabase
-        .from('quizzes')
+        .from('quizzes') // keeping the backend database table target mapping uniform
         .insert([{ 
-          title: quizTitle || "Untitled Academic Assessment", 
-          description: "Departmental Assessment Node Registry",
+          title: testTitle || "Untitled Academic Test Assessment", 
+          description: "Departmental Evaluation Node Registry",
           questions: questions 
         }])
         .select('id')
@@ -109,26 +115,26 @@ export default function QuizCreator() {
 
       if (error) throw error;
 
-      const quizLink = `${window.location.origin}/quiz/${data.id}`;
+      const testLink = `${window.location.origin}/test/${data.id}`;
       
       await fetch('/api/notify-students', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          quizTitle: quizTitle || "Untitled Assessment",
-          quizLink: quizLink
+          testTitle: testTitle || "Untitled Test Assessment",
+          testLink: testLink
         })
       });
 
-      alert("Assessment Published and Students Notified Successfully!");
+      alert("Test Assessment Published and Students Notified Successfully!");
       setQuestions([]);
-      setQuizTitle("");
+      setTestTitle("");
       setAiText("");
       setSelectedFile(null);
 
     } catch (err) {
       console.error("Publishing error:", err);
-      alert("Failed saving quiz data profiles to cloud tracking matrix.");
+      alert("Failed saving test data profiles to cloud tracking matrix.");
     } finally {
       setIsPublishing(false);
     }
@@ -137,23 +143,22 @@ export default function QuizCreator() {
   return (
     <div className="max-w-4xl mx-auto p-8">
       <header className="flex justify-between items-center mb-10">
-        <h1 className="text-3xl font-black text-emerald-900 uppercase italic">Quiz Engine Admin</h1>
+        <h1 className="text-3xl font-black text-emerald-900 uppercase italic">Test Generation Admin</h1>
         <div className="flex bg-emerald-100 p-1 rounded-xl">
           <button onClick={() => setMode('scratch')} className={`px-4 py-2 rounded-lg text-xs font-bold ${mode === 'scratch' ? 'bg-emerald-600 text-white' : 'text-emerald-700'}`}>Manual Scratch</button>
           <button onClick={() => setMode('ai')} className={`px-4 py-2 rounded-lg text-xs font-bold ${mode === 'ai' ? 'bg-emerald-600 text-white' : 'text-emerald-700'}`}>AI Smart Import</button>
         </div>
       </header>
 
-      {/* AI Smart Import Block Dashboard Layout */}
       {mode === 'ai' && (
         <div className="mb-10 p-6 bg-lime-50 rounded-3xl border-2 border-lime-200 space-y-4">
           <h3 className="flex items-center gap-2 text-lime-800 font-bold"><Brain size={18}/> AI Material Extraction Portal</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-black uppercase text-lime-700 mb-1">Paste Lecture Text (Max 40k Chars)</label>
+              <label className="block text-xs font-black uppercase text-lime-700 mb-1">Paste Material (Max 40k Chars)</label>
               <textarea 
-                placeholder="Paste your long notes or printed textbook copy sheets here..." 
+                placeholder="Paste long topics, reading notes, or pre-made past tests here..." 
                 value={aiText}
                 onChange={(e) => setAiText(e.target.value)}
                 maxLength={40000}
@@ -174,7 +179,7 @@ export default function QuizCreator() {
                 <span className="text-xs font-bold text-slate-600 truncate max-w-full">
                   {selectedFile ? selectedFile.name : "Select or Drop PDF File Here"}
                 </span>
-                <span className="text-[10px] text-slate-400 mt-1 font-medium">PDF formats parsed temporarily in RAM memory</span>
+                <span className="text-[10px] text-slate-400 mt-1 font-medium">Parsed safely in-memory</span>
               </div>
             </div>
           </div>
@@ -185,23 +190,21 @@ export default function QuizCreator() {
             className="w-full bg-lime-600 text-white py-3 rounded-xl font-black text-xs hover:bg-lime-700 uppercase tracking-widest flex items-center justify-center gap-2"
           >
             {isGenerating ? <Loader2 size={16} className="animate-spin"/> : null}
-            {isGenerating ? "Parsing Matrix Components..." : "Generate Review Draft"}
+            {isGenerating ? "Parsing Text & Materials..." : "Generate Test Draft"}
           </button>
         </div>
       )}
 
-      {/* Global Title Configurations */}
       <div className="mb-8">
         <input 
           type="text"
-          placeholder="Enter Assessment Title (e.g., Cell Division Quiz)"
-          value={quizTitle}
-          onChange={(e) => setQuizTitle(e.target.value)}
+          placeholder="Enter Test Title (e.g., Cell Division Term Evaluation)"
+          value={testTitle}
+          onChange={(e) => setTestTitle(e.target.value)}
           className="w-full text-2xl font-black text-slate-800 border-b-2 border-slate-200 pb-3 focus:border-emerald-500 outline-none placeholder-slate-300 bg-transparent transition-colors"
         />
       </div>
 
-      {/* Dynamic Interactive Question Editor Workspace */}
       <div className="space-y-6">
         {questions.map((q, idx) => (
           <div key={idx} className="p-6 bg-white rounded-2xl border border-emerald-100 shadow-sm relative group">
@@ -219,7 +222,7 @@ export default function QuizCreator() {
             <input 
               value={q.question_text || q.questionText || ""} 
               onChange={(e) => updateQuestionText(idx, e.target.value)}
-              placeholder="Type your question here..." 
+              placeholder="Type your question content configuration here..." 
               className="w-full text-lg font-bold border-b border-emerald-50 mb-4 focus:border-emerald-500 outline-none pr-10"
             />
             
@@ -231,7 +234,7 @@ export default function QuizCreator() {
                   updated[idx].correct_answers = [e.target.value];
                   setQuestions(updated);
                 }}
-                placeholder="Enter correct word(s)" 
+                placeholder="Enter correct blank literal keyword(s)" 
                 className="w-full p-3 bg-slate-50 rounded-lg italic font-semibold text-sm border-none focus:ring-2 focus:ring-emerald-500 outline-none" 
               />
             ) : (
@@ -261,20 +264,18 @@ export default function QuizCreator() {
           </div>
         ))}
         
-        {/* Manual control appending blocks */}
         <div className="flex gap-4">
           <button onClick={() => addQuestion('MCQ')} className="flex-1 border-2 border-dashed border-emerald-200 p-4 rounded-2xl text-emerald-600 hover:bg-emerald-50 flex flex-col items-center gap-2 transition-all">
             <Plus size={20} /> <span className="text-[10px] font-black uppercase">Add MCQ</span>
           </button>
           <button onClick={() => addQuestion('MSQ')} className="flex-1 border-2 border-dashed border-emerald-200 p-4 rounded-2xl text-emerald-600 hover:bg-emerald-50 flex flex-col items-center gap-2 transition-all">
-            <Plus size={20} /> <span className="text-[10px] font-black uppercase">Add MSQ (Multi-Select)</span>
+            <Plus size={20} /> <span className="text-[10px] font-black uppercase">Add MSQ</span>
           </button>
           <button onClick={() => addQuestion('FITB')} className="flex-1 border-2 border-dashed border-emerald-200 p-4 rounded-2xl text-emerald-600 hover:bg-emerald-50 flex flex-col items-center gap-2 transition-all">
             <FileText size={20} /> <span className="text-[10px] font-black uppercase">Add Fill-In</span>
           </button>
         </div>
 
-        {/* Action Controller Submission Block */}
         {questions.length > 0 && (
           <div className="pt-8 border-t border-slate-200 mt-8">
             <button 
@@ -284,7 +285,7 @@ export default function QuizCreator() {
             >
               {isPublishing ? <Loader2 size={20} className="animate-spin" /> : <Send size={20} />}
               <span className="font-black uppercase tracking-widest text-sm">
-                {isPublishing ? "Saving & Syncing Dashboard Records..." : "Publish & Broadcast Test"}
+                {isPublishing ? "Syncing Test Documents..." : "Publish & Broadcast Test"}
               </span>
             </button>
           </div>
