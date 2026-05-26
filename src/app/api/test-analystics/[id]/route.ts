@@ -3,12 +3,14 @@ import { supabase } from '@/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
+// FIXED: Defined the context parameter matching Next.js's strict asynchronous Promise type contract
 export async function GET(
   req: NextRequest, 
-  { params }: { params: { id: string } } // Aligned standard Next.js parameters matching testing slugs
+  context: { params: Promise<{ id: string }> } 
 ) {
   try {
-    const testId = params.id;
+    // FIXED: Explicitly await the params Promise wrapper to extract the string id safely
+    const { id: testId } = await context.params;
 
     if (!testId) {
       return NextResponse.json({ error: "Missing required Test ID identifier parameter." }, { status: 400 });
@@ -16,7 +18,7 @@ export async function GET(
 
     // 1. Fetch overall test info from the persistence ledger
     const { data: test, error: testError } = await supabase
-      .from('quizzes') // Kept database schema uniform pointing to 'quizzes'
+      .from('quizzes') 
       .select('title, questions')
       .eq('id', testId)
       .single();
