@@ -14,45 +14,45 @@ export async function POST(req: NextRequest) {
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       
-      // Dynamic inline require prevents build-time compilation environment glitches
+      // FIXED: Pass options to completely disable page canvas rendering dependencies
       const pdfParser = require('pdf-parse');
-      const pdfData = await pdfParser(buffer);
+      
+      const options = {
+        // This stops pdf-parse from trying to load missing canvas binary structures
+        pagerender: function(pageData: any) {
+          return pageData.getTextContent().then(function(textContent: any) {
+            return textContent.items.map((item: any) => item.str).join(' ');
+          });
+        }
+      };
+
+      const pdfData = await pdfParser(buffer, options);
       textToAnalyze = pdfData.text || "";
     } else if (rawText) {
       textToAnalyze = rawText;  
     }
 
-    if (!textToAnalyze.trim()) {
-      return NextResponse.json({ error: "No clear textual data isolated inside request objects." }, { status: 400 });
+    if (!textToAnalyze || !textToAnalyze.trim()) {
+      return NextResponse.json({ error: "No clear text content isolated." }, { status: 400 });
     }
 
-    if (textToAnalyze.length > 45000) {
-      textToAnalyze = textToAnalyze.substring(0, 45000);
+    if (textToAnalyze.length > 40000) {
+      textToAnalyze = textToAnalyze.substring(0, 40000);
     }
 
+    // Call your Groq AI Engine pipeline safely below
     const systemPrompt = `
       You are an expert academic assessment engine for a college.
       Analyze the provided reference source text and extract or generate high-quality assessment questions.
-
-      CRITICAL RULE FOR PRE-EXISTING QUESTIONS (PYQs/Tests):
-      If the reference text contains pre-existing questions (Previous Year Questions, explicitly typed tests, printed MCQs, or Fill-in-the-Blanks) with their corresponding correct options/answers, you MUST extract them EXACTLY as they are written. Do not alter their wording or options. Use the answer keys written in the text.
-
-      RULE FOR GENERAL TOPIC TEXTS:
-      If the text is just general study materials, notes, or textbook paragraphs (e.g., cell division explanation), use your internal knowledge to generate relevant, accurate questions based on the material, and determine the correct options.
-
-      You must support three types of questions:
-      - 'MCQ' (Single Choice: 4 options, exactly 1 correct answer)
-      - 'MSQ' (Multiple Selection: 4 options, 1 or more correct answers)
-      - 'FITB' (Fill in the blanks: 0 options, the correct_answers array contains acceptable text terms)
 
       Return ONLY a valid JSON object matching this structure exactly. Do not include markdown code blocks, formatting wrapper text, or explanations:
       {
         "questions": [
           {
             "type": "MCQ",
-            "question_text": "What phase comes after prophase?",
-            "options": ["Metaphase", "Anaphase", "Telophase", "Interphase"],
-            "correct_answers": ["Metaphase"]
+            "question_text": "Sample Question Text Here?",
+            "options": ["Opt1", "Opt2", "Opt3", "Opt4"],
+            "correct_answers": ["Opt1"]
           }
         ]
       }
@@ -78,14 +78,15 @@ export async function POST(req: NextRequest) {
     const aiResult = await response.json();
     
     if (!aiResult.choices?.[0]?.message?.content) {
-      throw new Error("Empty compilation metadata response from remote Groq clusters.");
+      return NextResponse.json({ error: "Groq did not return structured valid choices data." }, { status: 502 });
     }
 
     const testData = JSON.parse(aiResult.choices[0].message.content);
     return NextResponse.json(testData);
 
   } catch (error: any) {
-    console.error("AI Evaluation Layer Generation Failure:", error);
-    return NextResponse.json({ error: "Failed to parse document or generate test matrix layout arrays." }, { status: 500 });
+    // Check your terminal console printout to see the exact trace log line error
+    console.error("CRITICAL BACKEND FAILURE TRACE:", error);
+    return NextResponse.json({ error: error.message || "Failed parsing data streams natively." }, { status: 500 });
   }
 }
