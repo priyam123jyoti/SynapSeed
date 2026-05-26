@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-// Use Node's native require syntax to bypass the missing ESM default export warnings
-const pdfParser = require('pdf-parse');
 
 export const dynamic = 'force-dynamic';
 
@@ -17,7 +15,8 @@ export async function POST(req: NextRequest) {
       const arrayBuffer = await file.arrayBuffer();
       const buffer = Buffer.from(arrayBuffer);
       
-      // FIXED: pdf-parse is a function wrapper. It executes directly on the buffer.
+      // FIXED: Dynamic require inside the execution block stops Next.js build errors
+      const pdfParser = require('pdf-parse');
       const pdfData = await pdfParser(buffer);
       textToAnalyze = pdfData.text || "";
     } else if (rawText) {
@@ -28,12 +27,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No text contents extracted." }, { status: 400 });
     }
 
-    // Enforce safe character ceiling limits
     if (textToAnalyze.length > 45000) {
       textToAnalyze = textToAnalyze.substring(0, 45000);
     }
 
-    // 2. Call the Groq AI Engine with structured compilation instructions
+    // 2. Call the Groq AI Engine
     const systemPrompt = `
       You are an expert academic assessment engine for a college.
       Analyze the provided reference source text and extract or generate high-quality assessment questions.
@@ -74,8 +72,8 @@ export async function POST(req: NextRequest) {
           { role: "system", content: systemPrompt },
           { role: "user", content: `Reference Source Material:\n\n${textToAnalyze}` }
         ],
-        temperature: 0.2, // Low temperature ensures strict data compliance
-        response_format: { type: "json_object" } // Enforces pure JSON payload output
+        temperature: 0.2,
+        response_format: { type: "json_object" }
       }),
     });
 
