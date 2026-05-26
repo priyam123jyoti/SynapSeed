@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 // Use Node's native require syntax to bypass the missing ESM default export warnings
 const pdfParser = require('pdf-parse');
 
-export const runtime = 'nodejs'; // Required for pdf-parse parsing native buffers
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
