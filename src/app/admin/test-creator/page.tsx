@@ -1,12 +1,26 @@
 "use client";
+
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { Brain, Plus, FileText, Send, UploadCloud, Loader2, Trash2 } from "lucide-react";
 
+// 1. Explicitly layout type rules for standard question fields
+type QuestionType = "MCQ" | "FITB" | "MSQ";
+
+interface Question {
+  id: string;
+  type: QuestionType;
+  question_text: string;
+  questionText: string; // Synced camelCase vector
+  options: string[];
+  correct_answers: string[];
+  correctAnswers: string[]; // Synced camelCase vector
+}
+
 export default function TestCreator() {
-  const [mode, setMode] = useState<'scratch' | 'ai'>('scratch');
+  const [mode, setMode] = useState<"scratch" | "ai">("scratch");
   const [testTitle, setTestTitle] = useState("");
-  const [questions, setQuestions] = useState<any[]>([]);
+  const [questions, setQuestions] = useState<Question[]>([]);
   
   // AI Form States
   const [aiText, setAiText] = useState("");
@@ -14,13 +28,24 @@ export default function TestCreator() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
 
-  const addQuestion = (type: 'MCQ' | 'FITB' | 'MSQ') => {
-    setQuestions([...questions, { 
-      type, 
-      question_text: "", 
-      options: type === 'FITB' ? [] : ["", "", "", ""], 
-      correct_answers: [] 
-    }]);
+  const addQuestion = (type: QuestionType) => {
+    // Fallback safe client-side UUID string generator
+    const uniqueId = typeof crypto !== "undefined" && crypto.randomUUID 
+      ? crypto.randomUUID() 
+      : Math.random().toString(36).substring(2, 11);
+
+    setQuestions([
+      ...questions, 
+      { 
+        id: uniqueId,
+        type, 
+        question_text: "", 
+        questionText: "", 
+        options: type === "FITB" ? [] : ["", "", "", ""], 
+        correct_answers: [],
+        correctAnswers: []
+      }
+    ]);
   };
 
   const removeQuestion = (index: number) => {
@@ -30,6 +55,7 @@ export default function TestCreator() {
   const updateQuestionText = (index: number, text: string) => {
     const updated = [...questions];
     updated[index].question_text = text;
+    updated[index].questionText = text; // Dual key sync mutation
     setQuestions(updated);
   };
 
@@ -39,19 +65,22 @@ export default function TestCreator() {
     setQuestions(updated);
   };
 
-  const toggleCorrectAnswer = (qIdx: number, optionValue: string, type: string) => {
+  const toggleCorrectAnswer = (qIdx: number, optionValue: string, type: QuestionType) => {
     const updated = [...questions];
     let currentAnswers = updated[qIdx].correct_answers || [];
 
-    if (type === 'MCQ') {
-      updated[qIdx].correct_answers = [optionValue];
+    if (type === "MCQ") {
+      currentAnswers = [optionValue];
     } else {
       if (currentAnswers.includes(optionValue)) {
-        updated[qIdx].correct_answers = currentAnswers.filter((a: string) => a !== optionValue);
+        currentAnswers = currentAnswers.filter((a) => a !== optionValue);
       } else {
-        updated[qIdx].correct_answers = [...currentAnswers, optionValue];
+        currentAnswers = [...currentAnswers, optionValue];
       }
     }
+
+    updated[qIdx].correct_answers = currentAnswers;
+    updated[qIdx].correctAnswers = currentAnswers; // Dual key sync mutation
     setQuestions(updated);
   };
 
@@ -63,12 +92,12 @@ export default function TestCreator() {
 
     setIsGenerating(true);
     const formData = new FormData();
-    if (selectedFile) formData.append('file', selectedFile);
-    if (aiText) formData.append('text', aiText);
+    if (selectedFile) formData.append("file", selectedFile);
+    if (aiText) formData.append("text", aiText);
 
     try {
-      const res = await fetch('/api/generate-test', {
-        method: 'POST',
+      const res = await fetch("/api/generate-test", {
+        method: "POST",
         body: formData
       });
       
@@ -86,9 +115,10 @@ export default function TestCreator() {
       } else {
         throw new Error(data.error || "Malformed response payload configuration.");
       }
-    } catch (err: any) {
+    } catch (err) {
       console.error(err);
-      alert("AI failed to cleanly convert text array elements: " + err.message);
+      const msg = err instanceof Error ? err.message : "Unknown syntax conversion exception";
+      alert("AI failed to cleanly convert text array elements: " + msg);
     } finally {
       setIsGenerating(false);
     }
@@ -104,22 +134,22 @@ export default function TestCreator() {
 
     try {
       const { data, error } = await supabase
-        .from('quizzes') // keeping the backend database table target mapping uniform
+        .from("quizzes") 
         .insert([{ 
           title: testTitle || "Untitled Academic Test Assessment", 
           description: "Departmental Evaluation Node Registry",
           questions: questions 
         }])
-        .select('id')
+        .select("id")
         .single();
 
       if (error) throw error;
 
       const testLink = `${window.location.origin}/test/${data.id}`;
       
-      await fetch('/api/notify-students', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch("/api/notify-students", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           testTitle: testTitle || "Untitled Test Assessment",
           testLink: testLink
@@ -145,12 +175,12 @@ export default function TestCreator() {
       <header className="flex justify-between items-center mb-10">
         <h1 className="text-3xl font-black text-emerald-900 uppercase italic">Test Generation Admin</h1>
         <div className="flex bg-emerald-100 p-1 rounded-xl">
-          <button onClick={() => setMode('scratch')} className={`px-4 py-2 rounded-lg text-xs font-bold ${mode === 'scratch' ? 'bg-emerald-600 text-white' : 'text-emerald-700'}`}>Manual Scratch</button>
-          <button onClick={() => setMode('ai')} className={`px-4 py-2 rounded-lg text-xs font-bold ${mode === 'ai' ? 'bg-emerald-600 text-white' : 'text-emerald-700'}`}>AI Smart Import</button>
+          <button onClick={() => setMode("scratch")} className={`px-4 py-2 rounded-lg text-xs font-bold ${mode === "scratch" ? "bg-emerald-600 text-white" : "text-emerald-700"}`}>Manual Scratch</button>
+          <button onClick={() => setMode("ai")} className={`px-4 py-2 rounded-lg text-xs font-bold ${mode === "ai" ? "bg-emerald-600 text-white" : "text-emerald-700"}`}>AI Smart Import</button>
         </div>
       </header>
 
-      {mode === 'ai' && (
+      {mode === "ai" && (
         <div className="mb-10 p-6 bg-lime-50 rounded-3xl border-2 border-lime-200 space-y-4">
           <h3 className="flex items-center gap-2 text-lime-800 font-bold"><Brain size={18}/> AI Material Extraction Portal</h3>
           
@@ -207,7 +237,7 @@ export default function TestCreator() {
 
       <div className="space-y-6">
         {questions.map((q, idx) => (
-          <div key={idx} className="p-6 bg-white rounded-2xl border border-emerald-100 shadow-sm relative group">
+          <div key={q.id || idx} className="p-6 bg-white rounded-2xl border border-emerald-100 shadow-sm relative group">
             <button 
               onClick={() => removeQuestion(idx)}
               className="absolute top-6 right-6 text-slate-300 hover:text-rose-500 transition-colors"
@@ -226,12 +256,14 @@ export default function TestCreator() {
               className="w-full text-lg font-bold border-b border-emerald-50 mb-4 focus:border-emerald-500 outline-none pr-10"
             />
             
-            {q.type === 'FITB' ? (
+            {q.type === "FITB" ? (
               <input 
                 value={q.correct_answers?.[0] || ""}
                 onChange={(e) => {
                   const updated = [...questions];
-                  updated[idx].correct_answers = [e.target.value];
+                  const val = e.target.value;
+                  updated[idx].correct_answers = [val];
+                  updated[idx].correctAnswers = [val]; // Mirror key updates safely
                   setQuestions(updated);
                 }}
                 placeholder="Enter correct blank literal keyword(s)" 
@@ -239,12 +271,12 @@ export default function TestCreator() {
               />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {(q.options || []).map((opt: any, oIdx: number) => {
+                {(q.options || []).map((opt: string, oIdx: number) => {
                   const isChecked = q.correct_answers?.includes(opt) && opt !== "";
                   return (
                     <div key={oIdx} className="flex items-center gap-3 p-2 bg-slate-50/50 rounded-xl border border-slate-100">
                       <input 
-                        type={q.type === 'MCQ' ? "radio" : "checkbox"} 
+                        type={q.type === "MCQ" ? "radio" : "checkbox"} 
                         name={`correct-ans-${idx}`}
                         checked={isChecked}
                         onChange={() => toggleCorrectAnswer(idx, opt, q.type)}
@@ -265,13 +297,13 @@ export default function TestCreator() {
         ))}
         
         <div className="flex gap-4">
-          <button onClick={() => addQuestion('MCQ')} className="flex-1 border-2 border-dashed border-emerald-200 p-4 rounded-2xl text-emerald-600 hover:bg-emerald-50 flex flex-col items-center gap-2 transition-all">
+          <button onClick={() => addQuestion("MCQ")} className="flex-1 border-2 border-dashed border-emerald-200 p-4 rounded-2xl text-emerald-600 hover:bg-emerald-50 flex flex-col items-center gap-2 transition-all">
             <Plus size={20} /> <span className="text-[10px] font-black uppercase">Add MCQ</span>
           </button>
-          <button onClick={() => addQuestion('MSQ')} className="flex-1 border-2 border-dashed border-emerald-200 p-4 rounded-2xl text-emerald-600 hover:bg-emerald-50 flex flex-col items-center gap-2 transition-all">
+          <button onClick={() => addQuestion("MSQ")} className="flex-1 border-2 border-dashed border-emerald-200 p-4 rounded-2xl text-emerald-600 hover:bg-emerald-50 flex flex-col items-center gap-2 transition-all">
             <Plus size={20} /> <span className="text-[10px] font-black uppercase">Add MSQ</span>
           </button>
-          <button onClick={() => addQuestion('FITB')} className="flex-1 border-2 border-dashed border-emerald-200 p-4 rounded-2xl text-emerald-600 hover:bg-emerald-50 flex flex-col items-center gap-2 transition-all">
+          <button onClick={() => addQuestion("FITB")} className="flex-1 border-2 border-dashed border-emerald-200 p-4 rounded-2xl text-emerald-600 hover:bg-emerald-50 flex flex-col items-center gap-2 transition-all">
             <FileText size={20} /> <span className="text-[10px] font-black uppercase">Add Fill-In</span>
           </button>
         </div>
