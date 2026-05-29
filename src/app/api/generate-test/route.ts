@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export const dynamic = 'force-dynamic';
 
+// Explicit interface matching the internal structure of Mozilla PDFJS text items
+interface PDFTextItem {
+  str: string;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
@@ -17,25 +22,29 @@ export async function POST(req: NextRequest) {
         const buffer = new Uint8Array(arrayBuffer);
         
         // Load legacy headless configuration explicitly
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
         const pdfjs = require('pdfjs-dist/legacy/build/pdf.js');
         const loadingTask = pdfjs.getDocument({ data: buffer });
         const pdfDocument = await loadingTask.promise;
         
-        let extractedPages: string[] = [];
+        const extractedPages: string[] = [];
         const pagesToRead = Math.min(pdfDocument.numPages, 8);
         
         for (let i = 1; i <= pagesToRead; i++) {
           const page = await pdfDocument.getPage(i);
           const textContent = await page.getTextContent();
+          
+          // FIXED: Replaced 'any' type definition with explicit shape contract
           const pageText = textContent.items
-            .map((item: any) => item.str)
+            .map((item: unknown) => (item as PDFTextItem).str)
             .join(' ');
           extractedPages.push(pageText);
         }
         textToAnalyze = extractedPages.join(" ");
-      } catch (pdfErr: any) {
+      } catch (pdfErr) {
         console.error("PDF Parsing Stream Exception:", pdfErr);
-        return NextResponse.json({ error: `Failed reading target PDF document: ${pdfErr.message}` }, { status: 500 });
+        const errMsg = pdfErr instanceof Error ? pdfErr.message : "Unknown file read binary fault";
+        return NextResponse.json({ error: `Failed reading target PDF document: ${errMsg}` }, { status: 500 });
       }
     } else if (rawText) {
       textToAnalyze = rawText;  
@@ -57,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     // 2. Instruct the engine to generate both snake_case and camelCase parameters to fix frontend mismatches
     const systemPrompt = `
-      You are an expert academic assessment engine for a college.
+      You are an expert academic assessment engine for a college. Output your entire response as a valid JSON object.
       Analyze the provided reference source text and extract high-quality assessment questions.
 
       You must support three types of questions:
@@ -84,6 +93,7 @@ export async function POST(req: NextRequest) {
       }
     `;
 
+    // FIXED: Shifted generation pipeline payload over to active 'llama-3.3-70b-versatile' architecture
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -91,7 +101,7 @@ export async function POST(req: NextRequest) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "llama3-70b-8192",
+        model: "llama-3.3-70b-versatile",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: `Reference Source Material:\n\n${textToAnalyze}` }
@@ -130,8 +140,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "AI response structure failed schema compilation checks." }, { status: 500 });
     }
 
-  } catch (error: any) {
+  } catch (error) {
     console.error("CRITICAL BACKEND FAILURE TRACE:", error);
-    return NextResponse.json({ error: error.message || "Internal Engine parsing failure trace." }, { status: 500 });
+    const catchMsg = error instanceof Error ? error.message : "Internal Engine parsing failure trace.";
+    return NextResponse.json({ error: catchMsg }, { status: 500 });
   }
 }

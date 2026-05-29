@@ -112,7 +112,7 @@ export default function OnboardingWizard() {
         reader.onerror = e => rej(e);
       });
 
-      let base64Avatar = avatarFile ? await getCompressedBase64(avatarFile) : null;
+      const base64Avatar = avatarFile ? await getCompressedBase64(avatarFile) : null;
       
       // MAPPING FIX: Preparing the exact keys for the database
       const payload = JSON.stringify({ 
