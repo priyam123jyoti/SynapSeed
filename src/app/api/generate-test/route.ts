@@ -1,13 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// 1. Import the module normally
-import * as pdfModule from 'pdf-parse';
-
-type PdfParseFunction = (data: Buffer) => Promise<{ text: string }>;
-
-// 2. Cast through 'unknown' to avoid explicit 'any', then resolve the callable function
-const pdf = ((pdfModule as unknown as { default?: PdfParseFunction }).default ||
-  (pdfModule as unknown as PdfParseFunction)) as PdfParseFunction;
+// POLYFILL: Prevent Vercel/Next.js from crashing when compiling legacy PDF browser APIs
+if (typeof global !== "undefined" && typeof (global as any).DOMMatrix === "undefined") {
+  (global as any).DOMMatrix = class DOMMatrix {};
+}
 
 export const dynamic = 'force-dynamic';
 
@@ -19,12 +15,16 @@ export async function POST(req: NextRequest) {
 
     let textToAnalyze = "";
 
-    // 1. Stable, serverless-friendly PDF text extraction
+    // 1. Process PDF ONLY if a file is provided (saves memory on text-only requests)
     if (file) {
       try {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
         
+        // DYNAMIC IMPORT: We load the library here so it doesn't crash the entire API route on boot
+        const pdfModule = await import('pdf-parse');
+        const pdf = ((pdfModule as any).default || pdfModule);
+
         const data = await pdf(buffer);
         textToAnalyze = data.text;
       } catch (pdfErr) {
