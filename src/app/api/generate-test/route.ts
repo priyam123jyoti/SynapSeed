@@ -1,10 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// POLYFILL: Prevent Vercel/Next.js from crashing when compiling legacy PDF browser APIs
-if (typeof global !== "undefined" && typeof (global as any).DOMMatrix === "undefined") {
-  (global as any).DOMMatrix = class DOMMatrix {};
-}
-
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
@@ -15,31 +10,35 @@ export async function POST(req: NextRequest) {
 
     let textToAnalyze = "";
 
-    // 1. Process PDF ONLY if a file is provided
+    // 1. Stable, serverless-friendly PDF text extraction using pdfjs-dist
     if (file) {
       try {
         const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        const data = new Uint8Array(arrayBuffer);
         
-        // DYNAMIC IMPORT WITH STRICT TS-BYPASS
-        // Cast to 'any' stops TypeScript from checking for missing .default property
-        const rawModule = (await import('pdf-parse')) as any;
+        // Dynamically import the PDF.js library
+        const pdfjs = await import('pdfjs-dist/build/pdf.mjs');
         
-        // Safely resolve the function depending on how the bundler packaged it
-        let pdfFunc = rawModule;
-        if (typeof pdfFunc !== 'function') pdfFunc = rawModule.default;
-        if (typeof pdfFunc !== 'function') pdfFunc = rawModule.default?.default;
-        
-        if (typeof pdfFunc !== 'function') {
-            throw new Error(`Bundler export mangled. Expected function, got ${typeof pdfFunc}`);
-        }
+        // Configure the worker to prevent sandbox errors in Vercel
+        pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
 
-        const data = await pdfFunc(buffer);
-        textToAnalyze = data.text;
+        const loadingTask = pdfjs.getDocument({ data });
+        const doc = await loadingTask.promise;
+        
+        let fullText = "";
+        for (let i = 1; i <= doc.numPages; i++) {
+          const page = await doc.getPage(i);
+          const content = await page.getTextContent();
+          // Extract text items safely
+          const strings = content.items.map((item: any) => item.str);
+          fullText += strings.join(" ") + "\n";
+        }
+        
+        textToAnalyze = fullText;
       } catch (pdfErr) {
         console.error("PDF Parsing Stream Exception:", pdfErr);
-        const errMsg = pdfErr instanceof Error ? pdfErr.message : "Unknown file read binary fault";
-        return NextResponse.json({ error: `Failed reading target PDF document: ${errMsg}` }, { status: 500 });
+        const errMsg = pdfErr instanceof Error ? pdfErr.message : "PDF extraction failed";
+        return NextResponse.json({ error: `Failed reading target PDF: ${errMsg}` }, { status: 500 });
       }
     } else if (rawText) {
       textToAnalyze = rawText;  
@@ -49,47 +48,40 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No clear text content isolated from form vectors." }, { status: 400 });
     }
 
-    // Protect token windows by clamping text bounds
     if (textToAnalyze.length > 40000) {
       textToAnalyze = textToAnalyze.substring(0, 40000);
     }
 
-    // Environment variable validation
     const apiKey = process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY;
     if (!apiKey) {
-      return NextResponse.json({ error: "Groq credential validation key is missing from environment vectors." }, { status: 500 });
+      return NextResponse.json({ error: "Groq credential validation key is missing." }, { status: 500 });
     }
 
-    // 2. Instruct the engine to generate both snake_case and camelCase parameters
     const systemPrompt = `
       You are an expert academic assessment engine for a college. Output your entire response as a valid JSON object.
       Analyze the provided reference source text and extract high-quality assessment questions.
 
-      You must support three types of questions:
-      - 'MCQ' (Single Choice: 4 options, exactly 1 correct answer)
-      - 'MSQ' (Multiple Selection: 4 options, 1 or more correct answers)
-      - 'FITB' (Fill in the blanks: 0 options, correct answers contain plain text terms)
-
-      CRITICAL FORMATTING INSTRUCTION:
-      To avoid frontend component variable crashes, each question object in the array MUST contain BOTH snake_case and camelCase parameters containing identical values.
+      You must support: 'MCQ', 'MSQ', and 'FITB'.
       
-      Return ONLY a valid JSON matching this schema wrapper structure:
+      CRITICAL FORMATTING INSTRUCTION:
+      Each question object MUST contain BOTH snake_case and camelCase parameters containing identical values.
+      
+      Return ONLY a valid JSON:
       {
         "questions": [
           {
-            "id": "generate-a-unique-string-uuid-here",
+            "id": "unique-uuid",
             "type": "MCQ",
-            "question_text": "Question statement text string?",
-            "questionText": "Question statement text string?",
-            "options": ["Option A", "Option B", "Option C", "Option D"],
-            "correct_answers": ["Option A"],
-            "correctAnswers": ["Option A"]
+            "question_text": "...",
+            "questionText": "...",
+            "options": ["...", "...", "...", "..."],
+            "correct_answers": ["..."],
+            "correctAnswers": ["..."]
           }
         ]
       }
     `;
 
-    // 3. Connect to current production 'llama-3.3-70b-versatile' architecture
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -109,36 +101,27 @@ export async function POST(req: NextRequest) {
 
     if (!response.ok) {
       const groqErrorMsg = await response.text();
-      console.error("Groq Gateway Rejection Channel Error:", groqErrorMsg);
-      return NextResponse.json({ error: `Groq gateway rejected payload context: status ${response.status}` }, { status: 502 });
+      return NextResponse.json({ error: `Groq gateway rejected payload: ${response.status}` }, { status: 502 });
     }
 
     const aiResult = await response.json();
     let rawContent = aiResult.choices?.[0]?.message?.content;
     
     if (!rawContent) {
-      return NextResponse.json({ error: "Groq returned a malformed empty messaging node." }, { status: 502 });
+      return NextResponse.json({ error: "Groq returned an empty response." }, { status: 502 });
     }
 
-    // Clean markdown wrappers safely if leaked through
-    rawContent = rawContent.trim();
-    if (rawContent.startsWith("```json")) {
-      rawContent = rawContent.replace(/^```json/, "").replace(/```$/, "").trim();
-    } else if (rawContent.startsWith("```")) {
-      rawContent = rawContent.replace(/^```/, "").replace(/```$/, "").trim();
-    }
+    rawContent = rawContent.replace(/^```json/, "").replace(/```$/, "").trim();
 
     try {
       const testData = JSON.parse(rawContent);
       return NextResponse.json(testData);
     } catch (parseErr) {
-      console.error("Scrub Parsing Crash Tracker. Content raw:", rawContent);
-      return NextResponse.json({ error: "AI response structure failed schema compilation checks." }, { status: 500 });
+      return NextResponse.json({ error: "AI response structure failed schema compilation." }, { status: 500 });
     }
 
   } catch (error) {
-    console.error("CRITICAL BACKEND FAILURE TRACE:", error);
-    const catchMsg = error instanceof Error ? error.message : "Internal Engine parsing failure trace.";
-    return NextResponse.json({ error: catchMsg }, { status: 500 });
+    console.error("CRITICAL BACKEND FAILURE:", error);
+    return NextResponse.json({ error: "Internal Engine parsing failure." }, { status: 500 });
   }
 }
