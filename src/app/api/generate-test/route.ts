@@ -1,11 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export const dynamic = 'force-dynamic';
+// 1. Import the module normally
+import * as pdfModule from 'pdf-parse';
 
-// Explicit interface matching the internal structure of Mozilla PDFJS text items
-interface PDFTextItem {
-  str: string;
-}
+type PdfParseFunction = (data: Buffer) => Promise<{ text: string }>;
+
+// 2. Cast through 'unknown' to avoid explicit 'any', then resolve the callable function
+const pdf = ((pdfModule as unknown as { default?: PdfParseFunction }).default ||
+  (pdfModule as unknown as PdfParseFunction)) as PdfParseFunction;
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,32 +19,14 @@ export async function POST(req: NextRequest) {
 
     let textToAnalyze = "";
 
-    // 1. Process PDF using the official Mozilla PDFJS engine safely in Node.js
+    // 1. Stable, serverless-friendly PDF text extraction
     if (file) {
       try {
         const arrayBuffer = await file.arrayBuffer();
-        const buffer = new Uint8Array(arrayBuffer);
+        const buffer = Buffer.from(arrayBuffer);
         
-        // Load legacy headless configuration explicitly
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const pdfjs = require('pdfjs-dist/legacy/build/pdf.js');
-        const loadingTask = pdfjs.getDocument({ data: buffer });
-        const pdfDocument = await loadingTask.promise;
-        
-        const extractedPages: string[] = [];
-        const pagesToRead = Math.min(pdfDocument.numPages, 8);
-        
-        for (let i = 1; i <= pagesToRead; i++) {
-          const page = await pdfDocument.getPage(i);
-          const textContent = await page.getTextContent();
-          
-          // FIXED: Replaced 'any' type definition with explicit shape contract
-          const pageText = textContent.items
-            .map((item: unknown) => (item as PDFTextItem).str)
-            .join(' ');
-          extractedPages.push(pageText);
-        }
-        textToAnalyze = extractedPages.join(" ");
+        const data = await pdf(buffer);
+        textToAnalyze = data.text;
       } catch (pdfErr) {
         console.error("PDF Parsing Stream Exception:", pdfErr);
         const errMsg = pdfErr instanceof Error ? pdfErr.message : "Unknown file read binary fault";
@@ -54,11 +40,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "No clear text content isolated from form vectors." }, { status: 400 });
     }
 
+    // Protect token windows by clamping text bounds
     if (textToAnalyze.length > 40000) {
       textToAnalyze = textToAnalyze.substring(0, 40000);
     }
 
-    // RESOLVE API KEY: Fall back safely between environment variable conventions
+    // Environment variable validation
     const apiKey = process.env.GROQ_API_KEY || process.env.NEXT_PUBLIC_GROQ_API_KEY;
     if (!apiKey) {
       return NextResponse.json({ error: "Groq credential validation key is missing from environment vectors." }, { status: 500 });
@@ -93,7 +80,7 @@ export async function POST(req: NextRequest) {
       }
     `;
 
-    // FIXED: Shifted generation pipeline payload over to active 'llama-3.3-70b-versatile' architecture
+    // 3. Connect to current production 'llama-3.3-70b-versatile' architecture
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -124,7 +111,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Groq returned a malformed empty messaging node." }, { status: 502 });
     }
 
-    // Safe string scrub sequence to extract cleaner JSON if any markdown leaks through
+    // Clean markdown wrappers safely if leaked through
     rawContent = rawContent.trim();
     if (rawContent.startsWith("```json")) {
       rawContent = rawContent.replace(/^```json/, "").replace(/```$/, "").trim();
