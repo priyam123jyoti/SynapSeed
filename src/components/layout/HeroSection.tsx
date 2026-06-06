@@ -53,10 +53,10 @@ export default function BotanyHero() {
           <nav className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-md rounded-2xl overflow-hidden shadow-2xl shadow-emerald-900/10">
              <Link 
               href="/admin/test-creator"  
-              aria-label="Navigate to PYQ paper page"
+              aria-label="Navigate to test time page"
               className="group flex items-center justify-between bg-[#ef7b3f] text-white px-8 py-5 transition-all hover:bg-[#d96a2f]"
             >
-              <span className="font-black text-xs uppercase tracking-[0.15em]">PYQ paper</span>
+              <span className="font-black text-xs uppercase tracking-[0.15em]">Test Time</span>
               <span className="text-xl transform group-hover:translate-x-1 transition-transform" aria-hidden="true">↗</span>
             </Link> 
             

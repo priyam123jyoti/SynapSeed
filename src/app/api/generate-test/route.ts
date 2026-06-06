@@ -15,17 +15,25 @@ export async function POST(req: NextRequest) {
 
     let textToAnalyze = "";
 
-    // 1. Process PDF ONLY if a file is provided (saves memory on text-only requests)
+    // 1. Process PDF ONLY if a file is provided
     if (file) {
       try {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
         
-        // DYNAMIC IMPORT: We load the library here so it doesn't crash the entire API route on boot
-        const pdfModule = await import('pdf-parse');
-        const pdf = ((pdfModule as any).default || pdfModule);
+        // DYNAMIC IMPORT WITH SMART RESOLUTION
+        const rawModule = await import('pdf-parse');
+        
+        // Next.js bundlers sometimes deeply nest default exports. This digs through them securely.
+        let pdfFunc: any = rawModule;
+        if (typeof pdfFunc !== 'function') pdfFunc = rawModule.default;
+        if (typeof pdfFunc !== 'function') pdfFunc = (rawModule as any).default?.default;
+        
+        if (typeof pdfFunc !== 'function') {
+            throw new Error(`Bundler export mangled. Expected function, got ${typeof pdfFunc}`);
+        }
 
-        const data = await pdf(buffer);
+        const data = await pdfFunc(buffer);
         textToAnalyze = data.text;
       } catch (pdfErr) {
         console.error("PDF Parsing Stream Exception:", pdfErr);
@@ -51,7 +59,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Groq credential validation key is missing from environment vectors." }, { status: 500 });
     }
 
-    // 2. Instruct the engine to generate both snake_case and camelCase parameters to fix frontend mismatches
+    // 2. Instruct the engine to generate both snake_case and camelCase parameters
     const systemPrompt = `
       You are an expert academic assessment engine for a college. Output your entire response as a valid JSON object.
       Analyze the provided reference source text and extract high-quality assessment questions.
