@@ -21,13 +21,14 @@ export async function POST(req: NextRequest) {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
         
-        // DYNAMIC IMPORT WITH SMART RESOLUTION
-        const rawModule = await import('pdf-parse');
+        // DYNAMIC IMPORT WITH STRICT TS-BYPASS
+        // Cast to 'any' stops TypeScript from checking for missing .default property
+        const rawModule = (await import('pdf-parse')) as any;
         
-        // Next.js bundlers sometimes deeply nest default exports. This digs through them securely.
-        let pdfFunc: any = rawModule;
+        // Safely resolve the function depending on how the bundler packaged it
+        let pdfFunc = rawModule;
         if (typeof pdfFunc !== 'function') pdfFunc = rawModule.default;
-        if (typeof pdfFunc !== 'function') pdfFunc = (rawModule as any).default?.default;
+        if (typeof pdfFunc !== 'function') pdfFunc = rawModule.default?.default;
         
         if (typeof pdfFunc !== 'function') {
             throw new Error(`Bundler export mangled. Expected function, got ${typeof pdfFunc}`);
