@@ -1,45 +1,49 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 
+export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// FIXED: Defined the context parameter matching Next.js's strict asynchronous Promise type contract
 export async function GET(
-  req: NextRequest, 
-  context: { params: Promise<{ id: string }> } 
+  req: NextRequest,
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
-    // FIXED: Explicitly await the params Promise wrapper to extract the string id safely
     const { id: testId } = await context.params;
 
     if (!testId) {
-      return NextResponse.json({ error: "Missing required Test ID identifier parameter." }, { status: 400 });
+      return NextResponse.json({ error: "Missing required Test ID parameter." }, { status: 400 });
     }
 
-    // 1. Fetch overall test info from the persistence ledger
     const { data: test, error: testError } = await supabase
-      .from('quizzes') 
-      .select('title, questions')
+      .from('quizzes')
+      .select('title')
       .eq('id', testId)
       .single();
 
     if (testError || !test) {
-      return NextResponse.json({ error: "Target evaluation document profile not located." }, { status: 404 });
+      return NextResponse.json({ error: "Quiz not found." }, { status: 404 });
     }
 
-    // 2. Fetch all student submissions recorded for this explicit node entry
+    // Fetch questions separately from the questions table
+    const { data: questions, error: questionsError } = await supabase
+      .from('questions')
+      .select('id')
+      .eq('quiz_id', testId);
+
+    if (questionsError) throw questionsError;
+
     const { data: submissions, error: subError } = await supabase
-      .from('quiz_submissions') 
+      .from('quiz_submissions')
       .select('*')
       .eq('quiz_id', testId)
       .order('submitted_at', { ascending: false });
 
     if (subError) throw subError;
 
-    // 3. Compute metric evaluation aggregates safely
-    const totalSubmissions = submissions ? submissions.length : 0;
-    const totalQuestions = Array.isArray(test.questions) ? test.questions.length : 0;
-    
+    const totalSubmissions = submissions?.length ?? 0;
+    const totalQuestions = questions?.length ?? 0;
+
     let classAverage = 0;
     let highestScore = 0;
 
@@ -50,18 +54,21 @@ export async function GET(
     }
 
     return NextResponse.json({
-      testTitle: test.title,
+      quizTitle: test.title,  // was testTitle — frontend reads quizTitle
       totalQuestions,
       metrics: {
         totalSubmissions,
         classAverage,
-        highestScore
+        highestScore,
       },
-      submissions: submissions || []
+      submissions: submissions || [],
     });
 
   } catch (error: any) {
-    console.error("Analytics Compute Pipeline Error:", error);
-    return NextResponse.json({ error: error.message || "Failed computing performance profile matrix charts." }, { status: 500 });
+    console.error("Analytics route error:", error);
+    return NextResponse.json(
+      { error: error.message || "Failed to compute analytics." },
+      { status: 500 }
+    );
   }
 }
