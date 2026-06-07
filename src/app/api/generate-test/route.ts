@@ -16,8 +16,10 @@ export async function POST(req: NextRequest) {
         const arrayBuffer = await file.arrayBuffer();
         const buffer = Buffer.from(arrayBuffer);
 
-  // @ts-expect-error — no type declarations for internal pdf-parse lib path
-const pdf = (await import('pdf-parse/lib/pdf-parse.js')).default;
+        // Now that pdf-parse is in serverExternalPackages in next.config.ts,
+        // we import from the package root normally — no internal path needed.
+        // @ts-expect-error — pdf-parse has no ESM type declarations
+        const pdf = (await import('pdf-parse')).default;
 
         const data = await pdf(buffer);
         textToAnalyze = data.text;
