@@ -6,38 +6,16 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
+    // Server now only receives plain text — PDF is parsed in the browser.
     const rawText = formData.get('text') as string | null;
-    const file = formData.get('file') as File | null;
 
-    let textToAnalyze = "";
-
-    if (file) {
-      try {
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-
-        // Now that pdf-parse is in serverExternalPackages in next.config.ts,
-        // we import from the package root normally — no internal path needed.
-        // @ts-expect-error — pdf-parse has no ESM type declarations
-        const pdf = (await import('pdf-parse')).default;
-
-        const data = await pdf(buffer);
-        textToAnalyze = data.text;
-      } catch (pdfErr) {
-        console.error("PDF Parsing Error:", pdfErr);
-        return NextResponse.json({ error: "Failed to parse PDF file." }, { status: 500 });
-      }
-    } else if (rawText) {
-      textToAnalyze = rawText;
-    }
-
-    if (!textToAnalyze || !textToAnalyze.trim()) {
+    if (!rawText || !rawText.trim()) {
       return NextResponse.json({ error: "No content provided." }, { status: 400 });
     }
 
-    if (textToAnalyze.length > 40000) {
-      textToAnalyze = textToAnalyze.substring(0, 40000);
-    }
+    const textToAnalyze = rawText.length > 40000
+      ? rawText.substring(0, 40000)
+      : rawText;
 
     const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {

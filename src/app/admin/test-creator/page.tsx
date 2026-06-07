@@ -16,6 +16,32 @@ interface Question {
   correctAnswers: string[];
 }
 
+// Extract text from PDF entirely in the browser using pdfjs-dist.
+// No server involved — this is the reliable, production-grade approach.
+async function extractTextFromPDF(file: File): Promise<string> {
+  const arrayBuffer = await file.arrayBuffer();
+
+  // Dynamically import pdfjs-dist only in the browser
+  const pdfjs = await import('pdfjs-dist');
+
+  // Point the worker to the CDN — avoids any bundler/Vercel issues with worker files
+  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+
+  const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+
+  let fullText = "";
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items
+      .map((item: any) => ('str' in item ? item.str : ''))
+      .join(' ');
+    fullText += pageText + "\n";
+  }
+
+  return fullText.trim();
+}
+
 export default function TestCreator() {
   const [mode, setMode] = useState<"scratch" | "ai">("scratch");
   const [testTitle, setTestTitle] = useState("");
@@ -89,11 +115,29 @@ export default function TestCreator() {
     }
 
     setIsGenerating(true);
-    const formData = new FormData();
-    if (selectedFile) formData.append("file", selectedFile);
-    if (aiText) formData.append("text", aiText);
 
     try {
+      let textToSend = aiText;
+
+      // If a PDF is uploaded, parse it in the browser first
+      if (selectedFile) {
+        try {
+          textToSend = await extractTextFromPDF(selectedFile);
+          if (!textToSend.trim()) {
+            throw new Error("No text could be extracted from this PDF.");
+          }
+        } catch (pdfErr) {
+          console.error("PDF extraction error:", pdfErr);
+          alert("Could not extract text from PDF. Try pasting the text manually instead.");
+          setIsGenerating(false);
+          return;
+        }
+      }
+
+      // Send plain text to the server — no PDF involved
+      const formData = new FormData();
+      formData.append("text", textToSend);
+
       const res = await fetch("/api/generate-test", {
         method: "POST",
         body: formData,
@@ -131,25 +175,17 @@ export default function TestCreator() {
     setIsPublishing(true);
 
     try {
-      // Step 1: Insert the quiz metadata row — no 'questions' column here.
-      // FIX: Your schema has a separate 'questions' table with a quiz_id foreign key.
-      // The original code tried to insert questions as a blob into 'quizzes',
-      // which doesn't have that column. That either silently drops the data or
-      // throws a column-not-found error depending on RLS config.
       const { data: quiz, error: quizError } = await supabase
         .from("quizzes")
-        .insert([
-          {
-            title: testTitle || "Untitled Test",
-            description: "Departmental Evaluation",
-          },
-        ])
+        .insert([{
+          title: testTitle || "Untitled Test",
+          description: "Departmental Evaluation",
+        }])
         .select("id")
         .single();
 
       if (quizError || !quiz) throw quizError ?? new Error("Quiz insert failed.");
 
-      // Step 2: Insert each question into the questions table, linked by quiz_id.
       const questionRows = questions.map((q) => ({
         quiz_id: quiz.id,
         type: q.type,
@@ -250,7 +286,7 @@ export default function TestCreator() {
                   {selectedFile ? selectedFile.name : "Select or Drop PDF Here"}
                 </span>
                 <span className="text-[10px] text-slate-400 mt-1 font-medium">
-                  Parsed in-memory on server
+                  Parsed in your browser — never uploaded
                 </span>
               </div>
             </div>
