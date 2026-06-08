@@ -16,32 +16,6 @@ interface Question {
   correctAnswers: string[];
 }
 
-// Extract text from PDF entirely in the browser using pdfjs-dist.
-// No server involved — this is the reliable, production-grade approach.
-async function extractTextFromPDF(file: File): Promise<string> {
-  const arrayBuffer = await file.arrayBuffer();
-
-  // Dynamically import pdfjs-dist only in the browser
-  const pdfjs = await import('pdfjs-dist');
-
-  // Point the worker to the CDN — avoids any bundler/Vercel issues with worker files
-  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
-
-  const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
-
-  let fullText = "";
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    const pageText = content.items
-      .map((item: any) => ('str' in item ? item.str : ''))
-      .join(' ');
-    fullText += pageText + "\n";
-  }
-
-  return fullText.trim();
-}
-
 export default function TestCreator() {
   const [mode, setMode] = useState<"scratch" | "ai">("scratch");
   const [testTitle, setTestTitle] = useState("");
@@ -117,26 +91,14 @@ export default function TestCreator() {
     setIsGenerating(true);
 
     try {
-      let textToSend = aiText;
-
-      // If a PDF is uploaded, parse it in the browser first
-      if (selectedFile) {
-        try {
-          textToSend = await extractTextFromPDF(selectedFile);
-          if (!textToSend.trim()) {
-            throw new Error("No text could be extracted from this PDF.");
-          }
-        } catch (pdfErr) {
-          console.error("PDF extraction error:", pdfErr);
-          alert("Could not extract text from PDF. Try pasting the text manually instead.");
-          setIsGenerating(false);
-          return;
-        }
-      }
-
-      // Send plain text to the server — no PDF involved
+      // Send either the file or text directly to the server
+      // Gemini API handles PDF natively on the server — no client-side parsing needed
       const formData = new FormData();
-      formData.append("text", textToSend);
+      if (selectedFile) {
+        formData.append("file", selectedFile);
+      } else {
+        formData.append("text", aiText);
+      }
 
       const res = await fetch("/api/generate-test", {
         method: "POST",
@@ -286,7 +248,7 @@ export default function TestCreator() {
                   {selectedFile ? selectedFile.name : "Select or Drop PDF Here"}
                 </span>
                 <span className="text-[10px] text-slate-400 mt-1 font-medium">
-                  Parsed in your browser — never uploaded
+                  Read directly by Gemini AI
                 </span>
               </div>
             </div>
@@ -298,7 +260,7 @@ export default function TestCreator() {
             className="w-full bg-lime-600 text-white py-3 rounded-xl font-black text-xs hover:bg-lime-700 uppercase tracking-widest flex items-center justify-center gap-2"
           >
             {isGenerating ? <Loader2 size={16} className="animate-spin" /> : null}
-            {isGenerating ? "Parsing Materials..." : "Generate Test Draft"}
+            {isGenerating ? "Generating Questions..." : "Generate Test Draft"}
           </button>
         </div>
       )}

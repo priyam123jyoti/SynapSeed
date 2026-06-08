@@ -6,70 +6,104 @@ export const dynamic = 'force-dynamic';
 export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
-    // Server now only receives plain text — PDF is parsed in the browser.
     const rawText = formData.get('text') as string | null;
+    const file = formData.get('file') as File | null;
 
-    if (!rawText || !rawText.trim()) {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({ error: "Missing Gemini API Key." }, { status: 500 });
+    }
+
+    const systemPrompt = `You are an expert academic assessment engine.
+Generate questions from the provided content.
+Support types: MCQ, MSQ, FITB.
+Return ONLY valid JSON, no markdown, no backticks, no explanation.
+Each question MUST have both snake_case and camelCase keys with identical values.
+Schema:
+{
+  "questions": [
+    {
+      "id": "unique-string",
+      "type": "MCQ",
+      "question_text": "text",
+      "questionText": "text",
+      "options": ["A", "B", "C", "D"],
+      "correct_answers": ["A"],
+      "correctAnswers": ["A"]
+    }
+  ]
+}`;
+
+    let requestBody: any;
+
+    if (file) {
+      // PDF path: send file directly to Gemini as base64
+      // Gemini reads the PDF natively — no parsing library needed
+      const arrayBuffer = await file.arrayBuffer();
+      const base64 = Buffer.from(arrayBuffer).toString('base64');
+
+      requestBody = {
+        contents: [
+          {
+            parts: [
+              {
+                inline_data: {
+                  mime_type: "application/pdf",
+                  data: base64
+                }
+              },
+              {
+                text: systemPrompt + "\n\nExtract content from the PDF above and generate questions."
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.2,
+          responseMimeType: "application/json"
+        }
+      };
+    } else if (rawText) {
+      // Plain text path
+      requestBody = {
+        contents: [
+          {
+            parts: [
+              {
+                text: systemPrompt + "\n\nReference Source:\n\n" + rawText.substring(0, 40000)
+              }
+            ]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.2,
+          responseMimeType: "application/json"
+        }
+      };
+    } else {
       return NextResponse.json({ error: "No content provided." }, { status: 400 });
     }
 
-    const textToAnalyze = rawText.length > 40000
-      ? rawText.substring(0, 40000)
-      : rawText;
-
-    const apiKey = process.env.GROQ_API_KEY;
-    if (!apiKey) {
-      return NextResponse.json({ error: "Missing API Key." }, { status: 500 });
-    }
-
-    const systemPrompt = `
-      You are an expert academic assessment engine. Output valid JSON only.
-      Support types: 'MCQ', 'MSQ', 'FITB'.
-      Each question object MUST contain BOTH snake_case and camelCase keys with identical values.
-      Return ONLY this JSON schema, no markdown, no backticks:
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`,
       {
-        "questions": [
-          {
-            "id": "uuid-string",
-            "type": "MCQ",
-            "question_text": "text",
-            "questionText": "text",
-            "options": ["A", "B", "C", "D"],
-            "correct_answers": ["A"],
-            "correctAnswers": ["A"]
-          }
-        ]
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody)
       }
-    `;
-
-    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "llama-3.3-70b-versatile",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Reference Source:\n\n${textToAnalyze}` }
-        ],
-        temperature: 0.2,
-        response_format: { type: "json_object" }
-      }),
-    });
+    );
 
     if (!response.ok) {
       const err = await response.text();
-      console.error("Groq Error:", err);
-      return NextResponse.json({ error: "AI gateway rejected the request." }, { status: 502 });
+      console.error("Gemini Error:", err);
+      return NextResponse.json({ error: "Gemini API rejected the request." }, { status: 502 });
     }
 
     const aiResult = await response.json();
-    let rawContent = aiResult.choices?.[0]?.message?.content;
+    let rawContent = aiResult.candidates?.[0]?.content?.parts?.[0]?.text;
 
     if (!rawContent) {
-      return NextResponse.json({ error: "Empty response from AI." }, { status: 502 });
+      return NextResponse.json({ error: "Empty response from Gemini." }, { status: 502 });
     }
 
     rawContent = rawContent.replace(/^```json\s*/i, "").replace(/```\s*$/, "").trim();
