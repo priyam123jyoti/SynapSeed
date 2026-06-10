@@ -11,9 +11,10 @@ interface Question {
   type: QuestionType;
   question_text: string;
   options: string[];
-  correct_answers: string[]; // Still passes string arrays cleanly to match your backend DTO
+  correct_answers: string[];
 }
 
+// Helper function to extract text directly from a file stream layout in-browser
 async function extractTextFromPDF(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
   const pdfjs = await import('pdfjs-dist');
@@ -66,14 +67,12 @@ export default function TestCreator() {
     setQuestions((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // Fixed: Pure immutable state updating
   const updateQuestionText = (index: number, text: string) => {
     setQuestions((prev) =>
       prev.map((q, i) => (i === index ? { ...q, question_text: text } : q))
     );
   };
 
-  // Fixed: Keeps correct answer synchronization immutable and safe from cross-contamination
   const updateOptionText = (qIdx: number, oIdx: number, val: string) => {
     setQuestions((prev) =>
       prev.map((q, idx) => {
@@ -96,7 +95,6 @@ export default function TestCreator() {
     );
   };
 
-  // Fixed: Direct index fallback comparison logic protects against collisions with identical placeholder strings
   const toggleCorrectAnswer = (qIdx: number, optionValue: string, type: QuestionType) => {
     if (!optionValue.trim()) {
       alert("Please specify option text before marking it as correct.");
@@ -210,7 +208,6 @@ export default function TestCreator() {
         return;
       }
       
-      // Added Check: Blocks submission of empty string options on multiple choice variations
       if (q.type !== "FITB") {
         for (let o = 0; o < q.options.length; o++) {
           if (!q.options[o].trim()) {
@@ -234,8 +231,23 @@ export default function TestCreator() {
         }),
       });
 
+      // 🛡️ Safe Extraction: Intercept HTML crash dumps from server before running .json()
+      if (!res.ok) {
+        const contentType = res.headers.get("content-type");
+        
+        if (contentType && contentType.includes("application/json")) {
+          const errData = await res.json();
+          throw new Error(errData.error || `Server responded with status code ${res.status}`);
+        } else {
+          const rawHtmlText = await res.text();
+          console.error("🚨 Detailed Server HTML Crash Dump:", rawHtmlText);
+          throw new Error(
+            `Server configuration error (Status ${res.status}). The backend returned an HTML error page instead of JSON data. Check your server terminal logs.`
+          );
+        }
+      }
+
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "Upstream internal transactional database mapping error.");
 
       alert("🎉 Test fully built and distributed to student rosters.");
       
@@ -248,7 +260,7 @@ export default function TestCreator() {
       router.push(`/events/admin/quiz/analytics/${data.quizId}`);
     } catch (err: any) {
       console.error("Pipeline failure:", err);
-      alert("Publish loop runtime failure: " + (err.message || "Check network trace."));
+      alert("Publish loop runtime failure: " + err.message);
     } finally {
       setIsPublishing(false);
     }
