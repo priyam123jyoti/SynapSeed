@@ -5,9 +5,10 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// 🔒 Switched to the secret admin key so admin stats are always readable regardless of future RLS filters
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY; 
 
-const supabase = createClient(supabaseUrl || "", supabaseAnonKey || "");
+const supabase = createClient(supabaseUrl || "", supabaseServiceKey || "");
 
 export async function GET(
   req: NextRequest,

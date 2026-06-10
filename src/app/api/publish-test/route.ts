@@ -2,9 +2,10 @@ import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY; 
+// 🔒 Switched to the secret admin key to bypass RLS policies safely on the backend
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY; 
 
-const supabase = createClient(supabaseUrl || "", supabaseAnonKey || "");
+const supabase = createClient(supabaseUrl || "", supabaseServiceKey || "");
 
 export async function POST(request: Request) {
   try {
@@ -40,7 +41,6 @@ export async function POST(request: Request) {
       quiz_id: newQuizId,
       type: q.type,
       question_text: q.question_text,
-      // String arrays are perfectly consumed by Postgres JSONB columns
       options: q.type === "FITB" ? null : q.options, 
       correct_answers: q.correct_answers,
     }));
