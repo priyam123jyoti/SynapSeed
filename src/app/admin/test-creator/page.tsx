@@ -16,11 +16,34 @@ interface Question {
   correctAnswers: string[];
 }
 
+// Extracts text from a PDF entirely in the browser.
+// Server never touches the PDF — no bundler issues, no Vercel crashes.
+async function extractTextFromPDF(file: File): Promise<string> {
+  const arrayBuffer = await file.arrayBuffer();
+  const pdfjs = await import('pdfjs-dist');
+
+  // Load worker from CDN — avoids any bundler/webpack issues
+  pdfjs.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.mjs`;
+
+  const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
+
+  let fullText = "";
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    const pageText = content.items
+      .map((item: any) => ('str' in item ? item.str : ''))
+      .join(' ');
+    fullText += pageText + "\n";
+  }
+
+  return fullText.trim();
+}
+
 export default function TestCreator() {
   const [mode, setMode] = useState<"scratch" | "ai">("scratch");
   const [testTitle, setTestTitle] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
-
   const [aiText, setAiText] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -84,21 +107,33 @@ export default function TestCreator() {
 
   const handleAIGenerateDraft = async () => {
     if (!aiText.trim() && !selectedFile) {
-      alert("Please paste text notes or upload a PDF file first.");
+      alert("Please paste text or upload a PDF first.");
       return;
     }
 
     setIsGenerating(true);
 
     try {
-      // Send either the file or text directly to the server
-      // Gemini API handles PDF natively on the server — no client-side parsing needed
-      const formData = new FormData();
+      let textToSend = aiText;
+
+      // If PDF uploaded, extract text in browser first
       if (selectedFile) {
-        formData.append("file", selectedFile);
-      } else {
-        formData.append("text", aiText);
+        try {
+          textToSend = await extractTextFromPDF(selectedFile);
+          if (!textToSend.trim()) {
+            throw new Error("No text could be extracted from this PDF. Try pasting text manually.");
+          }
+        } catch (pdfErr) {
+          const msg = pdfErr instanceof Error ? pdfErr.message : "PDF extraction failed.";
+          alert(msg);
+          setIsGenerating(false);
+          return;
+        }
       }
+
+      // Always send plain text to server — server never sees a PDF
+      const formData = new FormData();
+      formData.append("text", textToSend);
 
       const res = await fetch("/api/generate-test", {
         method: "POST",
@@ -107,7 +142,7 @@ export default function TestCreator() {
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error("Server raw response:", errorText);
+        console.error("Server response:", errorText);
         throw new Error(`Server responded with status ${res.status}`);
       }
 
@@ -228,8 +263,9 @@ export default function TestCreator() {
                 value={aiText}
                 onChange={(e) => setAiText(e.target.value)}
                 maxLength={40000}
-                className="w-full h-44 p-4 rounded-xl border-none focus:ring-2 focus:ring-lime-400 outline-none text-sm font-medium"
+                className="w-full h-44 p-4 rounded-xl border-none focus:ring-2 focus:ring-lime-400 outline-none text-sm font-medium bg-white"
               />
+              <p className="text-[10px] text-slate-400 mt-1">{aiText.length} / 40000</p>
             </div>
 
             <div>
@@ -248,7 +284,7 @@ export default function TestCreator() {
                   {selectedFile ? selectedFile.name : "Select or Drop PDF Here"}
                 </span>
                 <span className="text-[10px] text-slate-400 mt-1 font-medium">
-                  Read directly by Gemini AI
+                  Parsed in your browser — never sent to server
                 </span>
               </div>
             </div>
@@ -279,7 +315,7 @@ export default function TestCreator() {
         {questions.map((q, idx) => (
           <div
             key={q.id || idx}
-            className="p-6 bg-white rounded-2xl border border-emerald-100 shadow-sm relative group"
+            className="p-6 bg-white rounded-2xl border border-emerald-100 shadow-sm relative"
           >
             <button
               onClick={() => removeQuestion(idx)}
