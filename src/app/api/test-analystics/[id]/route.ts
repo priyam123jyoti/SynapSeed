@@ -4,11 +4,15 @@ import { createClient } from '@supabase/supabase-js';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-// Initialize a highly privileged administrative instance.
-// This bypasses RLS rules on the server side so teachers can securely aggregate overall student metrics.
+// 1. Extract keys safely without forcing a non-null execution crash
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+// 2. Initialize with build-safe placeholders. 
+// This allows Vercel compilation to pass. At actual runtime, the real keys are injected.
 const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // Ensure this variable is present in your .env.local and Vercel environment variables
+  supabaseUrl || 'https://placeholder-missed-env-vars.supabase.co',
+  supabaseServiceKey || 'placeholder-missed-service-key-string'
 );
 
 export async function GET(
@@ -16,13 +20,17 @@ export async function GET(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Await the route params asynchronously to comply with Next.js structural rules
     const { id: testId } = await context.params;
 
     if (!testId) {
-      return NextResponse.json({ error: "Missing required Test ID parameter." }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required Test ID parameter." }, 
+        { status: 400 }
+      );
     }
 
-    // 1. Fetch Quiz Title using admin privileges
+    // 1. Fetch Quiz Title using admin privileges (bypassing RLS)
     const { data: test, error: testError } = await supabaseAdmin
       .from('quizzes')
       .select('title')
@@ -30,7 +38,10 @@ export async function GET(
       .single();
 
     if (testError || !test) {
-      return NextResponse.json({ error: "Quiz not found." }, { status: 404 });
+      return NextResponse.json(
+        { error: "Quiz not found or database connection refused." }, 
+        { status: 404 }
+      );
     }
 
     // 2. Fetch all associated questions directly
@@ -41,7 +52,7 @@ export async function GET(
 
     if (questionsError) throw questionsError;
 
-    // 3. Fetch ALL student submissions, bypassing RLS limitations
+    // 3. Fetch ALL student submissions for aggregation
     const { data: submissions, error: subError } = await supabaseAdmin
       .from('quiz_submissions')
       .select('*')
@@ -56,7 +67,7 @@ export async function GET(
     let classAverage = 0;
     let highestScore = 0;
 
-    // 4. Calculate critical metrics safely
+    // 4. Calculate analytics metrics safely without division-by-zero crashes
     if (totalSubmissions > 0 && submissions) {
       const sum = submissions.reduce((acc, curr) => acc + (curr.score || 0), 0);
       classAverage = parseFloat((sum / totalSubmissions).toFixed(2));
@@ -76,9 +87,9 @@ export async function GET(
     });
 
   } catch (error: any) {
-    console.error("Analytics route error:", error);
+    console.error("Analytics production pipeline route error:", error);
     return NextResponse.json(
-      { error: error.message || "Failed to compute analytics." },
+      { error: error.message || "Failed to compute evaluation analytics." },
       { status: 500 }
     );
   }
