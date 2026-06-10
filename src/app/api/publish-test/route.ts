@@ -1,66 +1,69 @@
+import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY; 
+
+const supabase = createClient(supabaseUrl || "", supabaseAnonKey || "");
 
 export async function POST(request: Request) {
   try {
-    // 1. Parse the incoming JSON payload from your TestCreator component
     const body = await request.json();
     const { title, description, questionsArray } = body;
 
-    // 2. Server-Side Validation: Ensure no empty payloads slip through
     if (!title || !questionsArray || !Array.isArray(questionsArray) || questionsArray.length === 0) {
       return NextResponse.json(
-        { error: "Invalid payload. Test title and at least one question are required." },
+        { error: "Invalid payload. Test title and questions are required." },
         { status: 400 }
       );
     }
 
-   console.log(`[API] Processing new test: "${title}" - ${description || "No description"} (${questionsArray.length} questions)`);
-    // ==========================================
-    // 🗄️ DATABASE INTEGRATION ZONE
-    // ==========================================
-    // This is where you save the data to Supabase, Prisma, MongoDB, etc.
-    // 
-    // EXAMPLE PRISMA IMPLEMENTATION:
-    /*
-    const newTest = await prisma.test.create({
-      data: {
-        title: title,
-        description: description,
-        questions: {
-          create: questionsArray.map((q) => ({
-            type: q.type,
-            prompt: q.question_text,
-            options: q.options,
-            correctAnswers: q.correct_answers
-          }))
-        }
-      }
-    });
-    const generatedQuizId = newTest.id;
-    */
+    console.log(`[Supabase API] Step 1: Inserting quiz metadata into 'quizzes' table...`);
 
-    // For now, we will generate a mock ID so your frontend redirect works immediately.
-    // (Replace this with your actual database response ID later)
-    const generatedQuizId = "test_" + Math.random().toString(36).substring(2, 11);
+    // Step 1: Insert the quiz header
+    const { data: quizData, error: quizError } = await supabase
+      .from("quizzes") 
+      .insert([{ title, description: description || "Departmental Evaluation" }])
+      .select("id")
+      .single();
 
-    // 3. Return the success response
-    // The frontend strictly looks for `data.quizId` to complete the routing.
-    return NextResponse.json(
-      { 
-        success: true, 
-        message: "Test published successfully.",
-        quizId: generatedQuizId 
-      },
-      { status: 200 }
-    );
+    if (quizError || !quizData) {
+      console.error("❌ Quiz Insertion Fault:", quizError);
+      return NextResponse.json({ error: `Quiz creation failed: ${quizError.message}` }, { status: 500 });
+    }
+
+    const newQuizId = quizData.id;
+    console.log(`[Supabase API] Step 2: Batch inserting ${questionsArray.length} questions for Quiz UUID: ${newQuizId}`);
+
+    // Step 2: Format questions array to match your schema requirements
+    const formattedQuestions = questionsArray.map((q) => ({
+      quiz_id: newQuizId,
+      type: q.type,
+      question_text: q.question_text,
+      // String arrays are perfectly consumed by Postgres JSONB columns
+      options: q.type === "FITB" ? null : q.options, 
+      correct_answers: q.correct_answers,
+    }));
+
+    // Step 3: Write rows to the questions table
+    const { error: questionsError } = await supabase
+      .from("questions")
+      .insert(formattedQuestions);
+
+    if (questionsError) {
+      console.error("❌ Questions Batch Insertion Fault:", questionsError);
+      // Clean up orphaned quiz header if questions fail to preserve integrity
+      await supabase.from("quizzes").delete().eq("id", newQuizId);
+      return NextResponse.json({ error: `Questions mapping failed: ${questionsError.message}` }, { status: 500 });
+    }
+
+    return NextResponse.json({ 
+      success: true, 
+      quizId: newQuizId 
+    }, { status: 200 });
 
   } catch (error: any) {
-    console.error("🚨 API Publish Error:", error);
-    
-    // 4. Catch and return standard 500 errors so the frontend doesn't crash
-    return NextResponse.json(
-      { error: "Internal Server Error: " + (error.message || "Unknown fault") },
-      { status: 500 }
-    );
+    console.error("🚨 API Pipeline Failure:", error);
+    return NextResponse.json({ error: "Internal Server Error: " + error.message }, { status: 500 });
   }
 }
