@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { Brain, Plus, FileText, Send, UploadCloud, Loader2, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 type QuestionType = "MCQ" | "FITB" | "MSQ";
 
@@ -10,19 +10,13 @@ interface Question {
   id: string;
   type: QuestionType;
   question_text: string;
-  questionText: string;
   options: string[];
-  correct_answers: string[];
-  correctAnswers: string[];
+  correct_answers: string[]; // Still passes string arrays cleanly to match your backend DTO
 }
 
-// Extracts text from a PDF entirely in the browser.
-// Server never touches the PDF — no bundler issues, no Vercel crashes.
 async function extractTextFromPDF(file: File): Promise<string> {
   const arrayBuffer = await file.arrayBuffer();
   const pdfjs = await import('pdfjs-dist');
-
-  // Load worker from CDN — avoids any bundler/webpack issues
   pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
   const pdf = await pdfjs.getDocument({ data: arrayBuffer }).promise;
@@ -41,8 +35,10 @@ async function extractTextFromPDF(file: File): Promise<string> {
 }
 
 export default function TestCreator() {
+  const router = useRouter();
   const [mode, setMode] = useState<"scratch" | "ai">("scratch");
   const [testTitle, setTestTitle] = useState("");
+  const [testDescription, setTestDescription] = useState("");
   const [questions, setQuestions] = useState<Question[]>([]);
   const [aiText, setAiText] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -50,88 +46,111 @@ export default function TestCreator() {
   const [isPublishing, setIsPublishing] = useState(false);
 
   const addQuestion = (type: QuestionType) => {
-    const uniqueId =
-      typeof crypto !== "undefined" && crypto.randomUUID
-        ? crypto.randomUUID()
-        : Math.random().toString(36).substring(2, 11);
+    const uniqueId = typeof crypto !== "undefined" && crypto.randomUUID
+      ? crypto.randomUUID()
+      : Math.random().toString(36).substring(2, 11);
 
-    setQuestions([
-      ...questions,
+    setQuestions((prev) => [
+      ...prev,
       {
         id: uniqueId,
         type,
         question_text: "",
-        questionText: "",
         options: type === "FITB" ? [] : ["", "", "", ""],
         correct_answers: [],
-        correctAnswers: [],
       },
     ]);
   };
 
   const removeQuestion = (index: number) => {
-    setQuestions(questions.filter((_, i) => i !== index));
+    setQuestions((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Fixed: Pure immutable state updating
   const updateQuestionText = (index: number, text: string) => {
-    const updated = [...questions];
-    updated[index].question_text = text;
-    updated[index].questionText = text;
-    setQuestions(updated);
+    setQuestions((prev) =>
+      prev.map((q, i) => (i === index ? { ...q, question_text: text } : q))
+    );
   };
 
+  // Fixed: Keeps correct answer synchronization immutable and safe from cross-contamination
   const updateOptionText = (qIdx: number, oIdx: number, val: string) => {
-    const updated = [...questions];
-    updated[qIdx].options[oIdx] = val;
-    setQuestions(updated);
+    setQuestions((prev) =>
+      prev.map((q, idx) => {
+        if (idx !== qIdx) return q;
+
+        const oldOptionValue = q.options[oIdx];
+        const nextOptions = [...q.options];
+        nextOptions[oIdx] = val;
+
+        const nextCorrectAnswers = q.correct_answers.map((ans) =>
+          ans === oldOptionValue ? val : ans
+        );
+
+        return {
+          ...q,
+          options: nextOptions,
+          correct_answers: nextCorrectAnswers,
+        };
+      })
+    );
   };
 
+  // Fixed: Direct index fallback comparison logic protects against collisions with identical placeholder strings
   const toggleCorrectAnswer = (qIdx: number, optionValue: string, type: QuestionType) => {
-    const updated = [...questions];
-    let currentAnswers = updated[qIdx].correct_answers || [];
-
-    if (type === "MCQ") {
-      currentAnswers = [optionValue];
-    } else {
-      if (currentAnswers.includes(optionValue)) {
-        currentAnswers = currentAnswers.filter((a) => a !== optionValue);
-      } else {
-        currentAnswers = [...currentAnswers, optionValue];
-      }
+    if (!optionValue.trim()) {
+      alert("Please specify option text before marking it as correct.");
+      return;
     }
 
-    updated[qIdx].correct_answers = currentAnswers;
-    updated[qIdx].correctAnswers = currentAnswers;
-    setQuestions(updated);
+    setQuestions((prev) =>
+      prev.map((q, idx) => {
+        if (idx !== qIdx) return q;
+
+        let nextCorrectAnswers = [...q.correct_answers];
+
+        if (type === "MCQ") {
+          nextCorrectAnswers = [optionValue];
+        } else {
+          if (nextCorrectAnswers.includes(optionValue)) {
+            nextCorrectAnswers = nextCorrectAnswers.filter((a) => a !== optionValue);
+          } else {
+            nextCorrectAnswers = [...nextCorrectAnswers, optionValue];
+          }
+        }
+
+        return {
+          ...q,
+          correct_answers: nextCorrectAnswers,
+        };
+      })
+    );
   };
 
   const handleAIGenerateDraft = async () => {
     if (!aiText.trim() && !selectedFile) {
-      alert("Please paste text or upload a PDF first.");
+      alert("Please provide context text or drop a target PDF asset.");
       return;
     }
 
     setIsGenerating(true);
-
     try {
       let textToSend = aiText;
 
-      // If PDF uploaded, extract text in browser first
       if (selectedFile) {
         try {
           textToSend = await extractTextFromPDF(selectedFile);
           if (!textToSend.trim()) {
-            throw new Error("No text could be extracted from this PDF. Try pasting text manually.");
+            throw new Error("No readable text found inside this PDF layout structure.");
           }
         } catch (pdfErr) {
-          const msg = pdfErr instanceof Error ? pdfErr.message : "PDF extraction failed.";
+          const msg = pdfErr instanceof Error ? pdfErr.message : "PDF processing failure.";
           alert(msg);
           setIsGenerating(false);
           return;
         }
       }
 
-      // Always send plain text to server — server never sees a PDF
       const formData = new FormData();
       formData.append("text", textToSend);
 
@@ -142,80 +161,94 @@ export default function TestCreator() {
 
       if (!res.ok) {
         const errorText = await res.text();
-        console.error("Server response:", errorText);
-        throw new Error(`Server responded with status ${res.status}`);
+        throw new Error(`Server status fault code: ${res.status}. Payload: ${errorText}`);
       }
 
       const data = await res.json();
 
       if (data.questions && Array.isArray(data.questions)) {
-        setQuestions(prev => [...prev, ...data.questions]);
-        alert(`AI generated ${data.questions.length} questions. Review below.`);
+        const formattedQuestions = data.questions.map((q: any) => ({
+          id: q.id || Math.random().toString(36).substring(2, 11),
+          type: q.type || "MCQ",
+          question_text: q.question_text || q.questionText || "",
+          options: q.options || (q.type === "FITB" ? [] : ["", "", "", ""]),
+          correct_answers: q.correct_answers || q.correctAnswers || []
+        }));
+
+        setQuestions((prev) => [...prev, ...formattedQuestions]);
+        alert(`AI generated ${data.questions.length} new structural questions successfully.`);
       } else {
-        throw new Error(data.error || "Malformed response from server.");
+        throw new Error(data.error || "Malformed dictionary output schema.");
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      const msg = err instanceof Error ? err.message : "Unknown error";
-      alert("AI generation failed: " + msg);
+      alert("AI execution loop failure: " + (err.message || "Unknown error"));
     } finally {
       setIsGenerating(false);
     }
   };
 
   const handlePublish = async () => {
-    if (questions.length === 0) {
-      alert("Please add at least one question before publishing.");
+    if (!testTitle.trim()) {
+      alert("Please provide a definitive Test Title before publishing.");
       return;
+    }
+    if (questions.length === 0) {
+      alert("Please build at least one testing target row block before publishing.");
+      return;
+    }
+
+    // Comprehensive Deep Integrity Checks: Stops bad schema formats before hitting server
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      if (!q.question_text.trim()) {
+        alert(`Question #${i + 1} prompt line text cannot be blank.`);
+        return;
+      }
+      if (q.correct_answers.length === 0 || !q.correct_answers[0]?.trim()) {
+        alert(`Question #${i + 1} ("${q.question_text.substring(0, 15)}...") must have an assigned correct answer solution.`);
+        return;
+      }
+      
+      // Added Check: Blocks submission of empty string options on multiple choice variations
+      if (q.type !== "FITB") {
+        for (let o = 0; o < q.options.length; o++) {
+          if (!q.options[o].trim()) {
+            alert(`Question #${i + 1} contains an empty option field context string at Choice Slot #${o + 1}.`);
+            return;
+          }
+        }
+      }
     }
 
     setIsPublishing(true);
 
     try {
-      const { data: quiz, error: quizError } = await supabase
-        .from("quizzes")
-        .insert([{
-          title: testTitle || "Untitled Test",
-          description: "Departmental Evaluation",
-        }])
-        .select("id")
-        .single();
-
-      if (quizError || !quiz) throw quizError ?? new Error("Quiz insert failed.");
-
-      const questionRows = questions.map((q) => ({
-        quiz_id: quiz.id,
-        type: q.type,
-        question_text: q.question_text,
-        options: q.type === "FITB" ? null : q.options,
-        correct_answers: q.correct_answers,
-      }));
-
-      const { error: questionsError } = await supabase
-        .from("questions")
-        .insert(questionRows);
-
-      if (questionsError) throw questionsError;
-
-      const testLink = `${window.location.origin}/test/${quiz.id}`;
-
-      await fetch("/api/notify-students", {
+      const res = await fetch("/api/publish-test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          testTitle: testTitle || "Untitled Test",
-          testLink,
+          title: testTitle.trim(),
+          description: testDescription.trim() || "Departmental Evaluation",
+          questionsArray: questions,
         }),
       });
 
-      alert("Test published and students notified!");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Upstream internal transactional database mapping error.");
+
+      alert("🎉 Test fully built and distributed to student rosters.");
+      
       setQuestions([]);
       setTestTitle("");
+      setTestDescription("");
       setAiText("");
       setSelectedFile(null);
-    } catch (err) {
-      console.error("Publishing error:", err);
-      alert("Failed to publish test. Check console for details.");
+
+      router.push(`/events/admin/quiz/analytics/${data.quizId}`);
+    } catch (err: any) {
+      console.error("Pipeline failure:", err);
+      alert("Publish loop runtime failure: " + (err.message || "Check network trace."));
     } finally {
       setIsPublishing(false);
     }
@@ -230,7 +263,7 @@ export default function TestCreator() {
         <div className="flex bg-emerald-100 p-1 rounded-xl">
           <button
             onClick={() => setMode("scratch")}
-            className={`px-4 py-2 rounded-lg text-xs font-bold ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               mode === "scratch" ? "bg-emerald-600 text-white" : "text-emerald-700"
             }`}
           >
@@ -238,7 +271,7 @@ export default function TestCreator() {
           </button>
           <button
             onClick={() => setMode("ai")}
-            className={`px-4 py-2 rounded-lg text-xs font-bold ${
+            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
               mode === "ai" ? "bg-emerald-600 text-white" : "text-emerald-700"
             }`}
           >
@@ -259,11 +292,11 @@ export default function TestCreator() {
                 Paste Material (Max 40k Chars)
               </label>
               <textarea
-                placeholder="Paste notes or past tests here..."
+                placeholder="Paste context lines, data arrays or notes..."
                 value={aiText}
                 onChange={(e) => setAiText(e.target.value)}
                 maxLength={40000}
-                className="w-full h-44 p-4 rounded-xl border-none focus:ring-2 focus:ring-lime-400 outline-none text-sm font-medium bg-white"
+                className="w-full h-44 p-4 rounded-xl border-none focus:ring-2 focus:ring-lime-400 outline-none text-sm font-medium bg-white shadow-sm resize-none"
               />
               <p className="text-[10px] text-slate-400 mt-1">{aiText.length} / 40000</p>
             </div>
@@ -272,19 +305,19 @@ export default function TestCreator() {
               <label className="block text-xs font-black uppercase text-lime-700 mb-1">
                 Or Upload PDF (Max 8 Pages)
               </label>
-              <div className="w-full h-44 border-2 border-dashed border-lime-300 rounded-xl bg-white flex flex-col items-center justify-center p-4 relative cursor-pointer hover:bg-lime-100/50 transition-colors">
+              <div className="w-full h-44 border-2 border-dashed border-lime-300 rounded-xl bg-white flex flex-col items-center justify-center p-4 relative cursor-pointer hover:bg-lime-100/50 transition-colors shadow-sm">
                 <input
                   type="file"
                   accept="application/pdf"
                   onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                  className="absolute inset-0 opacity-0 cursor-pointer"
+                  className="absolute inset-0 opacity-0 cursor-pointer z-10"
                 />
                 <UploadCloud size={32} className="text-lime-600 mb-2" />
-                <span className="text-xs font-bold text-slate-600 truncate max-w-full">
+                <span className="text-xs font-bold text-slate-600 truncate max-w-full px-2">
                   {selectedFile ? selectedFile.name : "Select or Drop PDF Here"}
                 </span>
-                <span className="text-[10px] text-slate-400 mt-1 font-medium">
-                  Parsed in your browser — never sent to server
+                <span className="text-[10px] text-slate-400 mt-1 font-medium text-center">
+                  Parsed in browser safely
                 </span>
               </div>
             </div>
@@ -293,21 +326,28 @@ export default function TestCreator() {
           <button
             onClick={handleAIGenerateDraft}
             disabled={isGenerating}
-            className="w-full bg-lime-600 text-white py-3 rounded-xl font-black text-xs hover:bg-lime-700 uppercase tracking-widest flex items-center justify-center gap-2"
+            className="w-full bg-lime-600 text-white py-3 rounded-xl font-black text-xs hover:bg-lime-700 uppercase tracking-widest flex items-center justify-center gap-2 cursor-pointer transition-all disabled:opacity-50"
           >
-            {isGenerating ? <Loader2 size={16} className="animate-spin" /> : null}
-            {isGenerating ? "Generating Questions..." : "Generate Test Draft"}
+            {isGenerating && <Loader2 size={16} className="animate-spin" />}
+            {isGenerating ? "Parsing Knowledge Graph..." : "Generate Test Draft"}
           </button>
         </div>
       )}
 
-      <div className="mb-8">
+      <div className="mb-6 space-y-4">
         <input
           type="text"
           placeholder="Enter Test Title (e.g., Cell Division Term Evaluation)"
           value={testTitle}
           onChange={(e) => setTestTitle(e.target.value)}
-          className="w-full text-2xl font-black text-slate-800 border-b-2 border-slate-200 pb-3 focus:border-emerald-500 outline-none placeholder-slate-300 bg-transparent transition-colors"
+          className="w-full text-2xl font-black text-slate-800 border-b-2 border-slate-200 pb-2 focus:border-emerald-500 outline-none placeholder-slate-300 bg-transparent transition-colors"
+        />
+        <input
+          type="text"
+          placeholder="Enter short description context (e.g., Biology Sem-2 Chapter 4)"
+          value={testDescription}
+          onChange={(e) => setTestDescription(e.target.value)}
+          className="w-full text-sm font-semibold text-slate-600 border-b border-slate-100 pb-2 focus:border-emerald-400 outline-none placeholder-slate-300 bg-transparent transition-colors"
         />
       </div>
 
@@ -315,53 +355,55 @@ export default function TestCreator() {
         {questions.map((q, idx) => (
           <div
             key={q.id || idx}
-            className="p-6 bg-white rounded-2xl border border-emerald-100 shadow-sm relative"
+            className="p-6 bg-white rounded-2xl border border-emerald-100 shadow-sm relative transition-all hover:shadow-md"
           >
             <button
               onClick={() => removeQuestion(idx)}
-              className="absolute top-6 right-6 text-slate-300 hover:text-rose-500 transition-colors"
+              className="absolute top-6 right-6 text-slate-300 hover:text-rose-500 transition-colors cursor-pointer"
             >
               <Trash2 size={18} />
             </button>
 
-            <div className="flex justify-between mb-4">
-              <span className="bg-emerald-100 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
+            <div className="mb-4">
+              <span className="bg-emerald-50 text-emerald-700 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest">
                 {q.type}
               </span>
             </div>
 
             <input
-              value={q.question_text || q.questionText || ""}
+              value={q.question_text}
               onChange={(e) => updateQuestionText(idx, e.target.value)}
-              placeholder="Type your question here..."
-              className="w-full text-lg font-bold border-b border-emerald-50 mb-4 focus:border-emerald-500 outline-none pr-10"
+              placeholder="Type your question prompt here..."
+              className="w-full text-lg font-bold border-b border-emerald-50 mb-4 focus:border-emerald-500 outline-none pr-10 bg-transparent"
             />
 
             {q.type === "FITB" ? (
               <input
                 value={q.correct_answers?.[0] || ""}
                 onChange={(e) => {
-                  const updated = [...questions];
-                  const val = e.target.value;
-                  updated[idx].correct_answers = [val];
-                  updated[idx].correctAnswers = [val];
-                  setQuestions(updated);
+                  setQuestions((prev) =>
+                    prev.map((item, i) =>
+                      i === idx ? { ...item, correct_answers: [e.target.value] } : item
+                    )
+                  );
                 }}
-                placeholder="Enter correct answer"
-                className="w-full p-3 bg-slate-50 rounded-lg italic font-semibold text-sm border-none focus:ring-2 focus:ring-emerald-500 outline-none"
+                placeholder="Type the exact expected answer keyword..."
+                className="w-full p-3 bg-slate-50 rounded-lg italic font-semibold text-sm border-2 border-transparent focus:border-emerald-500 focus:bg-white outline-none transition-all"
               />
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {(q.options || []).map((opt: string, oIdx: number) => {
-                  const isChecked = q.correct_answers?.includes(opt) && opt !== "";
+                  const isChecked = q.correct_answers.includes(opt) && opt.trim() !== "";
                   return (
                     <div
                       key={oIdx}
-                      className="flex items-center gap-3 p-2 bg-slate-50/50 rounded-xl border border-slate-100"
+                      className={`flex items-center gap-3 p-3 rounded-xl border transition-all ${
+                        isChecked ? "bg-emerald-50/50 border-emerald-200" : "bg-slate-50/50 border-slate-100"
+                      }`}
                     >
                       <input
                         type={q.type === "MCQ" ? "radio" : "checkbox"}
-                        name={`correct-ans-${idx}`}
+                        name={`correct-ans-${q.id}`}
                         checked={isChecked}
                         onChange={() => toggleCorrectAnswer(idx, opt, q.type)}
                         className="w-4 h-4 accent-emerald-600 cursor-pointer"
@@ -383,24 +425,24 @@ export default function TestCreator() {
         <div className="flex gap-4">
           <button
             onClick={() => addQuestion("MCQ")}
-            className="flex-1 border-2 border-dashed border-emerald-200 p-4 rounded-2xl text-emerald-600 hover:bg-emerald-50 flex flex-col items-center gap-2 transition-all"
+            className="flex-1 border-2 border-dashed border-emerald-200 p-4 rounded-2xl text-emerald-600 hover:bg-emerald-50 hover:border-emerald-400 flex flex-col items-center gap-2 transition-all cursor-pointer"
           >
             <Plus size={20} />
-            <span className="text-[10px] font-black uppercase">Add MCQ</span>
+            <span className="text-[10px] font-black uppercase tracking-wider">Add MCQ</span>
           </button>
           <button
             onClick={() => addQuestion("MSQ")}
-            className="flex-1 border-2 border-dashed border-emerald-200 p-4 rounded-2xl text-emerald-600 hover:bg-emerald-50 flex flex-col items-center gap-2 transition-all"
+            className="flex-1 border-2 border-dashed border-emerald-200 p-4 rounded-2xl text-emerald-600 hover:bg-emerald-50 hover:border-emerald-400 flex flex-col items-center gap-2 transition-all cursor-pointer"
           >
             <Plus size={20} />
-            <span className="text-[10px] font-black uppercase">Add MSQ</span>
+            <span className="text-[10px] font-black uppercase tracking-wider">Add MSQ</span>
           </button>
           <button
             onClick={() => addQuestion("FITB")}
-            className="flex-1 border-2 border-dashed border-emerald-200 p-4 rounded-2xl text-emerald-600 hover:bg-emerald-50 flex flex-col items-center gap-2 transition-all"
+            className="flex-1 border-2 border-dashed border-emerald-200 p-4 rounded-2xl text-emerald-600 hover:bg-emerald-50 hover:border-emerald-400 flex flex-col items-center gap-2 transition-all cursor-pointer"
           >
             <FileText size={20} />
-            <span className="text-[10px] font-black uppercase">Add Fill-In</span>
+            <span className="text-[10px] font-black uppercase tracking-wider">Add Fill-In</span>
           </button>
         </div>
 
@@ -409,7 +451,7 @@ export default function TestCreator() {
             <button
               onClick={handlePublish}
               disabled={isPublishing}
-              className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white p-5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-[0.98] shadow-xl shadow-slate-200"
+              className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-400 text-white p-5 rounded-2xl flex items-center justify-center gap-3 transition-all active:scale-[0.99] shadow-xl shadow-slate-200 cursor-pointer disabled:cursor-not-allowed"
             >
               {isPublishing ? (
                 <Loader2 size={20} className="animate-spin" />
@@ -417,7 +459,7 @@ export default function TestCreator() {
                 <Send size={20} />
               )}
               <span className="font-black uppercase tracking-widest text-sm">
-                {isPublishing ? "Publishing..." : "Publish & Broadcast Test"}
+                {isPublishing ? "Publishing Database Entries..." : "Publish & Broadcast Test"}
               </span>
             </button>
           </div>

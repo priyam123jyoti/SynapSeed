@@ -11,7 +11,7 @@ import SubjectPillars from '@/components/home/SubjectPillars';
 import FeatureShowcase from '@/components/home/FeatureShowcase';
 import ImpactStats from '@/components/home/ImpactStats';
 import LatestEvents from '@/components/home/LatestEvents';
-import QuizWidget from "@/components/Prof-Quiz/QuizWidget";
+import TestJoinCard from '@/components/home/TestJoinCard';
 
 // DYNAMIC PERFORMANCE MATCH
 export const revalidate = 30; 
@@ -75,11 +75,17 @@ export default async function Home() {
 
         <div className="p-1 md:p-10">
           <div className="max-w-[1600px] mx-auto w-full space-y-20">
+            <TestJoinCard 
+        testId="math-101" 
+        title="Algebra Basics Quiz" 
+        questionCount={10} 
+        durationMinutes={20}
+        isUrgent={true}
+      />
             <LatestEvents />
             <SubjectPillars />
             <FeatureShowcase />
             <ImpactStats />
-            <QuizWidget quiz={activeQuiz} />
           </div>
         </div>
 

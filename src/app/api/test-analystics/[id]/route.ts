@@ -1,8 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
+
+// Initialize a highly privileged administrative instance.
+// This bypasses RLS rules on the server side so teachers can securely aggregate overall student metrics.
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY! // Ensure this variable is present in your .env.local and Vercel environment variables
+);
 
 export async function GET(
   req: NextRequest,
@@ -15,7 +22,8 @@ export async function GET(
       return NextResponse.json({ error: "Missing required Test ID parameter." }, { status: 400 });
     }
 
-    const { data: test, error: testError } = await supabase
+    // 1. Fetch Quiz Title using admin privileges
+    const { data: test, error: testError } = await supabaseAdmin
       .from('quizzes')
       .select('title')
       .eq('id', testId)
@@ -25,15 +33,16 @@ export async function GET(
       return NextResponse.json({ error: "Quiz not found." }, { status: 404 });
     }
 
-    // Fetch questions separately from the questions table
-    const { data: questions, error: questionsError } = await supabase
+    // 2. Fetch all associated questions directly
+    const { data: questions, error: questionsError } = await supabaseAdmin
       .from('questions')
       .select('id')
       .eq('quiz_id', testId);
 
     if (questionsError) throw questionsError;
 
-    const { data: submissions, error: subError } = await supabase
+    // 3. Fetch ALL student submissions, bypassing RLS limitations
+    const { data: submissions, error: subError } = await supabaseAdmin
       .from('quiz_submissions')
       .select('*')
       .eq('quiz_id', testId)
@@ -47,14 +56,16 @@ export async function GET(
     let classAverage = 0;
     let highestScore = 0;
 
+    // 4. Calculate critical metrics safely
     if (totalSubmissions > 0 && submissions) {
       const sum = submissions.reduce((acc, curr) => acc + (curr.score || 0), 0);
       classAverage = parseFloat((sum / totalSubmissions).toFixed(2));
       highestScore = Math.max(...submissions.map(s => s.score || 0));
     }
 
+    // 5. Structure payload return contract for frontend absorption
     return NextResponse.json({
-      quizTitle: test.title,  // was testTitle — frontend reads quizTitle
+      quizTitle: test.title,
       totalQuestions,
       metrics: {
         totalSubmissions,
