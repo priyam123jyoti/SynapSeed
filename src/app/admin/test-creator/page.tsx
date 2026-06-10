@@ -149,7 +149,7 @@ export default function TestCreator() {
       const data = await res.json();
 
       if (data.questions && Array.isArray(data.questions)) {
-        setQuestions(data.questions);
+        setQuestions(prev => [...prev, ...data.questions]);
         alert(`AI generated ${data.questions.length} questions. Review below.`);
       } else {
         throw new Error(data.error || "Malformed response from server.");
