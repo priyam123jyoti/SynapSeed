@@ -27,21 +27,37 @@ export default function QuizAnalyticsPage({ params }: { params: Promise<{ id: st
   const { id: quizId } = use(params);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchAnalytics() {
       try {
-        const res = await fetch(`/api/quiz-analytics/${quizId}`);
+        setErrorMessage(null);
+        const res = await fetch(`/api/test-analytics/${quizId}`);
+        
+        if (!res.ok) {
+          throw new Error(`Server returned status code: ${res.status}`);
+        }
+        
         const json = await res.json();
+        
+        if (json.error) {
+          throw new Error(json.error);
+        }
+        
         setData(json);
-      } catch (err) {
-        console.error('Error compiling metrics:', err);
+      } catch (err: any) {
+        console.error('❌ Error compiling metrics:', err);
+        setErrorMessage(err.message || "Unknown retrieval error");
       } finally {
         setLoading(false);
       }
     }
-    fetchAnalytics();
-  }, [quizId]);
+    
+    if (quizId) {
+      fetchAnalytics();
+    }
+  }, [quizId]); // ✅ Fixed typo here
 
   if (loading) {
     return (
@@ -51,10 +67,21 @@ export default function QuizAnalyticsPage({ params }: { params: Promise<{ id: st
     );
   }
 
-  if (!data) {
+  if (errorMessage || !data) {
     return (
-      <div className="p-8 text-center font-bold text-slate-500">
-        Analytics matrix couldn't be loaded. Verify quiz tracking registry.
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-8 text-center space-y-4">
+        <div className="text-xl font-black text-slate-800">
+          Analytics matrix couldn't be loaded.
+        </div>
+        <p className="text-sm font-semibold text-rose-500 max-w-md bg-rose-50 p-3 rounded-xl border border-rose-100">
+          Reason: {errorMessage || "Verify quiz tracking registry ID match."}
+        </p>
+        <Link 
+          href="/events/admin/quiz" 
+          className="text-xs font-bold uppercase tracking-wider text-emerald-600 underline"
+        >
+          Return to Admin Panel
+        </Link>
       </div>
     );
   }
@@ -63,7 +90,6 @@ export default function QuizAnalyticsPage({ params }: { params: Promise<{ id: st
     <main className="min-h-screen bg-slate-50/50 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto space-y-8">
         
-        {/* Back navigation controller */}
         <Link 
           href="/events/admin/quiz" 
           className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-700 transition-colors"
@@ -71,7 +97,6 @@ export default function QuizAnalyticsPage({ params }: { params: Promise<{ id: st
           <ArrowLeft size={14} /> Back to Panel
         </Link>
 
-        {/* Title layout block */}
         <div className="flex items-center gap-4 border-b border-slate-200 pb-6">
           <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center text-white shadow-sm">
             <BarChart3 size={22} />
@@ -82,9 +107,7 @@ export default function QuizAnalyticsPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
 
-        {/* Aggregate metric insights cards matrix */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          
           <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
             <div className="p-3 bg-blue-50 text-blue-600 rounded-xl">
               <Users size={24} />
@@ -118,10 +141,8 @@ export default function QuizAnalyticsPage({ params }: { params: Promise<{ id: st
               </h3>
             </div>
           </div>
-
         </div>
 
-        {/* Individual submissions list registry sheet */}
         <div className="bg-white border border-slate-100 rounded-3xl shadow-sm overflow-hidden">
           <div className="p-6 border-b border-slate-100 bg-slate-50/50">
             <h2 className="text-xs font-black text-slate-900 uppercase tracking-widest">Student Score Sheets</h2>
@@ -144,7 +165,7 @@ export default function QuizAnalyticsPage({ params }: { params: Promise<{ id: st
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-sm font-semibold text-slate-700">
                   {data.submissions.map((sub) => {
-                    const pct = ((sub.score / data.totalQuestions) * 100).toFixed(0);
+                    const pct = data.totalQuestions > 0 ? ((sub.score / data.totalQuestions) * 100).toFixed(0) : "0";
                     return (
                       <tr key={sub.id} className="hover:bg-slate-50/50 transition-colors">
                         <td className="py-4 px-6 font-bold text-slate-900">{sub.student_name}</td>
