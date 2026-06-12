@@ -33,7 +33,9 @@ export default function QuizAnalyticsPage({ params }: { params: Promise<{ id: st
     async function fetchAnalytics() {
       try {
         setErrorMessage(null);
-        const res = await fetch(`/api/test-analytics/${quizId}`);
+        
+        // 🎯 FIXED: Added the 's' here to match your folder name exactly!
+        const res = await fetch(`/api/test-analystics/${quizId}`);
         
         if (!res.ok) {
           throw new Error(`Server returned status code: ${res.status}`);
@@ -57,7 +59,7 @@ export default function QuizAnalyticsPage({ params }: { params: Promise<{ id: st
     if (quizId) {
       fetchAnalytics();
     }
-  }, [quizId]); // ✅ Fixed typo here
+  }, [quizId]);
 
   if (loading) {
     return (
