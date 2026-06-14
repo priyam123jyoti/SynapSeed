@@ -32,19 +32,30 @@ export async function GET(
     }
 
     // 2️⃣ Fetch all associated questions
+    // 🎯 FIXED: Changed 'correct_answer' to 'correct_answers' to match your database schema
     const { data: questions, error: qError } = await supabase
       .from('questions')
-      .select('id, question_text, options, correct_answer')
+      .select('id, question_text, options, correct_answers') 
       .eq('quiz_id', testId);
 
     if (qError) {
+      console.error("Database error fetching questions:", qError);
       return NextResponse.json({ error: "Failed to load test questions." }, { status: 500 });
     }
 
-    // 3️⃣ Send it all back to the frontend
+    // 3️⃣ Map the data so the student frontend can read it
+    const formattedQuestions = questions?.map(q => ({
+      id: q.id,
+      question_text: q.question_text,
+      options: q.options || [],
+      // The frontend grading logic expects a string, so we extract the first answer from the array
+      correct_answer: q.correct_answers?.[0] || ""
+    }));
+
+    // 4️⃣ Send it all back to the frontend
     return NextResponse.json({
       title: test.title,
-      questions: questions || []
+      questions: formattedQuestions || []
     });
 
   } catch (error: any) {
