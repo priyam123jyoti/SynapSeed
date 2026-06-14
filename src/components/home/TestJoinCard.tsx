@@ -23,8 +23,8 @@ export default function TestJoinCard({
   const router = useRouter();
 
   const handleLaunchTest = () => {
-    // Navigates the student cleanly to your dynamic evaluation workspace route
-    router.push(`/events/quiz/participate/${testId}`);
+    // 🎯 FIXED: Navigates cleanly to the take-test folder we built
+    router.push(`/take-test/${testId}`);
   };
 
   return (
