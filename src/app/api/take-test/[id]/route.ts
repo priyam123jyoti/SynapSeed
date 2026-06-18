@@ -5,7 +5,7 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!, 
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
@@ -16,7 +16,11 @@ export async function GET(
   try {
     const { id: testId } = await context.params;
 
-    // 1. Fetch Test
+    if (!testId) {
+      return NextResponse.json({ error: "Missing test ID." }, { status: 400 });
+    }
+
+    // 1. Fetch test title
     const { data: test, error: testError } = await supabase
       .from('tests')
       .select('title')
@@ -24,29 +28,43 @@ export async function GET(
       .single();
 
     if (testError || !test) {
-      return NextResponse.json({ error: "Test not found" }, { status: 404 });
+      console.error("Test fetch error:", testError);
+      return NextResponse.json({ error: "Test not found." }, { status: 404 });
     }
 
-    // 2. Fetch Questions
+    // 2. Fetch questions
     const { data: questions, error: qError } = await supabase
       .from('questions')
-      .select('id, question_text, options, correct_answers')
-      .eq('test_id', testId);
+      .select('id, type, question_text, options, correct_answers')
+      .eq('test_id', testId);  // uses test_id — matches new schema
 
     if (qError) {
-      return NextResponse.json({ error: "Failed to load questions" }, { status: 500 });
+      console.error("Questions fetch error:", qError);
+      return NextResponse.json({ error: "Failed to load questions." }, { status: 500 });
     }
 
-    // 3. Format data to match the Frontend's expectation
+    if (!questions || questions.length === 0) {
+      return NextResponse.json({ error: "No questions found for this test." }, { status: 404 });
+    }
+
+    // 3. Format — FIX: include 'type' so frontend knows MCQ vs FITB vs MSQ
+    //              FIX: return full 'correct_answers' array, not just first item
+    //                   (original had correct_answer: q.correct_answers?.[0] which breaks MSQ)
     const formatted = questions.map(q => ({
       id: q.id,
+      type: q.type,                      // was missing — student page needs this
       question_text: q.question_text,
-      options: q.options,
-      correct_answer: q.correct_answers?.[0] || ""
+      options: q.options || [],
+      correct_answers: q.correct_answers || [],  // full array — was only returning first item
     }));
 
-    return NextResponse.json({ title: test.title, questions: formatted });
+    return NextResponse.json({
+      title: test.title,
+      questions: formatted,
+    });
+
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    console.error("GET test error:", err);
+    return NextResponse.json({ error: err.message || "Internal Server Error." }, { status: 500 });
   }
 }
