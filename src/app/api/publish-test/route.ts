@@ -19,26 +19,26 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log(`[Supabase API] Step 1: Inserting quiz metadata into 'quizzes' table...`);
+    console.log(`[Supabase API] Step 1: Inserting test metadata into 'tests' table...`);
 
-    // Step 1: Insert the quiz header
-    const { data: quizData, error: quizError } = await supabase
-      .from("quizzes") 
+    // Step 1: Insert the test header
+    const { data: testData, error: testError } = await supabase
+      .from("tests") 
       .insert([{ title, description: description || "Departmental Evaluation" }])
       .select("id")
       .single();
 
-    if (quizError || !quizData) {
-      console.error("❌ Quiz Insertion Fault:", quizError);
-      return NextResponse.json({ error: `Quiz creation failed: ${quizError.message}` }, { status: 500 });
+    if (testError || !testData) {
+      console.error("❌ Test Insertion Fault:", testError);
+      return NextResponse.json({ error: `Test creation failed: ${testError.message}` }, { status: 500 });
     }
 
-    const newQuizId = quizData.id;
-    console.log(`[Supabase API] Step 2: Batch inserting ${questionsArray.length} questions for Quiz UUID: ${newQuizId}`);
+    const newTestId = testData.id;
+    console.log(`[Supabase API] Step 2: Batch inserting ${questionsArray.length} questions for Test UUID: ${newTestId}...`);
 
     // Step 2: Format questions array to match your schema requirements
     const formattedQuestions = questionsArray.map((q) => ({
-      quiz_id: newQuizId,
+      test_id: newTestId,
       type: q.type,
       question_text: q.question_text,
       options: q.type === "FITB" ? null : q.options, 
@@ -52,14 +52,14 @@ export async function POST(request: Request) {
 
     if (questionsError) {
       console.error("❌ Questions Batch Insertion Fault:", questionsError);
-      // Clean up orphaned quiz header if questions fail to preserve integrity
-      await supabase.from("quizzes").delete().eq("id", newQuizId);
+      // Clean up orphaned test header if questions fail to preserve integrity
+      await supabase.from("tests").delete().eq("id", newTestId);
       return NextResponse.json({ error: `Questions mapping failed: ${questionsError.message}` }, { status: 500 });
     }
 
     return NextResponse.json({ 
       success: true, 
-      quizId: newQuizId 
+      testId: newTestId 
     }, { status: 200 });
 
   } catch (error: any) {

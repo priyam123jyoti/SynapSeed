@@ -13,7 +13,7 @@ interface Submission {
 }
 
 interface AnalyticsData {
-  quizTitle: string;
+  testTitle: string;
   totalQuestions: number;
   metrics: {
     totalSubmissions: number;
@@ -23,8 +23,8 @@ interface AnalyticsData {
   submissions: Submission[];
 }
 
-export default function QuizAnalyticsPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id: quizId } = use(params);
+export default function testAnalyticsPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id: testId } = use(params);
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -35,7 +35,7 @@ export default function QuizAnalyticsPage({ params }: { params: Promise<{ id: st
         setErrorMessage(null);
         
         // 🎯 FIXED: Added the 's' here to match your folder name exactly!
-        const res = await fetch(`/api/test-analystics/${quizId}`);
+        const res = await fetch(`/api/test-analytics/${testId}`);
         
         if (!res.ok) {
           throw new Error(`Server returned status code: ${res.status}`);
@@ -56,10 +56,10 @@ export default function QuizAnalyticsPage({ params }: { params: Promise<{ id: st
       }
     }
     
-    if (quizId) {
+    if (testId) {
       fetchAnalytics();
     }
-  }, [quizId]);
+  }, [testId]);
 
   if (loading) {
     return (
@@ -76,10 +76,10 @@ export default function QuizAnalyticsPage({ params }: { params: Promise<{ id: st
           Analytics matrix couldn't be loaded.
         </div>
         <p className="text-sm font-semibold text-rose-500 max-w-md bg-rose-50 p-3 rounded-xl border border-rose-100">
-          Reason: {errorMessage || "Verify quiz tracking registry ID match."}
+          Reason: {errorMessage || "Verify test tracking registry ID match."}
         </p>
         <Link 
-          href="/events/admin/quiz" 
+          href="x" 
           className="text-xs font-bold uppercase tracking-wider text-emerald-600 underline"
         >
           Return to Admin Panel
@@ -93,7 +93,7 @@ export default function QuizAnalyticsPage({ params }: { params: Promise<{ id: st
       <div className="max-w-5xl mx-auto space-y-8">
         
         <Link 
-          href="/events/admin/quiz" 
+          href="x" 
           className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-wider text-slate-400 hover:text-slate-700 transition-colors"
         >
           <ArrowLeft size={14} /> Back to Panel
@@ -105,7 +105,7 @@ export default function QuizAnalyticsPage({ params }: { params: Promise<{ id: st
           </div>
           <div>
             <span className="text-[10px] font-black uppercase tracking-widest text-emerald-600">Performance Assessment Tracker</span>
-            <h1 className="text-2xl font-black text-slate-900 tracking-tight">{data.quizTitle}</h1>
+            <h1 className="text-2xl font-black text-slate-900 tracking-tight">{data.testTitle}</h1>
           </div>
         </div>
 

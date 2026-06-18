@@ -14,7 +14,7 @@ webpush.setVapidDetails(
 
 export async function POST(req: Request) {
   try {
-    const { quizTitle, quizLink } = await req.json();
+    const { testTitle, testLink } = await req.json();
 
     // =======================================================
     // STEP 1: FETCH DATA TARGETS FROM SUPABASE
@@ -44,13 +44,13 @@ export async function POST(req: Request) {
       await resend.emails.send({
         from: 'Botany Department <onboarding@resend.dev>', // Change to your verified institutional domain later
         to: emailList, 
-        subject: `🚨 Academic Alert: ${quizTitle} is Live!`,
+        subject: `🚨 Academic Alert: ${testTitle} is Live!`,
         html: `
           <!DOCTYPE html>
           <html>
             <head>
               <meta charset="utf-8">
-              <title>New Quiz Assessment</title>
+              <title>New Test Assessment</title>
             </head>
             <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #f8fafc; padding: 40px 10px; margin: 0;">
               <div style="max-w: 550px; margin: 0 auto; bg-color: #ffffff; background: #ffffff; border-radius: 24px; border: 1px solid #e2e8f0; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);">
@@ -65,7 +65,7 @@ export async function POST(req: Request) {
                   
                   <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 16px; border-radius: 8px; margin: 24px 0;">
                     <p style="margin: 0; font-size: 11px; font-weight: 800; color: #047857; text-transform: uppercase; tracking: 0.1em;">Assessment Title</p>
-                    <p style="margin: 4px 0 0 0; font-size: 14px; font-weight: 600; color: #065f46;">${quizTitle}</p>
+                    <p style="margin: 4px 0 0 0; font-size: 14px; font-weight: 600; color: #065f46;">${testTitle}</p>
                   </div>
 
                   <p style="color: #64748b; font-size: 13px; line-height: 1.6; margin-bottom: 32px;">
@@ -73,7 +73,7 @@ export async function POST(req: Request) {
                   </p>
 
                   <div style="text-align: center;">
-                    <a href="${quizLink}" style="display: inline-block; background-color: #059669; color: #ffffff; font-size: 12px; font-weight: 800; text-transform: uppercase; tracking: 0.1em; text-decoration: none; padding: 14px 32px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.2);">
+                    <a href="${testLink}" style="display: inline-block; background-color: #059669; color: #ffffff; font-size: 12px; font-weight: 800; text-transform: uppercase; tracking: 0.1em; text-decoration: none; padding: 14px 32px; border-radius: 12px; box-shadow: 0 10px 15px -3px rgba(5, 150, 105, 0.2);">
                       Launch Question Paper
                     </a>
                   </div>
@@ -98,8 +98,8 @@ export async function POST(req: Request) {
     if (subscriptions && subscriptions.length > 0) {
       const pushPayload = JSON.stringify({
         title: '🚨 New Examination Live!',
-        body: `Professor published: ${quizTitle}`,
-        url: quizLink
+        body: `Professor published: ${testTitle}`,
+        url: testLink
       });
 
       const pushPromises = subscriptions.map((sub: any) => {

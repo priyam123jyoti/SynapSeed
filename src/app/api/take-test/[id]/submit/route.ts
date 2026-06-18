@@ -26,10 +26,10 @@ export async function POST(
 
     // Insert the exact data your analytics dashboard is expecting
     const { error: insertError } = await supabase
-      .from('quiz_submissions')
+      .from('test_submissions')
       .insert([
         {
-          quiz_id: testId,
+          test_id: testId,
           student_name: student_name,
           score: score,
           total_questions: total_questions,

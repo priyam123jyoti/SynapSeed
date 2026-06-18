@@ -257,7 +257,7 @@ export default function TestCreator() {
       setAiText("");
       setSelectedFile(null);
 
-      router.push(`/admin/test/${data.quizId}`);
+      router.push(`/admin/test/${data.testId}`);
     } catch (err: any) {
       console.error("Pipeline failure:", err);
       alert("Publish loop runtime failure: " + err.message);

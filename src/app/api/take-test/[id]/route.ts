@@ -16,22 +16,22 @@ export async function GET(
   try {
     const { id: testId } = await context.params;
 
-    // 1. Fetch Quiz
-    const { data: quiz, error: quizError } = await supabase
-      .from('quizzes')
+    // 1. Fetch Test
+    const { data: test, error: testError } = await supabase
+      .from('tests')
       .select('title')
       .eq('id', testId)
       .single();
 
-    if (quizError || !quiz) {
-      return NextResponse.json({ error: "Quiz not found" }, { status: 404 });
+    if (testError || !test) {
+      return NextResponse.json({ error: "Test not found" }, { status: 404 });
     }
 
     // 2. Fetch Questions
     const { data: questions, error: qError } = await supabase
       .from('questions')
       .select('id, question_text, options, correct_answers')
-      .eq('quiz_id', testId);
+      .eq('test_id', testId);
 
     if (qError) {
       return NextResponse.json({ error: "Failed to load questions" }, { status: 500 });
@@ -45,7 +45,7 @@ export async function GET(
       correct_answer: q.correct_answers?.[0] || ""
     }));
 
-    return NextResponse.json({ title: quiz.title, questions: formatted });
+    return NextResponse.json({ title: test.title, questions: formatted });
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
