@@ -20,7 +20,7 @@ export default function StudentTestPage({ params }: { params: Promise<{ id: stri
   useEffect(() => {
     async function loadTestEnvironment() {
       try {
-        const res = await fetch(`/app/api/take-test/${testId}`);
+        const res = await fetch(`/api/take-test/${testId}`);
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || 'Environment download failure.');
         setTestDetails(data.test);
@@ -56,7 +56,7 @@ export default function StudentTestPage({ params }: { params: Promise<{ id: stri
   const handleFormSubmission = async () => {
     setSubmitting(true);
     try {
-      const res = await fetch('/app/api/submissions', {
+      const res = await fetch('/api/submissions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

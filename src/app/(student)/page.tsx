@@ -18,7 +18,7 @@ export default function StudentDashboardPage() {
   useEffect(() => {
     async function getDashboardFeed() {
       try {
-        const res = await fetch('/app/api/student-feed'); // Internal aggregated fetch proxy routing to Supabase
+        const res = await fetch('/api/student-feed'); // Internal aggregated fetch proxy routing to Supabase
         const data = await res.json();
         setTests(data.payload || []);
       } catch (e) {

@@ -2,26 +2,21 @@ import { createClient } from '@supabase/supabase-js';
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY; // Added for server-side use
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  console.error('Supabase URL or Anon Key is missing in environment variables.');
-}
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 // 1. Standard Client (For Frontend / Student view)
-// This respects Row Level Security (RLS)
 export const supabase = createClient(
-  supabaseUrl || '', 
-  supabaseAnonKey || ''
+  supabaseUrl || 'https://placeholder.supabase.co', 
+  supabaseAnonKey || 'placeholder-anon-key'
 );
 
 // 2. Admin Client (For Server-Side API Routes Only)
-// This uses the secret key to bypass RLS for grading and publishing tests
+// We add a dummy string fallback so the browser doesn't crash when importing this file!
 export const supabaseAdmin = createClient(
-  supabaseUrl || '',
-  supabaseServiceKey || '',
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseServiceKey || 'dummy-key-to-prevent-browser-crash',
   {
-    auth: { persistSession: false } // Prevents the server from mixing up user sessions
+    auth: { persistSession: false }
   }
 );
 
