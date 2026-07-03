@@ -67,48 +67,39 @@ export default function StudentTestPage({ params }: { params: Promise<{ id: stri
 
   // 3️⃣ Handle moving to the next question or submitting
   const handleNextOrSubmit = async () => {
-    const isLastQuestion = currentQuestionIndex === questions.length - 1;
+  const isLastQuestion = currentQuestionIndex === questions.length - 1;
 
-    if (!isLastQuestion) {
-      setCurrentQuestionIndex(prev => prev + 1);
-      return;
-    }
+  if (!isLastQuestion) {
+    setCurrentQuestionIndex(prev => prev + 1);
+    return;
+  }
 
-    // It's the last question, so let's grade it and submit!
-    setSubmitting(true);
-    
-    try {
-      // Calculate score
-      let calculatedScore = 0;
-      questions.forEach(q => {
-        if (selectedAnswers[q.id] === q.correct_answer) {
-          calculatedScore += 1;
-        }
-      });
+  setSubmitting(true);
+  
+  try {
+    // 1. Send the raw data to your backend
+    const submitRes = await fetch('/api/submission', { // Note: Pointing to your backend route
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        testId: quizId,
+        studentName: studentName,
+        answers: selectedAnswers // This matches the backend expected structure
+      })
+    });
 
-      setFinalScore(calculatedScore);
+    if (!submitRes.ok) throw new Error("Failed to save results.");
 
-      // Submit to your database (You will need to create this POST API route)
-      const submitRes = await fetch(`/api/take-test/${quizId}/submit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          student_name: studentName,
-          score: calculatedScore,
-          total_questions: questions.length
-        })
-      });
-
-      if (!submitRes.ok) throw new Error("Failed to save results.");
-
-      setStep('completed');
-    } catch (err: any) {
-      setError(err.message || "Something went wrong saving your test.");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
+    // 2. Get result back from backend to show the user
+    const result = await submitRes.json();
+    setFinalScore(result.evaluatedScore);
+    setStep('completed');
+  } catch (err: any) {
+    setError(err.message || "Something went wrong saving your test.");
+  } finally {
+    setSubmitting(false);
+  }
+};
   // ---------------- UI RENDERING ----------------
 
   if (loading) {
