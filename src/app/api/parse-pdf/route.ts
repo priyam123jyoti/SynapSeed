@@ -1,24 +1,30 @@
 import { NextResponse } from 'next/server';
-import pdfParse from 'pdf-parse';
 
 export async function POST(req: Request) {
   try {
-    const formData = await req.formData();
-    const file = formData.get('file') as File;
-    
-    if (!file) {
-      return NextResponse.json({ error: 'No file provided.' }, { status: 400 });
-    }
+    // Dynamically import the legacy CJS module at runtime
+    // This resolves the "Export default doesn't exist" build error
+    const pdfParse = (await import('pdf-parse')).default || await import('pdf-parse');
 
-    // Convert the uploaded file into a Buffer for pdf-parse
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const pdfData = await pdfParse(buffer);
+    // Get the file buffer from the request
+    const data = await req.arrayBuffer();
+    const buffer = Buffer.from(data);
 
-    // Extract text and enforce the 40,000 character limit
-    const extractedText = pdfData.text.trim().substring(0, 40000);
+    // Parse the PDF
+    const parsed = await pdfParse(buffer);
 
-    return NextResponse.json({ text: extractedText });
+    // Return the extracted text
+    return NextResponse.json({ 
+      text: parsed.text,
+      numpages: parsed.numpages,
+      info: parsed.info 
+    });
+
   } catch (err: any) {
-    return NextResponse.json({ error: `PDF Parsing Failed: ${err.message}` }, { status: 500 });
+    console.error("PDF Parsing Error:", err);
+    return NextResponse.json(
+      { error: err.message || "Failed to parse PDF" }, 
+      { status: 500 }
+    );
   }
 }
