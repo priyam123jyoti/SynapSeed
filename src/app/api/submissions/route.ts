@@ -19,8 +19,9 @@ export async function POST(req: Request) {
 
     // Loop through the verified database configurations to compare against student inputs
     serverQuestions.forEach((question: Question) => {
-      const studentSelectionArray = answers[question.id] || [];
-      const accurateTargetVerificationArray = question.correct_answers;
+      // Cast arrays explicitly to strings to eliminate implicit 'any' compile blocks
+      const studentSelectionArray: string[] = answers[question.id] || [];
+      const accurateTargetVerificationArray: string[] = question.correct_answers || [];
 
       // Rule Case 1: Skipped / Empty Arrays
       if (studentSelectionArray.length === 0) {
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
       if (question.type === 'MCQ' || question.type === 'MSQ') {
         const isEverySelectionCorrect = 
           studentSelectionArray.length === accurateTargetVerificationArray.length &&
-          studentSelectionArray.every(val => accurateTargetVerificationArray.includes(val));
+          studentSelectionArray.every((val: string) => accurateTargetVerificationArray.includes(val));
 
         if (isEverySelectionCorrect) {
           runtimeCalculatedScore += 2;
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
       else if (question.type === 'FITB') {
         // Checking array index position matches string equality case invariants
         const matchingCheck = accurateTargetVerificationArray.some(
-          targetString => targetString.toLowerCase() === studentSelectionArray[0]?.toLowerCase()
+          (targetString: string) => targetString.toLowerCase() === studentSelectionArray[0]?.toLowerCase()
         );
 
         if (matchingCheck) {
