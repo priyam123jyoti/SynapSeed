@@ -35,7 +35,7 @@ export default function BotanyHero() {
           <div className="flex items-center gap-3 mb-6">
              <div className="w-10 h-[2px] bg-emerald-800"></div>
              <p className="text-emerald-800 font-bold tracking-[0.3em] text-[10px] uppercase">
-              Opportunities don't happen, you create them
+              Opportunities do not happen, you create them
              </p>
           </div>
           
@@ -46,7 +46,7 @@ export default function BotanyHero() {
 
           {/* Dhakuakhana College - Color adjusted for Accessibility (Contrast) */}
           <p className="text-lg lg:text-2xl font-semibold text-emerald-800 mb-12 tracking-wide ml-1">
-            You don't get what you want, you get what you deserve!
+            You do not get what you want, you get what you deserve!
           </p>
 
           {/* Navigation Grid - Added ARIA labels for Accessibility score */}
