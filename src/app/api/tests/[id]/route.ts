@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
+// Updated: params is now a Promise in Next.js 15+
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    // Updated: We must await params
+    const { id } = await params;
 
     // 1. Fetch the specific test AND its related questions in one query
     const { data: test, error } = await supabaseAdmin
