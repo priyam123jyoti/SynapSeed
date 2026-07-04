@@ -121,7 +121,7 @@ export default function AdminTestCreatePage() {
     
     try {
       // NOTE: Fixed the API endpoint path here
-      const res = await fetch('/api/create-test', {
+      const res = await fetch('/api/tests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title, description, questions: stagedQuestions })
