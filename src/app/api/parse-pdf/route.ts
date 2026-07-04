@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
+import PDFParser from 'pdf2json';
 
 export async function POST(req: Request) {
   try {
-    // 1. Get the FormData from the request
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
 
@@ -10,20 +10,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    // 2. Convert the file to an ArrayBuffer, then a Buffer
+    // Convert file to buffer
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    // 3. Dynamically import and run the parser
-    const pdfParse = (await import('pdf-parse')) as any;
-    const parsed = await pdfParse(buffer);
+    // Parse the PDF using a promise wrapper for async/await support
+    const text = await new Promise((resolve, reject) => {
+      const pdfParser = new (PDFParser as any)();
 
-    // 4. Return the results
-    return NextResponse.json({ 
-      text: parsed.text,
-      numpages: parsed.numpages,
-      info: parsed.info 
+      pdfParser.on("pdfParser_dataError", (err: any) => reject(err));
+      pdfParser.on("pdfParser_dataReady", () => {
+        // This extracts the raw text content from the PDF structure
+        resolve(pdfParser.getRawTextContent());
+      });
+
+      pdfParser.parseBuffer(buffer);
     });
+
+    return NextResponse.json({ text });
 
   } catch (err: any) {
     console.error("PDF Parsing Error:", err);
