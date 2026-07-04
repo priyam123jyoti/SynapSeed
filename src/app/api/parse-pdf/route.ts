@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     const buffer = Buffer.from(arrayBuffer);
 
     // 3. Dynamically import and run the parser
-    const pdfParse = (await import('pdf-parse')).default;
+    const pdfParse = (await import('pdf-parse')) as any;
     const parsed = await pdfParse(buffer);
 
     // 4. Return the results
