@@ -1,36 +1,41 @@
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
-// Updated: params is now a Promise in Next.js 15+
+// Next.js 15 Async parameter promise handling rule
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Updated: We must await params
+    // Safely unpack asynchronous dynamic parameters
     const { id } = await params;
 
-    // 1. Fetch the specific test AND its related questions in one query
+    if (!id) {
+      return NextResponse.json({ error: 'Missing active matrix node ID.' }, { status: 400 });
+    }
+
+    // Query specific single assessment along with its inner question tree nodes
     const { data: test, error } = await supabaseAdmin
       .from('tests')
       .select(`
         id, 
         title, 
         description, 
-        created_at, 
+        created_at,
+        creator_name,
+        creator_college,
         questions(*)
       `)
       .eq('id', id)
       .single();
 
     if (error) throw error;
-    if (!test) throw new Error('Test not found');
+    if (!test) return NextResponse.json({ error: 'Assessment matrix not found' }, { status: 404 });
 
-    // 2. Send the test data back to the frontend
     return NextResponse.json({ test });
     
   } catch (err: any) {
-    console.error("Fetch error:", err.message);
+    console.error("Individual evaluation link capture error:", err.message);
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
