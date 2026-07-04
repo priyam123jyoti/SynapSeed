@@ -56,7 +56,7 @@ export default function BotanyHero() {
               aria-label="Navigate to test time page"
               className="group flex items-center justify-between bg-[#ef7b3f] text-white px-8 py-5 transition-all hover:bg-[#d96a2f]"
             >
-              <span className="font-black text-xs uppercase tracking-[0.15em]">Test Time</span>
+              <span className="font-black text-xs uppercase tracking-[0.15em]">Test Hub</span>
               <span className="text-xl transform group-hover:translate-x-1 transition-transform" aria-hidden="true">↗</span>
             </Link> 
             
