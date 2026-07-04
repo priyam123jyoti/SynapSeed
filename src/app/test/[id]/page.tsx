@@ -1,11 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import { useRouter } from 'next/navigation';
-import { Loader2, CheckCircle2, ChevronRight } from 'lucide-react';
+// Note: You imported Loader2, CheckCircle2, ChevronRight from lucide-react but aren't using them yet. 
+// You can add them back in your UI if you decide to use them!
 
-export default function TakeTestPage({ params }: { params: { id: string } }) {
+// 1. Update the type definition to explicitly expect a Promise for params
+export default function TakeTestPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
+  
+  // 2. Unwrap the dynamic route parameter using React.use()
+  const { id } = use(params);
+
   const [test, setTest] = useState<any>(null);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(true);
@@ -13,13 +19,14 @@ export default function TakeTestPage({ params }: { params: { id: string } }) {
 
   useEffect(() => {
     async function fetchTest() {
-      const res = await fetch(`/api/test/${params.id}`);
+      // 3. Safely use the unwrapped 'id' string for your network request
+      const res = await fetch(`/api/test/${id}`);
       const data = await res.json();
       setTest(data.test);
       setLoading(false);
     }
     fetchTest();
-  }, [params.id]);
+  }, [id]); // Update dependency array to use the unwrapped ID
 
   const handleSelect = (qId: string, value: string, isMulti: boolean) => {
     setAnswers(prev => {
@@ -31,13 +38,16 @@ export default function TakeTestPage({ params }: { params: { id: string } }) {
     });
   };
 
-  const submitTest = async () => {
+const submitTest = async () => {
     setSubmitting(true);
     const res = await fetch('/api/submit-test', {
       method: 'POST',
-      body: JSON.stringify({ testId: params.id, answers }),
+      body: JSON.stringify({ testId: id, answers }),
     });
-    if (res.ok) router.push('/student');
+    
+    // Change this line to route back to your new hub
+    if (res.ok) router.push('/test-hub'); 
+    
     setSubmitting(false);
   };
 
@@ -45,9 +55,9 @@ export default function TakeTestPage({ params }: { params: { id: string } }) {
 
   return (
     <main className="max-w-3xl mx-auto py-12 px-4">
-      <h1 className="text-3xl font-black mb-8">{test.title}</h1>
+      <h1 className="text-3xl font-black mb-8">{test?.title}</h1>
       <div className="space-y-8">
-        {test.questions.map((q: any, i: number) => (
+        {test?.questions?.map((q: any, i: number) => (
           <div key={q.id} className="bg-white p-6 rounded-2xl border border-slate-200">
             <p className="font-bold text-lg mb-4">{i + 1}. {q.question_text}</p>
             {q.type === 'FITB' ? (
@@ -57,7 +67,7 @@ export default function TakeTestPage({ params }: { params: { id: string } }) {
               />
             ) : (
               <div className="grid gap-2">
-                {q.options.map((opt: string) => (
+                {q.options?.map((opt: string) => (
                   <button 
                     key={opt}
                     onClick={() => handleSelect(q.id, opt, q.type === 'MSQ')}
@@ -73,7 +83,7 @@ export default function TakeTestPage({ params }: { params: { id: string } }) {
         <button 
           onClick={submitTest}
           disabled={submitting}
-          className="w-full bg-slate-900 text-white py-4 rounded-xl font-black"
+          className="w-full bg-slate-900 text-white py-4 rounded-xl font-black disabled:bg-slate-400"
         >
           {submitting ? 'Calculating...' : 'Submit Evaluation'}
         </button>

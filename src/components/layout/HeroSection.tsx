@@ -52,7 +52,7 @@ export default function BotanyHero() {
           {/* Navigation Grid - Added ARIA labels for Accessibility score */}
           <nav className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-w-md rounded-2xl overflow-hidden shadow-2xl shadow-emerald-900/10">
              <Link 
-              href="/admin/test/create"  
+              href="/test-hub"  
               aria-label="Navigate to test time page"
               className="group flex items-center justify-between bg-[#ef7b3f] text-white px-8 py-5 transition-all hover:bg-[#d96a2f]"
             >
