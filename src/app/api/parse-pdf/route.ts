@@ -2,18 +2,23 @@ import { NextResponse } from 'next/server';
 
 export async function POST(req: Request) {
   try {
-    // Cast to 'any' to bypass strict TS type checking for legacy modules
-    const pdfParse = (await import('pdf-parse')) as any;
+    // 1. Get the FormData from the request
+    const formData = await req.formData();
+    const file = formData.get('file') as File | null;
 
-    // Get the file buffer from the request
-    const data = await req.arrayBuffer();
-    const buffer = Buffer.from(data);
+    if (!file) {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    }
 
-    // Parse the PDF
-    // We treat 'pdfParse' as the function directly (common in CJS modules)
+    // 2. Convert the file to an ArrayBuffer, then a Buffer
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // 3. Dynamically import and run the parser
+    const pdfParse = (await import('pdf-parse')).default;
     const parsed = await pdfParse(buffer);
 
-    // Return the extracted text
+    // 4. Return the results
     return NextResponse.json({ 
       text: parsed.text,
       numpages: parsed.numpages,
