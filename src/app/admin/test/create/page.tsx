@@ -2,9 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Plus, Sparkles, Trash2, Loader2, Upload, AlertCircle, Save, BrainCircuit } from 'lucide-react';
+import Link from 'next/link';
+import { Plus, Sparkles, Trash2, Loader2, Upload, AlertCircle, Save, BrainCircuit, FileText } from 'lucide-react';
 
-// Make sure your types match this structure
 interface Question {
   id: string;
   type: 'MCQ' | 'MSQ' | 'FITB';
@@ -40,13 +40,10 @@ export default function AdminTestCreatePage() {
       if (file.type === 'application/pdf') {
         const formData = new FormData();
         formData.append('file', file);
-        // Calls the route we fixed earlier!
         const res = await fetch('/api/parse-pdf', { method: 'POST', body: formData });
         const data = await res.json();
         
         if (!res.ok) throw new Error(data.error || 'Failed to parse PDF');
-        
-        // Truncate to 40,000 characters just in case
         setAiContext(data.text.substring(0, 40000));
       } else if (file.type === 'text/plain') {
         const text = await file.text();
@@ -58,7 +55,7 @@ export default function AdminTestCreatePage() {
       setError(err.message);
     } finally {
       setIsParsingPdf(false);
-      e.target.value = ''; // Reset input
+      e.target.value = '';
     }
   };
 
@@ -73,7 +70,6 @@ export default function AdminTestCreatePage() {
     setError(null);
     
     try {
-      // NOTE: Fixed the API endpoint path here
       const res = await fetch('/api/generate-questions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -83,9 +79,8 @@ export default function AdminTestCreatePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Generation breakdown.');
       
-      // Append AI questions to the staging area
       setStagedQuestions([...stagedQuestions, ...data.questions]);
-      setAiContext(''); // Clear context after generation to free memory
+      setAiContext('');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -120,7 +115,6 @@ export default function AdminTestCreatePage() {
     setError(null);
     
     try {
-      // NOTE: Fixed the API endpoint path here
       const res = await fetch('/api/tests', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -130,7 +124,6 @@ export default function AdminTestCreatePage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Persistence failure.');
       
-      // Redirect back to Admin Dashboard
       router.push('/admin/test');
     } catch (err: any) {
       setError(err.message);
@@ -145,14 +138,25 @@ export default function AdminTestCreatePage() {
         
         {/* Test Setup Header */}
         <div className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
-          <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">Setup Assessment Parameters</h1>
+          <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+            <h1 className="text-xl font-black text-slate-900 uppercase tracking-tight">
+              Setup Assessment Parameters
+            </h1>
+            
+            <Link 
+              href="/admin/test" 
+              className="flex items-center gap-2 bg-slate-100 text-slate-600 px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest hover:bg-slate-200 transition-colors"
+            >
+              <FileText size={14} /> View All Tests
+            </Link>
+          </div>
           
           {error && (
             <div className="p-3 bg-rose-50 border border-rose-100 text-rose-600 rounded-xl flex items-center gap-2 text-sm font-semibold">
               <AlertCircle size={18} /> {error}
             </div>
           )}
-          
+
           <div className="grid grid-cols-1 gap-4">
             <input 
               type="text" placeholder="Enter Test Title Name..." value={title} onChange={(e) => setTitle(e.target.value)}
@@ -238,7 +242,6 @@ export default function AdminTestCreatePage() {
                       className="w-full p-2 border-b border-slate-200 font-bold focus:outline-none focus:border-slate-900 text-sm"
                     />
                     
-                    {/* MCQ & MSQ Options */}
                     {q.type !== 'FITB' && q.options && (
                       <div className="grid grid-cols-2 gap-3">
                         {q.options.map((opt, oIdx) => (
@@ -275,7 +278,6 @@ export default function AdminTestCreatePage() {
                       </div>
                     )}
                     
-                    {/* Fill in the Blank Target Evaluation */}
                     {q.type === 'FITB' && (
                       <div className="space-y-2">
                         <label className="text-[10px] font-black uppercase text-slate-400 block">Accepted Target Evaluation Keywords</label>
