@@ -131,7 +131,7 @@ export default function AdminTestCreatePage() {
       if (!res.ok) throw new Error(data.error || 'Persistence failure.');
       
       // Redirect back to Admin Dashboard
-      router.push('/admin');
+      router.push('/admin/test');
     } catch (err: any) {
       setError(err.message);
     } finally {
