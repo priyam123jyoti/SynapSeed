@@ -1,3 +1,4 @@
+//src/app/api/student-feed/route.ts
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
