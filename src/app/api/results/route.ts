@@ -1,27 +1,15 @@
-// src/app/api/results/route.ts
-
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET() {
   try {
 
-    // Fetch all submissions
     const {
       data: submissions,
       error: submissionsError,
     } = await supabaseAdmin
       .from('test_submissions')
-      .select(`
-        id,
-        test_id,
-        score,
-        total_questions,
-        created_at
-      `)
-      .order('created_at', {
-        ascending: false,
-      });
+      .select('*');
 
     if (submissionsError) {
       throw submissionsError;
@@ -33,7 +21,6 @@ export async function GET() {
       });
     }
 
-    // Remove duplicate test ids
     const uniqueTestIds = [
       ...new Set(
         submissions
@@ -42,7 +29,6 @@ export async function GET() {
       ),
     ];
 
-    // Fetch tests
     const {
       data: tests,
       error: testsError,
@@ -59,7 +45,6 @@ export async function GET() {
       throw testsError;
     }
 
-    // Merge submission + test
     const results = submissions.map(
       (submission) => {
 
@@ -75,9 +60,6 @@ export async function GET() {
 
           total_questions:
             submission.total_questions,
-
-          created_at:
-            submission.created_at,
 
           percentage: Math.max(
             0,
