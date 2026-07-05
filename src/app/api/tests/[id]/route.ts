@@ -1,3 +1,4 @@
+//src/app/api/tests/[id]/route.ts
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
