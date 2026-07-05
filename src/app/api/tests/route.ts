@@ -69,7 +69,6 @@ export async function POST(req: Request) {
           creator_id: user.id,
           creator_name: profile.username || 'Anonymous User',
           creator_college: profile.institution || 'Unknown Institution',
-          creator_avatar: profile.avatar_url || null
         }
       ])
       .select()
