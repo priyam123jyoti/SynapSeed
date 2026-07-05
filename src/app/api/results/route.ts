@@ -5,25 +5,26 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET() {
   try {
+
     // Fetch all submissions
     const {
       data: submissions,
-      error: submissionError,
+      error: submissionsError,
     } = await supabaseAdmin
       .from('test_submissions')
       .select(`
         id,
+        test_id,
         score,
         total_questions,
-        created_at,
-        test_id
+        created_at
       `)
       .order('created_at', {
         ascending: false,
       });
 
-    if (submissionError) {
-      throw submissionError;
+    if (submissionsError) {
+      throw submissionsError;
     }
 
     if (!submissions || submissions.length === 0) {
@@ -32,11 +33,16 @@ export async function GET() {
       });
     }
 
-    // Fetch related tests
-    const testIds = submissions.map(
-      (submission) => submission.test_id
-    );
+    // Remove duplicate test ids
+    const uniqueTestIds = [
+      ...new Set(
+        submissions
+          .map((s) => s.test_id)
+          .filter(Boolean)
+      ),
+    ];
 
+    // Fetch tests
     const {
       data: tests,
       error: testsError,
@@ -47,34 +53,45 @@ export async function GET() {
         title,
         description
       `)
-      .in('id', testIds);
+      .in('id', uniqueTestIds);
 
     if (testsError) {
       throw testsError;
     }
 
-    // Merge results
+    // Merge submission + test
     const results = submissions.map(
       (submission) => {
+
         const matchedTest = tests?.find(
-          (test) => test.id === submission.test_id
+          (test) =>
+            test.id === submission.test_id
         );
 
         return {
           id: submission.id,
+
           score: submission.score,
+
           total_questions:
             submission.total_questions,
+
           created_at:
             submission.created_at,
 
-          percentage: Math.round(
-            (submission.score /
-              (submission.total_questions * 2)) *
-              100
+          percentage: Math.max(
+            0,
+            Math.round(
+              (submission.score /
+                (submission.total_questions * 2)) *
+                100
+            )
           ),
 
-          test: matchedTest || null,
+          test: matchedTest || {
+            title: 'Unknown Test',
+            description: '',
+          },
         };
       }
     );
@@ -84,14 +101,21 @@ export async function GET() {
     });
 
   } catch (err: any) {
-    console.error(err);
+
+    console.error(
+      'Results API Error:',
+      err.message
+    );
 
     return NextResponse.json(
       {
         error:
-          err.message || 'Internal server error',
+          err.message ||
+          'Internal server error',
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }
