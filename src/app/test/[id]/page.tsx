@@ -75,6 +75,7 @@ export default function TakeTestPage() {
         },
         body: JSON.stringify({
           testId: id,
+          studentName: 'Anonymous Student',
           answers,
         }),
       });
