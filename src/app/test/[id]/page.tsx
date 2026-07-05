@@ -1,17 +1,13 @@
-//src/app/test/[id]/page.tsx
 'use client';
 
-import { useState, useEffect, use } from 'react';
-import { useRouter } from 'next/navigation';
-// Note: You imported Loader2, CheckCircle2, ChevronRight from lucide-react but aren't using them yet. 
-// You can add them back in your UI if you decide to use them!
+import { useState, useEffect } from 'react';
+import { useRouter, useParams } from 'next/navigation';
 
-// 1. Update the type definition to explicitly expect a Promise for params
-export default function TakeTestPage({ params }: { params: Promise<{ id: string }> }) {
+export default function TakeTestPage() {
   const router = useRouter();
-  
-  // 2. Unwrap the dynamic route parameter using React.use()
-  const { id } = use(params);
+  const params = useParams();
+
+  const id = params.id as string;
 
   const [test, setTest] = useState<any>(null);
   const [answers, setAnswers] = useState<Record<string, string[]>>({});
@@ -19,75 +15,176 @@ export default function TakeTestPage({ params }: { params: Promise<{ id: string 
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    if (!id) return;
+
     async function fetchTest() {
-      // 3. Safely use the unwrapped 'id' string for your network request
-      const res = await fetch(`/api/test/${id}`);
-      const data = await res.json();
-      setTest(data.test);
-      setLoading(false);
-    }
-    fetchTest();
-  }, [id]); // Update dependency array to use the unwrapped ID
+      try {
+        const res = await fetch(`/api/tests/${id}`);
 
-  const handleSelect = (qId: string, value: string, isMulti: boolean) => {
-    setAnswers(prev => {
-      const current = prev[qId] || [];
-      if (isMulti) {
-        return { ...prev, [qId]: current.includes(value) ? current.filter(v => v !== value) : [...current, value] };
+        if (!res.ok) {
+          throw new Error('Failed to fetch test');
+        }
+
+        const data = await res.json();
+
+        console.log('Fetched Test:', data);
+
+        setTest(data.test);
+      } catch (err) {
+        console.error('Error fetching test:', err);
+      } finally {
+        setLoading(false);
       }
-      return { ...prev, [qId]: [value] };
+    }
+
+    fetchTest();
+  }, [id]);
+
+  const handleSelect = (
+    qId: string,
+    value: string,
+    isMulti: boolean
+  ) => {
+    setAnswers((prev) => {
+      const current = prev[qId] || [];
+
+      if (isMulti) {
+        return {
+          ...prev,
+          [qId]: current.includes(value)
+            ? current.filter((v) => v !== value)
+            : [...current, value],
+        };
+      }
+
+      return {
+        ...prev,
+        [qId]: [value],
+      };
     });
   };
 
-const submitTest = async () => {
+  async function submitTest() {
     setSubmitting(true);
-    const res = await fetch('/api/submit-test', {
-      method: 'POST',
-      body: JSON.stringify({ testId: id, answers }),
-    });
-    
-    // Change this line to route back to your new hub
-    if (res.ok) router.push('/test-hub'); 
-    
-    setSubmitting(false);
-  };
 
-  if (loading) return <div className="p-12 text-center text-slate-500">Loading Test...</div>;
+    try {
+      const res = await fetch('/api/submit-test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          testId: id,
+          answers,
+        }),
+      });
+
+      if (!res.ok) {
+        throw new Error('Submission failed');
+      }
+
+      router.push('/test-hub');
+    } catch (err) {
+      console.error(err);
+      alert('Failed to submit test.');
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-slate-500">
+        Loading Test...
+      </div>
+    );
+  }
+
+  if (!test) {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-red-500">
+        Test not found.
+      </div>
+    );
+  }
 
   return (
     <main className="max-w-3xl mx-auto py-12 px-4">
-      <h1 className="text-3xl font-black mb-8">{test?.title}</h1>
+
+      <h1 className="text-3xl font-black mb-2">
+        {test.title}
+      </h1>
+
+      {test.description && (
+        <p className="text-slate-500 mb-8">
+          {test.description}
+        </p>
+      )}
+
       <div className="space-y-8">
-        {test?.questions?.map((q: any, i: number) => (
-          <div key={q.id} className="bg-white p-6 rounded-2xl border border-slate-200">
-            <p className="font-bold text-lg mb-4">{i + 1}. {q.question_text}</p>
+
+        {test.questions?.map((q: any, index: number) => (
+          <div
+            key={q.id}
+            className="bg-white border border-slate-200 rounded-2xl p-6"
+          >
+            <h2 className="font-bold text-lg mb-4">
+              {index + 1}. {q.question_text}
+            </h2>
+
             {q.type === 'FITB' ? (
-              <input 
-                className="w-full p-3 border rounded-xl"
-                onChange={(e) => setAnswers({...answers, [q.id]: [e.target.value]})}
+              <input
+                type="text"
+                className="w-full border rounded-xl p-3"
+                value={answers[q.id]?.[0] || ''}
+                onChange={(e) =>
+                  setAnswers({
+                    ...answers,
+                    [q.id]: [e.target.value],
+                  })
+                }
               />
             ) : (
-              <div className="grid gap-2">
-                {q.options?.map((opt: string) => (
-                  <button 
-                    key={opt}
-                    onClick={() => handleSelect(q.id, opt, q.type === 'MSQ')}
-                    className={`p-3 rounded-lg border text-left ${answers[q.id]?.includes(opt) ? 'bg-indigo-600 text-white' : 'hover:bg-slate-50'}`}
+              <div className="space-y-2">
+
+                {q.options?.map((option: string) => (
+                  <button
+                    key={option}
+                    onClick={() =>
+                      handleSelect(
+                        q.id,
+                        option,
+                        q.type === 'MSQ'
+                      )
+                    }
+                    className={`w-full text-left p-3 rounded-xl border transition
+
+                      ${
+                        answers[q.id]?.includes(option)
+                          ? 'bg-indigo-600 text-white border-indigo-600'
+                          : 'bg-white hover:bg-slate-50'
+                      }
+                    `}
                   >
-                    {opt}
+                    {option}
                   </button>
                 ))}
+
               </div>
             )}
           </div>
         ))}
-        <button 
+
+        <button
           onClick={submitTest}
           disabled={submitting}
-          className="w-full bg-slate-900 text-white py-4 rounded-xl font-black disabled:bg-slate-400"
+          className="w-full py-4 rounded-xl bg-slate-900 text-white font-black disabled:bg-slate-400"
         >
-          {submitting ? 'Calculating...' : 'Submit Evaluation'}
+          {submitting
+            ? 'Submitting...'
+            : 'Submit Test'}
         </button>
+
       </div>
     </main>
   );
