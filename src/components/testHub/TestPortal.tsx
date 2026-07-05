@@ -1,5 +1,6 @@
 'use client';
 
+import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import {
   GraduationCap,
@@ -15,6 +16,8 @@ type Step = 'menu' | 'professors' | 'tests';
 
 export default function TestPortal() {
   const [step, setStep] = useState<Step>('menu');
+
+  const router = useRouter();
 
   const [loading, setLoading] = useState(false);
 
@@ -86,7 +89,7 @@ export default function TestPortal() {
             </div>
 
             <h2 className="text-2xl font-black text-[#1a3c34]">
-              Student Portal
+              Test Portal
             </h2>
 
             <p className="text-xs text-stone-500 mt-2">
@@ -98,7 +101,16 @@ export default function TestPortal() {
             onClick={() => setStep('professors')}
             className="mt-auto bg-[#ef7b3f] text-white rounded-xl py-3 font-bold flex items-center justify-center gap-2"
           >
-            Enter Student Portal
+            Enter Test Portal
+
+            <ArrowRight size={18} />
+          </button>
+
+          <button
+            onClick={() => router.push('/results')}
+            className="mt-auto bg-[#ef7b3f] text-white rounded-xl py-3 font-bold flex items-center justify-center gap-2"
+          >
+            Test Scores
 
             <ArrowRight size={18} />
           </button>
