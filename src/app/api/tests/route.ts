@@ -33,28 +33,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Unauthorized credentials session.' }, { status: 401 });
     }
 
+    // 1. Fetch profile for metadata (name, college, avatar)
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('username, institution, role')
+      .select('*')
       .eq('id', user.id)
       .maybeSingle();
 
     if (profileError || !profile) {
-      return NextResponse.json({ error: 'Profile configuration missing.' }, { status: 403 });
+      return NextResponse.json({ 
+        error: 'Profile configuration missing.', 
+        meta: {
+          uid_looked_for: user.id,
+          supabase_message: profileError?.message || 'No matching row found in profiles table.'
+        }
+      }, { status: 403 });
     }
 
-    if (profile.role?.toLowerCase() === 'student') {
-      return NextResponse.json(
-        { error: 'Forbidden: Student accounts are not authorized to publish assessments.' }, 
-        { status: 403 }
-      );
-    }
-
+    // 2. Parse the request payload (passcode requirement removed)
     const { title, description, questions } = await req.json();
+
+    // 3. Normal validation checks
     if (!title || !questions || questions.length === 0) {
       return NextResponse.json({ error: 'Incomplete evaluation data matrix.' }, { status: 400 });
     }
 
+    // 4. Insert directly into 'tests' table (ANYONE can do this now)
     const { data: testData, error: testErr } = await supabaseAdmin
       .from('tests')
       .insert([
@@ -63,9 +67,9 @@ export async function POST(req: Request) {
           description, 
           status: 'PUBLISHED',
           creator_id: user.id,
-          creator_name: profile.username || 'Anonymous Faculty',
-          creator_college: profile.institution || 'Dhakuakhana College Affiliate',
-          creator_avatar: null
+          creator_name: profile.username || 'Anonymous User',
+          creator_college: profile.institution || 'Unknown Institution',
+          creator_avatar: profile.avatar_url || null
         }
       ])
       .select()
@@ -73,6 +77,7 @@ export async function POST(req: Request) {
 
     if (testErr) throw testErr;
 
+    // 5. Structure relational transaction rows for 'questions' table
     const formattedQuestionsPayload = questions.map((q: any) => ({
       test_id: testData.id,
       type: q.type,
