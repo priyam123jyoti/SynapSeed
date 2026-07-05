@@ -64,34 +64,37 @@ export default function TakeTestPage() {
     });
   };
 
-  async function submitTest() {
-    setSubmitting(true);
+ async function submitTest() {
+  setSubmitting(true);
 
-    try {
-      const res = await fetch('/api/submit-test', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          testId: id,
-          studentName: 'Anonymous Student',
-          answers,
-        }),
-      });
+  try {
+    const res = await fetch('/api/submit-test', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        testId: id,
+        studentName: 'Anonymous Student',
+        answers,
+      }),
+    });
 
-      if (!res.ok) {
-        throw new Error('Submission failed');
-      }
+    const data = await res.json();
 
-      router.push('/test-hub');
-    } catch (err) {
-      console.error(err);
-      alert('Failed to submit test.');
-    } finally {
-      setSubmitting(false);
+    if (!res.ok) {
+      throw new Error(data.error || 'Submission failed');
     }
+
+    router.push(`/results/${data.submissionId}`);
+
+  } catch (err) {
+    console.error(err);
+    alert('Failed to submit test.');
+  } finally {
+    setSubmitting(false);
   }
+}
 
   if (loading) {
     return (

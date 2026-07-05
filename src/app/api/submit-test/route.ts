@@ -109,30 +109,35 @@ export async function POST(req: Request) {
     }
 
     // Store submission
-    const { error: insertError } =
-      await supabaseAdmin
-        .from('test_submissions')
-        .insert([
-          {
-            test_id: testId,
-            student_name:
-              studentName || 'Anonymous Student',
-            student_answers: answers,
-            score: finalScore,
-            total_questions: totalQuestions,
-          },
-        ]);
+const {
+  data: submission,
+  error: insertError,
+} = await supabaseAdmin
+  .from('test_submissions')
+  .insert([
+    {
+      test_id: testId,
+      student_name:
+        studentName || 'Anonymous Student',
+      student_answers: answers,
+      score: finalScore,
+      total_questions: totalQuestions,
+    },
+  ])
+  .select()
+  .single();
 
     if (insertError) {
       throw insertError;
     }
 
-    return NextResponse.json({
-      success: true,
-      score: finalScore,
-      maxScore: totalQuestions * 2,
-      totalQuestions,
-    });
+return NextResponse.json({
+  success: true,
+  submissionId: submission.id,
+  score: finalScore,
+  maxScore: totalQuestions * 2,
+  totalQuestions,
+});
 
   } catch (err: any) {
     console.error(
