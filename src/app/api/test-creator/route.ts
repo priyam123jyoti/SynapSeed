@@ -1,38 +1,56 @@
-//src/app/api/student-feed/route.ts
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET() {
   try {
-    // 1. Fetch all published tests
-    const { data: tests, error: testErr } = await supabaseAdmin
+    const { data, error } = await supabaseAdmin
       .from('tests')
-      .select('*')
+      .select(`
+        creator_id,
+        creator_name,
+        creator_college,
+        created_at
+      `)
       .eq('status', 'PUBLISHED')
       .order('created_at', { ascending: false });
 
-    if (testErr) throw testErr;
+    if (error) throw error;
 
-    // 2. Fetch submissions
-    // Note: In a full app, you would filter by the logged-in student's ID.
-    // For now, we fetch the latest submissions to populate your dashboard metrics.
-    const { data: submissions, error: subErr } = await supabaseAdmin
-      .from('test_submissions')
-      .select('test_id, score, total_questions');
+    const creatorMap = new Map();
 
-    if (subErr) throw subErr;
+    data?.forEach((test) => {
+      if (!test.creator_id) return;
 
-    // 3. Map submissions onto their respective tests
-    const payload = tests.map(test => {
-      const studentSubmission = submissions?.find(sub => sub.test_id === test.id);
-      return {
-        ...test,
-        submission: studentSubmission || null
-      };
+      const existing = creatorMap.get(test.creator_id);
+
+      if (!existing) {
+        creatorMap.set(test.creator_id, {
+          creator_id: test.creator_id,
+          creator_name: test.creator_name,
+          creator_college: test.creator_college,
+          total_tests: 1,
+          latest_test: test.created_at,
+        });
+      } else {
+        existing.total_tests++;
+
+        if (
+          new Date(test.created_at) >
+          new Date(existing.latest_test)
+        ) {
+          existing.latest_test = test.created_at;
+        }
+      }
     });
 
-    return NextResponse.json({ payload });
+    return NextResponse.json({
+      creators: Array.from(creatorMap.values()),
+    });
+
   } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json(
+      { error: err.message },
+      { status: 500 }
+    );
   }
 }
