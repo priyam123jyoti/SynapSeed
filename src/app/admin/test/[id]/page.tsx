@@ -126,13 +126,6 @@ export default function ViewTestPage() {
                 </div>
               )}
 
-              {/* Layout for Fill In the Blank */}
-              {q.type === 'FITB' && (
-                <div className="mt-2 p-3 bg-amber-50/30 border border-amber-100 rounded-xl">
-                  <span className="text-[10px] font-black text-amber-700 uppercase tracking-wider block mb-1">Target Criteria Validation Key:</span>
-                  <p className="text-sm font-semibold text-amber-900">{q.correct_answers.join(', ')}</p>
-                </div>
-              )}
             </div>
           ))}
         </div>
