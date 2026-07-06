@@ -46,9 +46,9 @@ export default function ResultsPage() {
             'Content-Type': 'application/json',
           },
 
-          body: JSON.stringify({
-            studentId: user.id,
-          }),
+body: JSON.stringify({
+  studentId: user?.id,
+}),
         });
 
         const data = await res.json();
