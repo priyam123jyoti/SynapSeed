@@ -53,7 +53,7 @@ export default function AdminTestCreatePage() {
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred while parsing the document.');
-    } declare {
+    } finally {
       setIsParsingPdf(false);
       e.target.value = '';
     }
