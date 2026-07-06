@@ -8,9 +8,9 @@ import { Plus, Sparkles, Trash2, Loader2, Upload, AlertCircle, Save, BrainCircui
 
 interface Question {
   id: string;
-  type: 'MCQ' | 'MSQ' ;
+  type: 'MCQ' | 'MSQ';
   question_text: string;
-  options: string[] | null;
+  options: string[];
   correct_answers: string[];
 }
 
@@ -27,7 +27,8 @@ export default function AdminTestCreatePage() {
   // Staging & Publishing State
   const [isPublishing, setIsPublishing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [stagedQuestions, setStagedQuestions] = useState<Partial<Question>[]>([]);
+  const [stagedQuestions, setStagedQuestions] =
+  useState<Question[]>([]);
 
   // --- 1. PDF Handling ---
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -90,16 +91,17 @@ export default function AdminTestCreatePage() {
   };
 
   // --- 3. Manual Overrides ---
-  const addBlankQuestion = (type: 'MCQ' | 'MSQ' | 'FITB') => {
-    const newQuestion: Partial<Question> = {
-      id: crypto.randomUUID(),
-      type,
-      question_text: '',
-      options: type === 'FITB' ? null : ['', '', '', ''],
-      correct_answers: []
-    };
-    setStagedQuestions([...stagedQuestions, newQuestion]);
+const addBlankQuestion = (type: 'MCQ' | 'MSQ') => {
+  const newQuestion: Partial<Question> = {
+    id: crypto.randomUUID(),
+    type,
+    question_text: '',
+    options: ['', '', '', ''],
+    correct_answers: [],
   };
+
+  setStagedQuestions([...stagedQuestions, newQuestion]);
+};
 
   // --- 4. Database Commit ---
   const saveAndPublishTest = async () => {
@@ -212,7 +214,6 @@ export default function AdminTestCreatePage() {
               <div className="flex gap-2">
                 <button onClick={() => addBlankQuestion('MCQ')} className="p-2 text-xs font-black bg-blue-50 text-blue-700 border border-blue-200 rounded-lg hover:bg-blue-100">+ MCQ</button>
                 <button onClick={() => addBlankQuestion('MSQ')} className="p-2 text-xs font-black bg-purple-50 text-purple-700 border border-purple-200 rounded-lg hover:bg-purple-100">+ MSQ</button>
-                <button onClick={() => addBlankQuestion('FITB')} className="p-2 text-xs font-black bg-amber-50 text-amber-700 border border-amber-200 rounded-lg hover:bg-amber-100">+ Blank</button>
               </div>
             </div>
 
@@ -243,7 +244,7 @@ export default function AdminTestCreatePage() {
                       className="w-full p-2 border-b border-slate-200 font-bold focus:outline-none focus:border-slate-900 text-sm"
                     />
                     
-                    {q.type !== 'FITB' && q.options && (
+                    {q.options && (
                       <div className="grid grid-cols-2 gap-3">
                         {q.options.map((opt, oIdx) => (
                           <div key={oIdx} className="flex items-center gap-2 border border-slate-100 rounded-xl p-2 bg-slate-50/50">
@@ -267,31 +268,13 @@ export default function AdminTestCreatePage() {
                               type="text" value={opt} placeholder={`Option ${oIdx + 1}`}
                               onChange={(e) => {
                                 const updated = [...stagedQuestions];
-                                if (updated[idx].options) {
-                                  updated[idx].options![oIdx] = e.target.value;
-                                  setStagedQuestions(updated);
-                                }
+updated[idx].options[oIdx] = e.target.value;
+setStagedQuestions(updated);
                               }}
                               className="bg-transparent text-xs w-full focus:outline-none font-medium"
                             />
                           </div>
                         ))}
-                      </div>
-                    )}
-                    
-                    {q.type === 'FITB' && (
-                      <div className="space-y-2">
-                        <label className="text-[10px] font-black uppercase text-slate-400 block">Accepted Target Evaluation Keywords</label>
-                        <input 
-                          type="text" placeholder="Provide correct words array mapping split by commas..."
-                          value={q.correct_answers?.join(', ') || ''}
-                          onChange={(e) => {
-                            const updated = [...stagedQuestions];
-                            updated[idx].correct_answers = e.target.value.split(',').map(s => s.trim());
-                            setStagedQuestions(updated);
-                          }}
-                          className="w-full text-xs p-2 bg-slate-50 border border-slate-100 rounded-xl focus:outline-none font-semibold text-emerald-700"
-                        />
                       </div>
                     )}
                   </div>
