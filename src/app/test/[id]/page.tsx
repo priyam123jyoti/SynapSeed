@@ -83,16 +83,11 @@ export default function TakeTestPage() {
         },
         body: JSON.stringify({
           testId: id,
-
-          // IMPORTANT
           studentName:
             user.user_metadata?.username ||
             user.email ||
             'Anonymous Student',
-
-          // IMPORTANT
           studentId: user.id,
-
           answers,
         }),
       });
@@ -103,9 +98,7 @@ export default function TakeTestPage() {
         throw new Error(data.error || 'Submission failed');
       }
 
-      // Redirect to individual result page
       router.push(`/results/${data.submissionId}`);
-
     } catch (err) {
       console.error(err);
       alert('Failed to submit test.');
@@ -132,7 +125,6 @@ export default function TakeTestPage() {
 
   return (
     <main className="max-w-3xl mx-auto py-12 px-4">
-
       {/* Header */}
       <div className="mb-10">
         <h1 className="text-4xl font-black text-slate-900 mb-2">
@@ -148,7 +140,6 @@ export default function TakeTestPage() {
 
       {/* Questions */}
       <div className="space-y-8">
-
         {test.questions?.map((q: any, index: number) => (
           <div
             key={q.id}
@@ -164,54 +155,34 @@ export default function TakeTestPage() {
               </h2>
             </div>
 
-            {/* FITB */}
-            {q.type === 'FITB' ? (
-              <input
-                type="text"
-                className="w-full border border-slate-300 rounded-2xl p-4 outline-none focus:ring-2 focus:ring-indigo-500"
-                value={answers[q.id]?.[0] || ''}
-                onChange={(e) =>
-                  setAnswers({
-                    ...answers,
-                    [q.id]: [e.target.value],
-                  })
-                }
-                placeholder="Type your answer..."
-              />
-            ) : (
-              <div className="space-y-3">
+            {/* MCQ / MSQ Options */}
+            <div className="space-y-3">
+              {q.options?.map((option: string) => {
+                const selected =
+                  answers[q.id]?.includes(option);
 
-                {q.options?.map((option: string) => {
-                  const selected =
-                    answers[q.id]?.includes(option);
-
-                  return (
-                    <button
-                      key={option}
-                      type="button"
-                      onClick={() =>
-                        handleSelect(
-                          q.id,
-                          option,
-                          q.type === 'MSQ'
-                        )
-                      }
-                      className={`w-full text-left p-4 rounded-2xl border transition-all duration-200
-
-                        ${
-                          selected
-                            ? 'bg-indigo-600 text-white border-indigo-600'
-                            : 'bg-white border-slate-200 hover:border-indigo-400 hover:bg-indigo-50'
-                        }
-                      `}
-                    >
-                      {option}
-                    </button>
-                  );
-                })}
-
-              </div>
-            )}
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() =>
+                      handleSelect(
+                        q.id,
+                        option,
+                        q.type === 'MSQ'
+                      )
+                    }
+                    className={`w-full text-left p-4 rounded-2xl border transition-all duration-200 ${
+                      selected
+                        ? 'bg-indigo-600 text-white border-indigo-600'
+                        : 'bg-white border-slate-200 hover:border-indigo-400 hover:bg-indigo-50'
+                    }`}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
 
             {/* Type Badge */}
             <div className="mt-5">
@@ -232,7 +203,6 @@ export default function TakeTestPage() {
             ? 'Submitting Test...'
             : 'Submit Test'}
         </button>
-
       </div>
     </main>
   );

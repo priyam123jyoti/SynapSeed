@@ -10,26 +10,52 @@ export async function POST(req: Request) {
 
     const {
       testId,
+      studentId,
       studentName,
       answers,
     } = body;
 
-    // Basic validation
+    // =========================
+    // Validation
+    // =========================
+
     if (!testId) {
       return NextResponse.json(
-        { error: 'Missing test ID.' },
-        { status: 400 }
+        {
+          error: 'Missing test ID.',
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    if (!studentId) {
+      return NextResponse.json(
+        {
+          error: 'Missing student ID.',
+        },
+        {
+          status: 400,
+        }
       );
     }
 
     if (!answers || typeof answers !== 'object') {
       return NextResponse.json(
-        { error: 'Invalid answers payload.' },
-        { status: 400 }
+        {
+          error: 'Invalid answers payload.',
+        },
+        {
+          status: 400,
+        }
       );
     }
 
-    // Fetch official questions from database
+    // =========================
+    // Fetch Questions
+    // =========================
+
     const {
       data: serverQuestions,
       error: questionError,
@@ -44,17 +70,24 @@ export async function POST(req: Request) {
 
     if (!serverQuestions || serverQuestions.length === 0) {
       return NextResponse.json(
-        { error: 'No questions found for this test.' },
-        { status: 404 }
+        {
+          error: 'No questions found for this test.',
+        },
+        {
+          status: 404,
+        }
       );
     }
+
+    // =========================
+    // Score Evaluation
+    // =========================
 
     let finalScore = 0;
 
     const totalQuestions = serverQuestions.length;
 
-    // Score evaluation engine
-    serverQuestions.forEach((question: Question) => {
+    for (const question of serverQuestions as Question[]) {
       const studentAnswers: string[] =
         answers[question.id] || [];
 
@@ -63,10 +96,13 @@ export async function POST(req: Request) {
 
       // Skip unanswered
       if (studentAnswers.length === 0) {
-        return;
+        continue;
       }
 
-      // MCQ + MSQ
+      // =========================
+      // MCQ + MSQ ONLY
+      // =========================
+
       if (
         question.type === 'MCQ' ||
         question.type === 'MSQ'
@@ -85,65 +121,67 @@ export async function POST(req: Request) {
         }
       }
 
-      // FITB
-      else if (question.type === 'FITB') {
-        const submitted =
-          studentAnswers[0]?.trim().toLowerCase();
+      // Ignore unsupported question types
+    }
 
-        const matched = correctAnswers.some(
-          (correct) =>
-            correct.trim().toLowerCase() === submitted
-        );
+    // =========================
+    // Prevent Negative Final Score
+    // =========================
 
-        if (matched) {
-          finalScore += 2;
-        } else {
-          finalScore -= 1;
-        }
-      }
-    });
-
-    // Prevent negative score overflow
     if (finalScore < 0) {
       finalScore = 0;
     }
 
-    // Store submission
-const {
-  data: submission,
-  error: insertError,
-} = await supabaseAdmin
-  .from('test_submissions')
-.insert([
-  {
-    test_id: testId,
+    // =========================
+    // Store Submission
+    // =========================
 
-    student_id: body.studentId,
+    const {
+      data: submission,
+      error: insertError,
+    } = await supabaseAdmin
+      .from('test_submissions')
+      .insert([
+        {
+          test_id: testId,
 
-    student_name:
-      studentName || 'Anonymous Student',
+          student_id: studentId,
 
-    student_answers: answers,
+          student_name:
+            studentName ||
+            'Anonymous Student',
 
-    score: finalScore,
+          student_answers: answers,
 
-    total_questions: totalQuestions,
-  },
-])
-  .select()
-  .single();
+          score: finalScore,
+
+          total_questions:
+            totalQuestions,
+        },
+      ])
+      .select()
+      .single();
 
     if (insertError) {
       throw insertError;
     }
 
-return NextResponse.json({
-  success: true,
-  submissionId: submission.id,
-  score: finalScore,
-  maxScore: totalQuestions * 2,
-  totalQuestions,
-});
+    // =========================
+    // Success Response
+    // =========================
+
+    return NextResponse.json({
+      success: true,
+
+      submissionId: submission.id,
+
+      score: finalScore,
+
+      maxScore:
+        totalQuestions * 2,
+
+      totalQuestions,
+    });
 
   } catch (err: any) {
     console.error(
@@ -154,9 +192,12 @@ return NextResponse.json({
     return NextResponse.json(
       {
         error:
-          err.message || 'Internal server error',
+          err.message ||
+          'Internal server error',
       },
-      { status: 500 }
+      {
+        status: 500,
+      }
     );
   }
 }

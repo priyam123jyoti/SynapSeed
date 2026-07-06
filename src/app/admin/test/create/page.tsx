@@ -8,7 +8,7 @@ import { Plus, Sparkles, Trash2, Loader2, Upload, AlertCircle, Save, BrainCircui
 
 interface Question {
   id: string;
-  type: 'MCQ' | 'MSQ' | 'FITB';
+  type: 'MCQ' | 'MSQ' ;
   question_text: string;
   options: string[] | null;
   correct_answers: string[];
