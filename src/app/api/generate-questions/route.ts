@@ -1,17 +1,29 @@
-// src/app/api/generate-questions/route.ts
-
 import { NextResponse } from 'next/server';
+
+interface Question {
+  id: string;
+  type: 'MCQ' | 'MSQ';
+  question_text: string;
+  options: string[];
+  correct_answers: string[];
+}
 
 export async function POST(req: Request) {
   try {
-    const { context } = await req.json();
+    const body = await req.json();
+
+    const context: string = body.context ?? '';
+
+    // New field (optional)
+    const desiredQuestionCount: number =
+      Number(body.desiredQuestionCount) || 20;
 
     const apiKey = process.env.GROQ_API_KEY;
 
     if (!apiKey) {
       return NextResponse.json(
         {
-          error: 'Groq API Key configuration missing from environment rules.',
+          error: 'Groq API Key is missing.',
         },
         {
           status: 500,
@@ -19,11 +31,10 @@ export async function POST(req: Request) {
       );
     }
 
-    if (!context || context.length > 40000) {
+    if (!context.trim()) {
       return NextResponse.json(
         {
-          error:
-            'Payload bounds out of limits. Maximum text limit is 40k characters.',
+          error: 'Study material is required.',
         },
         {
           status: 400,
@@ -31,42 +42,107 @@ export async function POST(req: Request) {
       );
     }
 
-    // AI Instruction
-    const systemInstructionSchema = `
-You are a strict automated assessment generator for an LMS.
+    if (context.length > 40000) {
+      return NextResponse.json(
+        {
+          error:
+            'Maximum context size is 40,000 characters.',
+        },
+        {
+          status: 400,
+        }
+      );
+    }
 
-Analyze the provided study material and generate assessment questions.
+    const safeQuestionCount = Math.max(
+      1,
+      Math.min(desiredQuestionCount, 100)
+    );
 
-ONLY generate these two question types:
+    const systemPrompt = `
+You are an expert assessment paper generator.
 
-1. "MCQ"
-   - Multiple Choice
-   - Exactly 4 options
-   - Exactly 1 correct answer
+Your job is to carefully read the supplied study material and generate high-quality examination questions.
 
-2. "MSQ"
-   - Multiple Select
-   - Exactly 4 options
-   - One or more correct answers
+========================
+QUESTION TYPES ALLOWED
+========================
 
-DO NOT generate Fill in the Blank (FITB), True/False, Short Answer, Essay, or any other question type.
+Generate ONLY:
 
-Return ONLY valid JSON matching this schema:
+1. MCQ
+- Exactly 4 options
+- Exactly ONE correct answer
+
+2. MSQ
+- Exactly 4 options
+- One or more correct answers
+
+Never generate:
+
+- Fill in the Blank
+- True / False
+- Essay
+- Short Answer
+- Matching
+- Ordering
+- Any other question type
+
+========================
+QUESTION COUNT
+========================
+
+The user would LIKE approximately ${safeQuestionCount} questions.
+
+This is NOT mandatory.
+
+Generate as many high-quality questions as reasonably possible from the material.
+
+If the study material is small,
+generate fewer.
+
+If the study material is large,
+generate close to ${safeQuestionCount}.
+
+Never invent facts that are not present.
+
+Avoid duplicate questions.
+
+Cover as many different topics as possible.
+
+========================
+QUALITY RULES
+========================
+
+Questions should:
+
+- cover the entire document
+- avoid repetition
+- vary in difficulty
+- include conceptual questions
+- include factual questions
+- include application questions where possible
+
+========================
+JSON FORMAT
+========================
+
+Return ONLY JSON.
 
 {
-  "questions": [
+  "questions":[
     {
-      "id": "generate-a-short-random-unique-id",
-      "type": "MCQ" | "MSQ",
-      "question_text": "Question text",
-      "options": [
-        "Choice A",
-        "Choice B",
-        "Choice C",
-        "Choice D"
+      "id":"unique-id",
+      "type":"MCQ",
+      "question_text":"...",
+      "options":[
+        "...",
+        "...",
+        "...",
+        "..."
       ],
-      "correct_answers": [
-        "Exact option text"
+      "correct_answers":[
+        "..."
       ]
     }
   ]
@@ -83,50 +159,58 @@ Return ONLY valid JSON matching this schema:
         },
         body: JSON.stringify({
           model: 'llama-3.3-70b-versatile',
-          messages: [
-            {
-              role: 'system',
-              content: systemInstructionSchema,
-            },
-            {
-              role: 'user',
-              content: `Analyze this reference material and generate assessment questions:\n\n${context}`,
-            },
-          ],
+
+          temperature: 0.3,
+
           response_format: {
             type: 'json_object',
           },
-          temperature: 0.3,
+
+          messages: [
+            {
+              role: 'system',
+              content: systemPrompt,
+            },
+            {
+              role: 'user',
+              content: context,
+            },
+          ],
         }),
       }
     );
 
     if (!response.ok) {
-      const errorPayload = await response.text();
-      throw new Error(
-        `Groq API Error: ${errorPayload}`
-      );
+      const error = await response.text();
+
+      throw new Error(error);
     }
 
-    const groqRawData = await response.json();
+    const groq = await response.json();
 
-    const jsonStringOutput =
-      groqRawData.choices[0].message.content;
+    const rawContent =
+      groq.choices?.[0]?.message?.content ?? '{}';
 
-    const verifiedDataPayload =
-      JSON.parse(jsonStringOutput);
+    const parsed = JSON.parse(rawContent);
+
+    const questions: Question[] = Array.isArray(parsed.questions)
+      ? parsed.questions
+      : [];
 
     return NextResponse.json({
-      questions:
-        verifiedDataPayload.questions || [],
+      requestedQuestions: safeQuestionCount,
+      generatedQuestions: questions.length,
+      questions,
     });
+  } catch (error) {
+    console.error(error);
 
-  } catch (err: any) {
     return NextResponse.json(
       {
         error:
-          err.message ||
-          'Internal server error',
+          error instanceof Error
+            ? error.message
+            : 'Internal server error.',
       },
       {
         status: 500,
