@@ -29,7 +29,7 @@ export async function POST(req: Request) {
       .from('test_submissions')
       .select('*')
       .eq('student_id', studentId)
-      .order('id', { ascending: false });
+      .order('score', { ascending: false });
 
     if (submissionsError) {
       throw submissionsError;
