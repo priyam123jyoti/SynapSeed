@@ -2,10 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthProvider';
 
 export default function TakeTestPage() {
   const router = useRouter();
   const params = useParams();
+
+  const { user } = useAuth();
 
   const id = params.id as string;
 
@@ -64,37 +67,52 @@ export default function TakeTestPage() {
     });
   };
 
- async function submitTest() {
-  setSubmitting(true);
-
-  try {
-    const res = await fetch('/api/submit-test', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        testId: id,
-        studentName: 'Anonymous Student',
-        answers,
-      }),
-    });
-
-    const data = await res.json();
-
-    if (!res.ok) {
-      throw new Error(data.error || 'Submission failed');
+  async function submitTest() {
+    if (!user) {
+      alert('Please login first.');
+      return;
     }
 
-    router.push(`/results/${data.submissionId}`);
+    setSubmitting(true);
 
-  } catch (err) {
-    console.error(err);
-    alert('Failed to submit test.');
-  } finally {
-    setSubmitting(false);
+    try {
+      const res = await fetch('/api/submit-test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          testId: id,
+
+          // IMPORTANT
+          studentName:
+            user.user_metadata?.username ||
+            user.email ||
+            'Anonymous Student',
+
+          // IMPORTANT
+          studentId: user.id,
+
+          answers,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Submission failed');
+      }
+
+      // Redirect to individual result page
+      router.push(`/results/${data.submissionId}`);
+
+    } catch (err) {
+      console.error(err);
+      alert('Failed to submit test.');
+    } finally {
+      setSubmitting(false);
+    }
   }
-}
 
   if (loading) {
     return (
@@ -115,31 +133,42 @@ export default function TakeTestPage() {
   return (
     <main className="max-w-3xl mx-auto py-12 px-4">
 
-      <h1 className="text-3xl font-black mb-2">
-        {test.title}
-      </h1>
+      {/* Header */}
+      <div className="mb-10">
+        <h1 className="text-4xl font-black text-slate-900 mb-2">
+          {test.title}
+        </h1>
 
-      {test.description && (
-        <p className="text-slate-500 mb-8">
-          {test.description}
-        </p>
-      )}
+        {test.description && (
+          <p className="text-slate-500 text-lg">
+            {test.description}
+          </p>
+        )}
+      </div>
 
+      {/* Questions */}
       <div className="space-y-8">
 
         {test.questions?.map((q: any, index: number) => (
           <div
             key={q.id}
-            className="bg-white border border-slate-200 rounded-2xl p-6"
+            className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm"
           >
-            <h2 className="font-bold text-lg mb-4">
-              {index + 1}. {q.question_text}
-            </h2>
+            <div className="mb-5">
+              <p className="text-sm font-bold text-indigo-600 mb-2">
+                Question {index + 1}
+              </p>
 
+              <h2 className="font-bold text-xl text-slate-900 leading-relaxed">
+                {q.question_text}
+              </h2>
+            </div>
+
+            {/* FITB */}
             {q.type === 'FITB' ? (
               <input
                 type="text"
-                className="w-full border rounded-xl p-3"
+                className="w-full border border-slate-300 rounded-2xl p-4 outline-none focus:ring-2 focus:ring-indigo-500"
                 value={answers[q.id]?.[0] || ''}
                 onChange={(e) =>
                   setAnswers({
@@ -147,45 +176,60 @@ export default function TakeTestPage() {
                     [q.id]: [e.target.value],
                   })
                 }
+                placeholder="Type your answer..."
               />
             ) : (
-              <div className="space-y-2">
+              <div className="space-y-3">
 
-                {q.options?.map((option: string) => (
-                  <button
-                    key={option}
-                    onClick={() =>
-                      handleSelect(
-                        q.id,
-                        option,
-                        q.type === 'MSQ'
-                      )
-                    }
-                    className={`w-full text-left p-3 rounded-xl border transition
+                {q.options?.map((option: string) => {
+                  const selected =
+                    answers[q.id]?.includes(option);
 
-                      ${
-                        answers[q.id]?.includes(option)
-                          ? 'bg-indigo-600 text-white border-indigo-600'
-                          : 'bg-white hover:bg-slate-50'
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() =>
+                        handleSelect(
+                          q.id,
+                          option,
+                          q.type === 'MSQ'
+                        )
                       }
-                    `}
-                  >
-                    {option}
-                  </button>
-                ))}
+                      className={`w-full text-left p-4 rounded-2xl border transition-all duration-200
+
+                        ${
+                          selected
+                            ? 'bg-indigo-600 text-white border-indigo-600'
+                            : 'bg-white border-slate-200 hover:border-indigo-400 hover:bg-indigo-50'
+                        }
+                      `}
+                    >
+                      {option}
+                    </button>
+                  );
+                })}
 
               </div>
             )}
+
+            {/* Type Badge */}
+            <div className="mt-5">
+              <span className="inline-flex px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600">
+                {q.type}
+              </span>
+            </div>
           </div>
         ))}
 
+        {/* Submit Button */}
         <button
           onClick={submitTest}
           disabled={submitting}
-          className="w-full py-4 rounded-xl bg-slate-900 text-white font-black disabled:bg-slate-400"
+          className="w-full py-5 rounded-2xl bg-slate-900 text-white font-black text-lg hover:bg-slate-800 transition disabled:bg-slate-400"
         >
           {submitting
-            ? 'Submitting...'
+            ? 'Submitting Test...'
             : 'Submit Test'}
         </button>
 

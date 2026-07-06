@@ -1,34 +1,57 @@
+// src/app/api/results/route.ts
+
 import { NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
 
-export async function GET() {
+export async function POST(req: Request) {
   try {
+    const body = await req.json();
 
+    const studentId = body.studentId;
+
+    // Validation
+    if (!studentId) {
+      return NextResponse.json(
+        {
+          error: 'Missing student ID',
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    // Fetch only this student's submissions
     const {
       data: submissions,
       error: submissionsError,
     } = await supabaseAdmin
       .from('test_submissions')
-      .select('*');
+      .select('*')
+      .eq('student_id', studentId)
+      .order('id', { ascending: false });
 
     if (submissionsError) {
       throw submissionsError;
     }
 
+    // No participated tests
     if (!submissions || submissions.length === 0) {
       return NextResponse.json({
         results: [],
       });
     }
 
+    // Unique test ids
     const uniqueTestIds = [
       ...new Set(
-        submissions
-          .map((s) => s.test_id)
-          .filter(Boolean)
+        submissions.map(
+          (submission) => submission.test_id
+        )
       ),
     ];
 
+    // Fetch linked tests
     const {
       data: tests,
       error: testsError,
@@ -37,7 +60,9 @@ export async function GET() {
       .select(`
         id,
         title,
-        description
+        description,
+        creator_name,
+        creator_college
       `)
       .in('id', uniqueTestIds);
 
@@ -45,6 +70,7 @@ export async function GET() {
       throw testsError;
     }
 
+    // Build final results payload
     const results = submissions.map(
       (submission) => {
 
@@ -53,32 +79,43 @@ export async function GET() {
             test.id === submission.test_id
         );
 
+        const maxScore =
+          submission.total_questions * 2;
+
+        const percentage = Math.max(
+          0,
+          Math.round(
+            (submission.score / maxScore) * 100
+          )
+        );
+
         return {
           id: submission.id,
+
+          test_id: submission.test_id,
+
+          student_name:
+            submission.student_name,
 
           score: submission.score,
 
           total_questions:
             submission.total_questions,
 
-          percentage: Math.max(
-            0,
-            Math.round(
-              (submission.score /
-                (submission.total_questions * 2)) *
-                100
-            )
-          ),
+          max_score: maxScore,
 
-          test: matchedTest || {
-            title: 'Unknown Test',
-            description: '',
-          },
+          percentage,
+
+          submitted_at:
+            submission.created_at || null,
+
+          test: matchedTest || null,
         };
       }
     );
 
     return NextResponse.json({
+      success: true,
       results,
     });
 

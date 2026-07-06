@@ -114,16 +114,22 @@ const {
   error: insertError,
 } = await supabaseAdmin
   .from('test_submissions')
-  .insert([
-    {
-      test_id: testId,
-      student_name:
-        studentName || 'Anonymous Student',
-      student_answers: answers,
-      score: finalScore,
-      total_questions: totalQuestions,
-    },
-  ])
+.insert([
+  {
+    test_id: testId,
+
+    student_id: body.studentId,
+
+    student_name:
+      studentName || 'Anonymous Student',
+
+    student_answers: answers,
+
+    score: finalScore,
+
+    total_questions: totalQuestions,
+  },
+])
   .select()
   .single();
 
