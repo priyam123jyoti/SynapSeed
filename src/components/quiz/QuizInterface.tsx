@@ -144,7 +144,7 @@ export const QuizInterface = ({
               className="p-6 bg-emerald-950/20 rounded-2xl border border-emerald-500/20 text-[12px] text-emerald-100/80 mb-8 leading-relaxed"
             >
               <span className="text-emerald-400 font-black tracking-widest text-[9px] block mb-2 uppercase flex items-center gap-2">
-                <Dna size={12} /> MOANA_ANALYSIS_DATA:
+                <Dna size={12} /> KAKU_ANALYSIS_DATA:
               </span> 
               {question.explanation}
             </motion.aside>

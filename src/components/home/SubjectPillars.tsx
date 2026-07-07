@@ -27,7 +27,7 @@ const SUBJECTS = [
     icon: <Beaker size={32} />,
     stats: '12,000+ Questions',
     topic: 'Organic Chemistry Mechanisms',
-    description: 'Organic mechanisms and Chemical bonding deconstructed by MoanaAI.',
+    description: 'Organic mechanisms and Chemical bonding deconstructed by KAKU AI.',
     color: 'from-emerald-500/20 to-teal-500/20',
     border: 'hover:border-emerald-400',
     iconColor: 'text-emerald-500'
@@ -82,7 +82,7 @@ const SubjectPillars = memo(() => {
             Choose Your <span className="text-emerald-600">Battlefield</span>
           </h2>
           <p className="text-gray-500 font-medium max-w-xl mx-auto">
-            MoanaAI has indexed millions of data points across the core sciences to generate infinite practice for you.
+            KAKU AI has indexed millions of data points across the core sciences to generate infinite practice for you.
           </p>
         </div>
 
@@ -135,7 +135,7 @@ const SubjectPillars = memo(() => {
       <AuthGuardModal 
         isOpen={isModalOpen} 
         onClose={() => setIsModalOpen(false)} 
-        title="MoanaAI" 
+        title="KAKU AI" 
       />
     </section>
   );

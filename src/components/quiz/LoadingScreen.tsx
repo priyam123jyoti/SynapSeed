@@ -11,7 +11,7 @@ interface Props {
 export const LoadingScreen = ({ topic }: Props) => (
   <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center font-mono selection:bg-emerald-500/30">
     <div className="relative">
-      {/* Moana Orbital Ring */}
+      {/* KAKU Orbital Ring */}
       <motion.div 
         animate={{ rotate: 360 }} 
         transition={{ repeat: Infinity, duration: 2.5, ease: "linear" }}
@@ -47,7 +47,7 @@ export const LoadingScreen = ({ topic }: Props) => (
         animate={{ opacity: 1 }}
         className="text-2xl font-black text-white tracking-tighter uppercase"
       >
-        MOANA <span className="text-emerald-500 underline decoration-double underline-offset-8">V1.0</span> INITIALIZING
+        KAKU <span className="text-emerald-500 underline decoration-double underline-offset-8">V1.0</span> INITIALIZING
       </motion.h2>
 
       <div className="flex flex-col items-center gap-2">
@@ -72,7 +72,7 @@ export const LoadingScreen = ({ topic }: Props) => (
 
     {/* Technical Footnote */}
     <div className="absolute flex text-center items-center justify-center bottom-10 text-[8px] text-emerald-900 font-bold tracking-[0.5em] uppercase">
-      Moana AI Responding // Biometric Check Passed
+      KAKU AI Responding // Biometric Check Passed
     </div>
   </div>
 );

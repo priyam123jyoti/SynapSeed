@@ -35,7 +35,7 @@ export const MindMapNavbar = ({ isFullScreen, setIsFullScreen, activeView, setAc
 
         <div className="hidden md:flex flex-col text-left">
           <h1 className="text-[10px] font-black uppercase tracking-[0.4em] text-emerald-400">
-            MoanaAI
+            KAKU AI
           </h1>
           <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
              Mind Map Gen

@@ -84,7 +84,7 @@ export default function Navbar({ user: propUser }: { user?: any }) {
 
           <div className="flex flex-col leading-none">
             <span className="text-xl font-bold text-emerald-950 tracking-tight">Department of<span className="text-emerald-600"> Botany</span></span>
-            <span className="text-[10px] uppercase tracking-widest text-emerald-600/80 font-bold">Powered by Moana AI</span>
+            <span className="text-[10px] uppercase tracking-widest text-emerald-600/80 font-bold">Powered by KAKU AI</span>
           </div>
 
         {/* Center: Menu */}

@@ -44,7 +44,7 @@ const AIFloatingButton = () => {
             </div>
 
             <h3 className="text-white text-xl font-black tracking-tighter mb-4 leading-none">
-              LOGIN TO USE <span className="text-red-500 uppercase"> MoanaAI</span>
+              LOGIN TO USE <span className="text-red-500 uppercase"> KAKU AI</span>
             </h3>
 
             <button
@@ -121,7 +121,7 @@ const AIFloatingButton = () => {
             {isDenied ? 'Locked' : 'Research AI'}
           </span>
           <span className="text-sm font-medium text-slate-200">
-            Meet Moana
+            Meet KAKU 
           </span>
         </div>
       </motion.button>

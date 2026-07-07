@@ -94,7 +94,7 @@ const handleNavigate = useCallback((path: string, subject: string) => {
           
           <div className="text-right">
             <h1 className="text-2xl font-black text-white tracking-tighter uppercase italic">
-              MOANA <span className="text-emerald-500 underline decoration-double underline-offset-4">V1.0</span>
+              KAKU <span className="text-emerald-500 underline decoration-double underline-offset-4">V1.0</span>
             </h1>
             <p className="text-[16px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-1">
               HI, {userName}

@@ -22,9 +22,9 @@ export const metadata: Metadata = {
     default: "Botany Department | Dhakuakhana College Autonomous, Lakhimpur, Assam",
     template: "%s | Botany Department, Dhakuakhana College Autonomous"
   },
-  description: "Official website of the Department of Botany, Dhakuakhana College Autonomous. Featuring AI-powered mindmaps, Moana AI unlimited quizzes for Physics, Chemistry, Botany, Zoology, and academic resources.",
-  keywords: ["Botany Department", "Dhakuakhana College", "Moana AI", "AI Mindmap Generator", "Botany Quiz Game"],
-  
+  description: "Official website of the Department of Botany, Dhakuakhana College Autonomous. Featuring AI-powered mindmaps, KAKU AI unlimited quizzes for Physics, Chemistry, Botany, Zoology, and academic resources.",
+  keywords: ["Botany Department", "Dhakuakhana College", "KAKU AI", "AI Mindmap Generator", "Botany Quiz Game"],
+
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",

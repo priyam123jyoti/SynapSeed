@@ -21,7 +21,7 @@ export const ResultsModal = ({ score, onReview, onTerminate, onRestart }: Result
 
   const rank = useMemo(() => {
     if (score === 100) return { 
-        title: "BIOLOGICAL DEITY • MOANA_SAPIEN", 
+        title: "BIOLOGICAL DEITY • KAKU_SAPIEN", 
         sub: "NEURAL SYNC PERFECT. STATUS: EVOLVED. 🔥🔥",
         color: "text-yellow-400", border: "border-yellow-500/50", bg: "bg-yellow-400/10", glow: "shadow-[0_0_60px_rgba(250,204,21,0.4)]"
     };
@@ -83,7 +83,7 @@ export const ResultsModal = ({ score, onReview, onTerminate, onRestart }: Result
                   {rank.sub}
                 </h3>
                 <p className="text-[9px] text-emerald-200/30 uppercase font-black tracking-[0.5em]">
-                  MOANA_NEURAL_INDEX_V1.0 • Dhakuakhana College Botany
+                  KAKU_NEURAL_INDEX_V1.0 • Dhakuakhana College Botany
                 </p>
             </div>
 
@@ -96,7 +96,7 @@ export const ResultsModal = ({ score, onReview, onTerminate, onRestart }: Result
 
             {/* SEO FOOTER: Reinforcing local authority */}
             <footer className="sr-only">
-              Verified by Moana AI. Educational content under the Department of Botany.
+              Verified by KAKU AI. Educational content under the Department of Botany.
             </footer>
           </motion.div>
         </motion.div>

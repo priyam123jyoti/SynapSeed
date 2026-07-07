@@ -17,7 +17,7 @@ const stats = [
     value: "250K+", 
     icon: Zap, 
     iconColor: "text-amber-500",
-    desc: "Powered by MoanaAI" 
+    desc: "Powered by KAKU AI" 
   },
   { 
     label: "Mind Maps Created", 

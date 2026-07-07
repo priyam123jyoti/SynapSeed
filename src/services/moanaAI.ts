@@ -5,7 +5,7 @@ const groq = new Groq({
   dangerouslyAllowBrowser: true 
 });
 
-const MOANA_IDENTITY = `You are M.O.A.N.A. (Molecular Organism & Advanced Neural Analyzer). 
+const MOANA_IDENTITY = `You are KAKU. 
 Created by Priyamjyoti Dihingia. 
 You are a master of Physics, Chemistry, Botany, and Zoology curriculum (HS to MSc levels).`;
 
@@ -61,7 +61,7 @@ export const generateMindMap = async (rawText: string) => {
     
     return { maps: [] };
   } catch (error) {
-    console.error("M.O.A.N.A. ARCHITECT ERROR:", error);
+    console.error("KAKU ARCHITECT ERROR:", error);
     return { maps: [] };
   }
 };
@@ -112,7 +112,7 @@ export const generateMoanaQuiz = async (topic: string, subject: string) => {
     
     return Array.isArray(data.questions) ? data.questions : [];
   } catch (error) {
-    console.error("MOANA_QUIZ_ENGINE_FAILURE:", error);
+    console.error("KAKU_QUIZ_ENGINE_FAILURE:", error);
     return [];
   }
 };

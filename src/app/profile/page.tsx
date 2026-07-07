@@ -51,7 +51,7 @@ export default function ProfilePage() {
               onClick={() => setShowLogoutConfirm(true)}
               className="text-red-500 text-[10px] font-black uppercase tracking-[0.25em] hover:opacity-60 transition-all"
             >
-              Terminate Session?
+              log Out?
             </button>
           </div>
         </div>

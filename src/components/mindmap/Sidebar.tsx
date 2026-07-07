@@ -77,7 +77,7 @@ export const Sidebar = ({
       {/* INPUT SECTION */}
       <div className="p-6 border-b border-slate-100 bg-white">
         <h2 className="text-sm font-black text-slate-800 uppercase flex items-center gap-2 mb-4">
-          <BrainCircuit size={18} className="text-emerald-500" /> Moana Intelligence
+          <BrainCircuit size={18} className="text-emerald-500" /> KAKU Intelligence
         </h2>
         
         <textarea 
