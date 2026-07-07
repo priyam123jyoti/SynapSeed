@@ -1,8 +1,15 @@
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
 
-export async function GET(req: Request, { params }: { params: { paperId: string } }) {
+// Type context params as a Promise
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ paperId: string }> }
+) {
   try {
+    // Await the asynchronous params object before extracting the ID
+    const { paperId } = await params;
+    
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -14,7 +21,7 @@ export async function GET(req: Request, { params }: { params: { paperId: string 
     const { data: paper, error: paperError } = await supabase
       .from('papers')
       .select('file_path, uploader_id')
-      .eq('id', params.paperId)
+      .eq('id', paperId)
       .single();
 
     if (paperError || !paper) {
@@ -23,12 +30,11 @@ export async function GET(req: Request, { params }: { params: { paperId: string 
 
     // 2. Allow bypass parameters if the requester is the authentic author/uploader
     if (paper.uploader_id !== user.id) {
-      // Otherwise enforce checking purchase verification index schema
       const { data: unlock } = await supabase
         .from('paper_unlocks')
         .select('id')
         .eq('user_id', user.id)
-        .eq('paper_id', params.paperId)
+        .eq('paper_id', paperId)
         .single();
 
       if (!unlock) {
@@ -45,7 +51,6 @@ export async function GET(req: Request, { params }: { params: { paperId: string 
       return NextResponse.json({ error: 'Vault file retrieval execution failure.' }, { status: 500 });
     }
 
-    // 4. Return secure link and identity verification criteria properties to client browser
     return NextResponse.json({
       signedUrl: storageData.signedUrl,
       identity: user.email,
