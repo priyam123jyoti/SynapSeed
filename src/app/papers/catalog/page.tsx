@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, SlidersHorizontal, BookOpen, GraduationCap, Building2, Calendar, Wallet, CheckCircle } from 'lucide-react';
+import { Search, Building2, GraduationCap, Calendar, Wallet, Loader2 } from 'lucide-react';
 
 interface PaperItem {
   id: string;
@@ -20,7 +20,6 @@ interface PaperItem {
 export default function PaperCatalogPage() {
   const router = useRouter();
   const [papers, setPapers] = useState<PaperItem[]>([]);
-  const [unlockedIds, setUnlockedIds] = useState<string[]>([]);
   const [userWallet, setUserWallet] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
@@ -30,21 +29,35 @@ export default function PaperCatalogPage() {
   const [programFilter, setProgramFilter] = useState('');
   const [semFilter, setSemFilter] = useState('');
 
+  // FIX #1: Actually fetch, unwrap, and commit data to state
   async function fetchMarketplaceData() {
     try {
-      // 1. In a production build, combine these fetch paths or pull them from an overarching state provider
-      const resCatalog = await fetch('/api/papers/catalog-list'); // Create a standard fetch wrapper to query public.papers
-      // For this step execution context, we simulate pulling the current authenticated parameters
-      const resProfile = await fetch('/api/user/profile-wallet'); 
+      setLoading(true);
       
-      // Stand-in mapping block until custom api wrappers are bound:
-      // const data = await resCatalog.json();
+      // Pull papers list
+      const resCatalog = await fetch('/api/papers/catalog-list');
+      if (resCatalog.ok) {
+        const catalogData = await resCatalog.json();
+        setPapers(catalogData);
+      }
+
+      // Pull wallet profile info
+      const resProfile = await fetch('/api/user/profile-wallet'); 
+      if (resProfile.ok) {
+        const profileData = await resProfile.json();
+        setUserWallet(Number(profileData.wallet_balance) || 0);
+      }
     } catch (e) {
-      console.error(e);
+      console.error("Error hydrating marketplace:", e);
     } finally {
       setLoading(false);
     }
   }
+
+  // FIX #2: Run the function automatically when the component mounts
+  useEffect(() => {
+    fetchMarketplaceData();
+  }, []);
 
   const handlePurchase = async (paperId: string) => {
     setActionId(paperId);
@@ -58,7 +71,6 @@ export default function PaperCatalogPage() {
 
       if (!res.ok) throw new Error(data.error || 'Transaction failure.');
 
-      alert('Purchase completely cleared! Secure tokens mapped to profile.');
       router.push(`/papers/view/${paperId}`);
     } catch (err: any) {
       alert(`Transaction Rejected: ${err.message}`);
@@ -66,6 +78,27 @@ export default function PaperCatalogPage() {
       setActionId(null);
     }
   };
+
+  // Client-side filtering logic matching your UI search bars
+  const filteredPapers = papers.filter((paper) => {
+    const matchesSearch = 
+      paper.course_title.toLowerCase().includes(search.toLowerCase()) ||
+      paper.course_code.toLowerCase().includes(search.toLowerCase()) ||
+      paper.college_name.toLowerCase().includes(search.toLowerCase());
+    
+    const matchesProgram = programFilter === '' || paper.program === programFilter;
+    const matchesSemester = semFilter === '' || paper.semester.toString() === semFilter;
+
+    return matchesSearch && matchesProgram && matchesSemester;
+  });
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center text-xs font-bold uppercase tracking-widest text-slate-500 gap-2">
+        <Loader2 className="animate-spin text-slate-900" size={20} /> Syncing Marketplace Ledger...
+      </div>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-slate-50 p-6 md:p-12">
@@ -109,6 +142,8 @@ export default function PaperCatalogPage() {
               <option value="BTech">B.TECH</option>
               <option value="BSc">B.Sc</option>
               <option value="MSc">M.Sc</option>
+              <option value="BCA">BCA</option>
+              <option value="BBA">BBA</option>
             </select>
 
             <select 
@@ -117,49 +152,53 @@ export default function PaperCatalogPage() {
               onChange={(e) => setSemFilter(e.target.value)}
             >
               <option value="">All Semesters</option>
-              {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s}>Sem {s}</option>)}
+              {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s.toString()}>Sem {s}</option>)}
             </select>
           </div>
         </div>
 
         {/* Catalog Grid Distribution */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Mock Item Mapping Loop for illustration context visualization */}
-          {papers.map((paper) => (
-            <div key={paper.id} className="bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all p-6 flex flex-col justify-between space-y-4">
-              <div className="space-y-3">
-                <div className="flex justify-between items-start">
-                  <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-widest">
-                    {paper.exam_type}
-                  </span>
-                  <span className="text-xs font-black text-slate-900">₹5.00</span>
+        {filteredPapers.length === 0 ? (
+          <div className="text-center p-12 bg-white rounded-2xl border border-slate-200 text-slate-400 text-xs font-bold uppercase tracking-wider">
+            No papers found matching the specified parameters.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredPapers.map((paper) => (
+              <div key={paper.id} className="bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all p-6 flex flex-col justify-between space-y-4">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start">
+                    <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-widest">
+                      {paper.exam_type}
+                    </span>
+                    <span className="text-xs font-black text-slate-900">₹5.00</span>
+                  </div>
+
+                  <div>
+                    <h3 className="font-black text-slate-900 text-sm tracking-tight leading-tight uppercase">{paper.course_title}</h3>
+                    <p className="text-[11px] font-bold text-slate-500 mt-0.5">{paper.course_code} • {paper.department}</p>
+                  </div>
+
+                  <hr className="border-slate-100" />
+
+                  <div className="space-y-2 text-[11px] font-bold text-slate-600">
+                    <div className="flex items-center gap-2"><Building2 size={14} className="text-slate-400" /> {paper.college_name}</div>
+                    <div className="flex items-center gap-2"><GraduationCap size={14} className="text-slate-400" /> {paper.program} • Semester {paper.semester}</div>
+                    <div className="flex items-center gap-2"><Calendar size={14} className="text-slate-400" /> Academic Exam Term Year: {paper.year}</div>
+                  </div>
                 </div>
 
-                <div>
-                  <h3 className="font-black text-slate-900 text-sm tracking-tight leading-tight uppercase">{paper.course_title}</h3>
-                  <p className="text-[11px] font-bold text-slate-500 mt-0.5">{paper.course_code} • {paper.department}</p>
-                </div>
-
-                <hr className="border-slate-100" />
-
-                <div className="space-y-2 text-[11px] font-bold text-slate-600">
-                  <div className="flex items-center gap-2"><Building2 size={14} className="text-slate-400" /> {paper.college_name}</div>
-                  <div className="flex items-center gap-2"><GraduationCap size={14} className="text-slate-400" /> {paper.program} • Semester {paper.semester}</div>
-                  <div className="flex items-center gap-2"><Calendar size={14} className="text-slate-400" /> Academic Exam Term Year: {paper.year}</div>
-                </div>
+                <button
+                  onClick={() => handlePurchase(paper.id)}
+                  disabled={actionId !== null}
+                  className="w-full py-3 px-4 rounded-xl font-black text-xs uppercase tracking-widest bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                >
+                  {actionId === paper.id ? 'Processing Ledger...' : 'Unlock Document Access (₹5.00)'}
+                </button>
               </div>
-
-              <button
-                onClick={() => handlePurchase(paper.id)}
-                disabled={actionId !== null}
-                className="w-full py-3 px-4 rounded-xl font-black text-xs uppercase tracking-widest bg-slate-900 text-white hover:bg-slate-800 disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
-              >
-                Unlock Document Access (₹5.00)
-              </button>
-            </div>
-          ))}
-        </div>
-
+            ))}
+          </div>
+        )}
       </div>
     </main>
   );
