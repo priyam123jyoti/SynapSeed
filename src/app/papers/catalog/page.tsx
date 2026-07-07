@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Building2, GraduationCap, Calendar, Wallet, Loader2 } from 'lucide-react';
+import { Search, Building2, GraduationCap, Calendar, Wallet, Loader2, Plus } from 'lucide-react';
 
 interface PaperItem {
   id: string;
@@ -23,41 +23,60 @@ export default function PaperCatalogPage() {
   const [userWallet, setUserWallet] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
+  const [fundingLoading, setFundingLoading] = useState(false);
 
   // Filter states
   const [search, setSearch] = useState('');
   const [programFilter, setProgramFilter] = useState('');
   const [semFilter, setSemFilter] = useState('');
 
-  // FIX #1: Actually fetch, unwrap, and commit data to state
+  // Fetch real-time catalog listings and user wallet balance
   async function fetchMarketplaceData() {
     try {
       setLoading(true);
       
-      // Pull papers list
       const resCatalog = await fetch('/api/papers/catalog-list');
       if (resCatalog.ok) {
         const catalogData = await resCatalog.json();
         setPapers(catalogData);
       }
 
-      // Pull wallet profile info
       const resProfile = await fetch('/api/user/profile-wallet'); 
       if (resProfile.ok) {
         const profileData = await resProfile.json();
         setUserWallet(Number(profileData.wallet_balance) || 0);
       }
     } catch (e) {
-      console.error("Error hydrating marketplace:", e);
+      console.error("Error hydrating marketplace data layers:", e);
     } finally {
       setLoading(false);
     }
   }
 
-  // FIX #2: Run the function automatically when the component mounts
   useEffect(() => {
     fetchMarketplaceData();
   }, []);
+
+  // NEW: Triggers your mock funding API and updates the local state balance instantly
+  const handleAddMockFunds = async () => {
+    setFundingLoading(true);
+    try {
+      const res = await fetch('/api/user/mock-fund', {
+        method: 'POST',
+      });
+      const data = await res.json();
+
+      if (!res.ok) throw new Error(data.error || 'Failed to apply test funds.');
+
+      // Update wallet balance immediately on screen
+      setUserWallet(Number(data.newBalance));
+      alert('Success! Added test funds to your account.');
+    } catch (err: any) {
+      alert(`Funding Error: ${err.message}`);
+    } finally {
+      setFundingLoading(false);
+    }
+  };
 
   const handlePurchase = async (paperId: string) => {
     setActionId(paperId);
@@ -71,6 +90,7 @@ export default function PaperCatalogPage() {
 
       if (!res.ok) throw new Error(data.error || 'Transaction failure.');
 
+      alert('Purchase completely cleared! Secure tokens mapped to profile.');
       router.push(`/papers/view/${paperId}`);
     } catch (err: any) {
       alert(`Transaction Rejected: ${err.message}`);
@@ -79,7 +99,6 @@ export default function PaperCatalogPage() {
     }
   };
 
-  // Client-side filtering logic matching your UI search bars
   const filteredPapers = papers.filter((paper) => {
     const matchesSearch = 
       paper.course_title.toLowerCase().includes(search.toLowerCase()) ||
@@ -105,17 +124,35 @@ export default function PaperCatalogPage() {
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* Marketplace Header Banner */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center bg-slate-900 text-white p-8 rounded-2xl shadow-xl gap-4">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-slate-900 text-white p-8 rounded-2xl shadow-xl gap-6">
           <div className="space-y-1">
             <h1 className="text-2xl font-black uppercase tracking-tight">Question Paper Marketplace</h1>
             <p className="text-xs text-slate-400 font-bold">Secure Academic Document Exchange Protocol • All Papers Fixed at ₹5.00</p>
           </div>
-          <div className="flex items-center gap-3 bg-slate-800 border border-slate-700 px-5 py-3 rounded-xl">
-            <Wallet className="text-emerald-400" size={18} />
-            <div className="text-right">
-              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Your Wallet</p>
-              <p className="text-sm font-black text-white">₹{userWallet.toFixed(2)}</p>
+          
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full lg:w-auto">
+            {/* Wallet Display Component */}
+            <div className="flex items-center gap-3 bg-slate-800 border border-slate-700 px-5 py-3 rounded-xl flex-1 sm:flex-none">
+              <Wallet className="text-emerald-400" size={18} />
+              <div className="text-right">
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Your Wallet</p>
+                <p className="text-sm font-black text-white">₹{userWallet.toFixed(2)}</p>
+              </div>
             </div>
+
+            {/* INTEGRATED ADD FUNDS BUTTON */}
+            <button
+              onClick={handleAddMockFunds}
+              disabled={fundingLoading}
+              className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider px-5 py-4 rounded-xl transition-all shadow-md disabled:opacity-50"
+            >
+              {fundingLoading ? (
+                <Loader2 className="animate-spin" size={14} />
+              ) : (
+                <Plus size={14} />
+              )}
+              Add Test Funds (₹50)
+            </button>
           </div>
         </div>
 
