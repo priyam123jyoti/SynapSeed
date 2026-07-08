@@ -17,6 +17,17 @@ interface PaperItem {
   uploader_id: string;
 }
 
+// Helper to inject script to load Razorpay checkout overlay safely
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
+
 export default function PaperCatalogPage() {
   const router = useRouter();
   const [papers, setPapers] = useState<PaperItem[]>([]);
@@ -30,17 +41,14 @@ export default function PaperCatalogPage() {
   const [programFilter, setProgramFilter] = useState('');
   const [semFilter, setSemFilter] = useState('');
 
-  // Fetch real-time catalog listings and user wallet balance
   async function fetchMarketplaceData() {
     try {
       setLoading(true);
-      
       const resCatalog = await fetch('/api/papers/catalog-list');
       if (resCatalog.ok) {
         const catalogData = await resCatalog.json();
         setPapers(catalogData);
       }
-
       const resProfile = await fetch('/api/user/profile-wallet'); 
       if (resProfile.ok) {
         const profileData = await resProfile.json();
@@ -57,22 +65,47 @@ export default function PaperCatalogPage() {
     fetchMarketplaceData();
   }, []);
 
-  // NEW: Triggers your mock funding API and updates the local state balance instantly
-  const handleAddMockFunds = async () => {
+  // NEW: Triggers real-world UPI integration via Razorpay SDK checkout wrapper
+  const handleAddRealFunds = async (amountToCredit: number) => {
     setFundingLoading(true);
     try {
-      const res = await fetch('/api/user/mock-fund', {
+      const resScript = await loadRazorpayScript();
+      if (!resScript) throw new Error('Razorpay client system SDK failed to initialize.');
+
+      // 1. Create native transaction item session order token on our backend
+      const resOrder = await fetch('/api/user/razorpay-order', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: amountToCredit }),
       });
-      const data = await res.json();
+      const orderData = await resOrder.json();
+      if (!resOrder.ok) throw new Error(orderData.error || 'Failed to initialize system gateway order.');
 
-      if (!res.ok) throw new Error(data.error || 'Failed to apply test funds.');
+      // 2. Open standard web view checkout interface preconfigured directly for UPI intent lanes
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID,
+        amount: orderData.amount,
+        currency: orderData.currency,
+        name: 'Synap Seed Marketplace',
+        description: `Deposit Wallet Balance Credits: ₹${amountToCredit}`,
+        order_id: orderData.id,
+        handler: async function (response: any) {
+          // Triggers client synchronization instantly when payment modal records client success
+          alert('Payment authorized successfully! Processing deposit verification ledger...');
+          fetchMarketplaceData();
+        },
+        prefill: {
+          method: 'upi' // Directs standard modal priority layouts directly onto native mobile UPI choices
+        },
+        theme: {
+          color: '#0f172a', // Coordinates widget directly to matches slate-900 interface framework
+        },
+      };
 
-      // Update wallet balance immediately on screen
-      setUserWallet(Number(data.newBalance));
-      alert('Success! Added test funds to your account.');
+      const paymentWindow = new (window as any).Razorpay(options);
+      paymentWindow.open();
     } catch (err: any) {
-      alert(`Funding Error: ${err.message}`);
+      alert(`Payment Processing Exception: ${err.message}`);
     } finally {
       setFundingLoading(false);
     }
@@ -140,9 +173,9 @@ export default function PaperCatalogPage() {
               </div>
             </div>
 
-            {/* INTEGRATED ADD FUNDS BUTTON */}
+            {/* REAL UPI PAYMENT PRODUCTION GATEWAY TRIGGER BUTTON */}
             <button
-              onClick={handleAddMockFunds}
+              onClick={() => handleAddRealFunds(50.00)}
               disabled={fundingLoading}
               className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider px-5 py-4 rounded-xl transition-all shadow-md disabled:opacity-50"
             >
@@ -151,7 +184,7 @@ export default function PaperCatalogPage() {
               ) : (
                 <Plus size={14} />
               )}
-              Add Test Funds (₹50)
+              Add UPI Funds (₹50)
             </button>
           </div>
         </div>

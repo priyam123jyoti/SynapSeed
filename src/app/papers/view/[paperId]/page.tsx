@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ShieldAlert, Loader2, Lock, EyeOff } from 'lucide-react';
+import { ShieldAlert, Loader2, Lock } from 'lucide-react';
 
 interface ViewPayload {
   signedUrl: string;
@@ -31,17 +31,33 @@ export default function SecurePaperViewerPage({ params }: { params: { paperId: s
     fetchSecureAsset();
   }, [params.paperId]);
 
-  // Context Menu Blockers
+  // Context Menu & Shortcut Blockers
   useEffect(() => {
     const blockContextMenu = (e: MouseEvent) => e.preventDefault();
+    
+    const blockShortcuts = (e: KeyboardEvent) => {
+      if (
+        (e.ctrlKey || e.metaKey) && (e.key === 'p' || e.key === 's') || // Block Ctrl+P, Ctrl+S
+        (e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'I' // Block Inspect
+      ) {
+        e.preventDefault();
+      }
+    };
+
     document.addEventListener('contextmenu', blockContextMenu);
-    return () => document.removeEventListener('contextmenu', blockContextMenu);
+    document.addEventListener('keydown', blockShortcuts);
+    
+    return () => {
+      document.removeEventListener('contextmenu', blockContextMenu);
+      document.removeEventListener('keydown', blockShortcuts);
+    };
   }, []);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white gap-2 font-bold text-xs uppercase tracking-widest">
-        <Loader2 className="animate-spin text-emerald-400" size={24} /> Validating Cryptographic Keys...
+      <div className="min-h-screen bg-slate-900 flex flex-col items-center justify-center text-white gap-3 font-bold text-xs uppercase tracking-widest">
+        <Loader2 className="animate-spin text-emerald-400" size={28} /> 
+        Validating Cryptographic Keys...
       </div>
     );
   }
@@ -62,49 +78,53 @@ export default function SecurePaperViewerPage({ params }: { params: { paperId: s
 
   return (
     <main className="min-h-screen bg-slate-950 py-8 px-4 flex flex-col items-center justify-start select-none">
-      <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl p-4 flex items-center justify-between text-slate-400 font-bold text-[11px] uppercase tracking-wider mb-4">
-        <span className="flex items-center gap-1.5 text-emerald-400"><ShieldAlert size={14} /> Encrypted Digital Vault Stream</span>
-        <span>Identity: {data?.identity}</span>
+      
+      {/* Top Status Ribbon */}
+      <div className="w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col sm:flex-row items-center justify-between text-slate-400 font-bold text-[11px] uppercase tracking-wider mb-6 gap-2">
+        <span className="flex items-center gap-2 text-emerald-400">
+          <ShieldAlert size={16} /> Encrypted Digital Vault Stream
+        </span>
+        <span className="bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
+          Identity: <span className="text-white">{data?.identity}</span>
+        </span>
       </div>
 
-      {/* Main Structural Vault Viewer Canvas Wrap Container */}
-      <div className="relative w-full max-w-4xl bg-white rounded-2xl border border-slate-800 shadow-2xl overflow-hidden group select-none">
+      {/* Main Structural Vault Viewer Canvas */}
+      <div className="relative w-full max-w-5xl bg-white rounded-2xl border border-slate-800 shadow-2xl overflow-hidden select-none h-[80vh]">
         
-        {/* Anti-Drag Transparent Shell Interceptor Blocker Shield Layer */}
-        <div 
-          className="absolute inset-0 z-40 bg-transparent cursor-default" 
-          onContextMenu={(e) => e.preventDefault()}
-        />
-
-        {/* Dynamic Forensic Identifiers Watermark Layout Array Engine */}
-        <div className="absolute inset-0 z-30 pointer-events-none opacity-[0.04] grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-y-24 gap-x-12 overflow-hidden py-12 p-2">
+        {/* Dynamic Forensic Identifiers Watermark Layout Array */}
+        {/* pointer-events-none ensures it doesn't block iframe scrolling */}
+        <div className="absolute inset-0 z-30 pointer-events-none opacity-[0.05] grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-y-32 gap-x-12 overflow-hidden py-12 p-4">
           {Array.from({ length: 48 }).map((_, idx) => (
             <div 
               key={idx} 
-              className="text-slate-900 font-black text-xs select-none pointer-events-none transform -rotate-45 whitespace-nowrap tracking-wider text-center"
+              className="text-slate-900 font-black text-sm transform -rotate-45 whitespace-nowrap tracking-widest text-center"
             >
               {data?.identity}
             </div>
           ))}
         </div>
 
-        {/* Real Source Embedded Display Layer Object element rendering path */}
+        {/* Real Source Embedded Display Layer */}
         {data?.signedUrl.includes('.pdf') ? (
           <iframe 
-            src={`${data.signedUrl}#toolbar=0&navpanes=0&scrollbar=0`} 
-            className="w-full h-[80vh] border-0 pointer-events-none relative z-10"
+            src={`${data.signedUrl}#toolbar=0&navpanes=0&scrollbar=1`} 
+            className="w-full h-full border-0 relative z-10"
+            title="Secure Document"
           />
         ) : (
-          <img 
-            src={data?.signedUrl} 
-            alt="Secure Question Paper Layout Stream" 
-            className="w-full h-auto pointer-events-none relative z-10 filter contrast-[1.02]"
-            draggable={false}
-          />
+          <div className="w-full h-full overflow-auto flex justify-center bg-slate-100">
+            <img 
+              src={data?.signedUrl} 
+              alt="Secure Question Paper Layout Stream" 
+              className="w-full max-w-3xl h-auto object-contain pointer-events-none relative z-10 filter contrast-[1.02]"
+              draggable={false}
+            />
+          </div>
         )}
       </div>
 
-      {/* Bottom Browser Defense Enforcement Layout CSS rules overlay indicator */}
+      {/* CSS Print & Select Defenses */}
       <style jsx global>{`
         body {
           -webkit-user-select: none !important;

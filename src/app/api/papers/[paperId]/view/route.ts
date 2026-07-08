@@ -1,3 +1,4 @@
+//src/app/api/papers/[paperId]/view/route.ts
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 
