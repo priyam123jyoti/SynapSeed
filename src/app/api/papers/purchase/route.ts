@@ -1,31 +1,31 @@
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
 
-export async function POST(req: Request) {
+export async function POST(request: Request) {
   try {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+      return NextResponse.json({ error: 'Unauthorized login required' }, { status: 401 });
     }
 
-    const { paperId } = await req.json();
+    const { paperId } = await request.json();
     if (!paperId) {
-      return NextResponse.json({ error: 'Missing Target Paper Identification ID' }, { status: 400 });
+      return NextResponse.json({ error: 'Missing paper identifier parameter' }, { status: 400 });
     }
 
-    // Invoke your transactional Postgres RPC balance splitter function
-    const { data, error: rpcError } = await supabase.rpc('purchase_paper_with_wallet', {
-      target_paper_id: paperId,
+    // Call our atomic postgres transaction function
+    const { data, error } = await supabase.rpc('purchase_paper', {
+      p_buyer_id: user.id,
+      p_paper_id: paperId
     });
 
-    if (rpcError) {
-      // Catch custom exceptions raised inside PostgreSQL (e.g., 'Insufficient wallet balance')
-      return NextResponse.json({ error: rpcError.message }, { status: 400 });
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true, unlocked: data });
+    return NextResponse.json({ success: true, meta: data });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
