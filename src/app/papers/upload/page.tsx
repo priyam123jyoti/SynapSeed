@@ -65,13 +65,35 @@ export default function PaperUploadClientPage() {
           <div className="flex flex-col gap-1.5">
             <label>Academic Program</label>
             <select name="program" required className="p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none bg-white">
+              <option value="">Select Program</option>
               <option value="BTech">B.TECH</option>
+              <option value="MTech">M.TECH</option>
               <option value="BSc">B.Sc</option>
               <option value="MSc">M.Sc</option>
               <option value="BCA">BCA</option>
               <option value="MCA">MCA</option>
               <option value="BBA">BBA</option>
               <option value="MBA">MBA</option>
+              <option value="BCom">B.COM</option>
+              <option value="MCom">M.COM</option>
+              <option value="BA">B.A.</option>
+              <option value="MA">M.A.</option>
+              <option value="BEd">B.Ed</option>
+              <option value="MEd">M.Ed</option>
+              <option value="BPharma">B.PHARMA</option>
+              <option value="MPharma">M.PHARMA</option>
+              <option value="DPharma">D.PHARMA</option>
+              <option value="LLB">LLB</option>
+              <option value="LLM">LLM</option>
+              <option value="BArch">B.ARCH</option>
+              <option value="MArch">M.ARCH</option>
+              <option value="MBBS">MBBS</option>
+              <option value="BDS">BDS</option>
+              <option value="BAMS">BAMS</option>
+              <option value="BHMS">BHMS</option>
+              <option value="Nursing">B.Sc NURSING</option>
+              <option value="BPT">BPT</option>
+              <option value="MPT">MPT</option>
             </select>
           </div>
 

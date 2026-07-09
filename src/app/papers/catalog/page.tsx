@@ -276,12 +276,35 @@ export default function PaperCatalogPage() {
               value={programFilter}
               onChange={(e) => setProgramFilter(e.target.value)}
             >
-              <option value="">All Programs</option>
+              <option value="">select Programs</option>
               <option value="BTech">B.TECH</option>
+              <option value="MTech">M.TECH</option>
               <option value="BSc">B.Sc</option>
               <option value="MSc">M.Sc</option>
               <option value="BCA">BCA</option>
+              <option value="MCA">MCA</option>
               <option value="BBA">BBA</option>
+              <option value="MBA">MBA</option>
+              <option value="BCom">B.COM</option>
+              <option value="MCom">M.COM</option>
+              <option value="BA">B.A.</option>
+              <option value="MA">M.A.</option>
+              <option value="BEd">B.Ed</option>
+              <option value="MEd">M.Ed</option>
+              <option value="BPharma">B.PHARMA</option>
+              <option value="MPharma">M.PHARMA</option>
+              <option value="DPharma">D.PHARMA</option>
+              <option value="LLB">LLB</option>
+              <option value="LLM">LLM</option>
+              <option value="BArch">B.ARCH</option>
+              <option value="MArch">M.ARCH</option>
+              <option value="MBBS">MBBS</option>
+              <option value="BDS">BDS</option>
+              <option value="BAMS">BAMS</option>
+              <option value="BHMS">BHMS</option>
+              <option value="Nursing">B.Sc NURSING</option>
+              <option value="BPT">BPT</option>
+              <option value="MPT">MPT</option>
             </select>
 
             <select 
