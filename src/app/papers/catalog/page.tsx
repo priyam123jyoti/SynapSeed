@@ -21,6 +21,10 @@ interface PaperItem {
 // Helper to inject script to load Razorpay checkout overlay safely
 const loadRazorpayScript = () => {
   return new Promise((resolve) => {
+    if (typeof window !== 'undefined' && (window as any).Razorpay) {
+      resolve(true);
+      return;
+    }
     const script = document.createElement('script');
     script.src = 'https://checkout.razorpay.com/v1/checkout.js';
     script.onload = () => resolve(true);
@@ -36,6 +40,7 @@ export default function PaperCatalogPage() {
   const [loading, setLoading] = useState(true);
   const [actionId, setActionId] = useState<string | null>(null);
   const [fundingLoading, setFundingLoading] = useState(false);
+  const [customAmount, setCustomAmount] = useState<number | string>(50);
 
   // Filter states
   const [search, setSearch] = useState('');
@@ -67,7 +72,14 @@ export default function PaperCatalogPage() {
   }, []);
 
   // NEW: Triggers real-world UPI integration via Razorpay SDK checkout wrapper
-  const handleAddRealFunds = async (amountToCredit: number) => {
+  const handleAddRealFunds = async () => {
+    const amount = Number(customAmount);
+
+    if (isNaN(amount) || amount < 1 || amount > 5000 || !Number.isInteger(amount)) {
+      alert('Please enter a valid integer amount between ₹1 and ₹5000.');
+      return;
+    }
+
     setFundingLoading(true);
     try {
       const resScript = await loadRazorpayScript();
@@ -77,7 +89,7 @@ export default function PaperCatalogPage() {
       const resOrder = await fetch('/api/user/razorpay-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: amountToCredit }),
+        body: JSON.stringify({ amount }),
       });
       const orderData = await resOrder.json();
       if (!resOrder.ok) throw new Error(orderData.error || 'Failed to initialize system gateway order.');
@@ -88,12 +100,43 @@ export default function PaperCatalogPage() {
         amount: orderData.amount,
         currency: orderData.currency,
         name: 'Synap Seed Marketplace',
-        description: `Deposit Wallet Balance Credits: ₹${amountToCredit}`,
+        description: `Deposit Wallet Balance Credits: ₹${amount}`,
         order_id: orderData.id,
-        handler: async function (response: any) {
-          // Triggers client synchronization instantly when payment modal records client success
-          alert('Payment authorized successfully! Processing deposit verification ledger...');
-          fetchMarketplaceData();
+        handler: async function () {
+          alert(
+            "Payment received.\nYour wallet will update automatically after verification."
+          );
+
+          const initialBalance = userWallet;
+          let attempts = 0;
+          const maxAttempts = 15;
+
+          const pollWallet = async () => {
+            if (attempts >= maxAttempts) {
+              fetchMarketplaceData();
+              return;
+            }
+
+            try {
+              const resProfile = await fetch('/api/user/profile-wallet');
+              if (resProfile.ok) {
+                const profileData = await resProfile.json();
+                const newBalance = Number(profileData.wallet_balance) || 0;
+
+                if (newBalance !== initialBalance) {
+                  fetchMarketplaceData();
+                  return;
+                }
+              }
+            } catch (err) {
+              console.error("Polling error:", err);
+            }
+
+            attempts++;
+            setTimeout(pollWallet, 1000);
+          };
+
+          setTimeout(pollWallet, 1000);
         },
         prefill: {
           method: 'upi' // Directs standard modal priority layouts directly onto native mobile UPI choices
@@ -175,18 +218,42 @@ export default function PaperCatalogPage() {
             </div>
 
             {/* REAL UPI PAYMENT PRODUCTION GATEWAY TRIGGER BUTTON */}
-            <button
-              onClick={() => handleAddRealFunds(50.00)}
-              disabled={fundingLoading}
-              className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider px-5 py-4 rounded-xl transition-all shadow-md disabled:opacity-50"
-            >
-              {fundingLoading ? (
-                <Loader2 className="animate-spin" size={14} />
-              ) : (
-                <Plus size={14} />
-              )}
-              Add UPI Funds (₹50)
-            </button>
+            <div className="flex flex-col gap-2 flex-1 sm:flex-none">
+              <div className="flex items-center justify-between sm:justify-end gap-2 px-1">
+                <label htmlFor="customAmount" className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+                  Amount (₹):
+                </label>
+                <input
+                  id="customAmount"
+                  type="number"
+                  min="1"
+                  max="5000"
+                  step="1"
+                  value={customAmount}
+                  onChange={(e) => setCustomAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                  className="w-20 bg-slate-800 border border-slate-700 text-white text-xs font-bold px-2 py-1 rounded focus:outline-none focus:border-emerald-500"
+                />
+              </div>
+              <button
+                onClick={handleAddRealFunds}
+                disabled={fundingLoading}
+                className="flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white font-black text-xs uppercase tracking-wider px-5 py-3 rounded-xl transition-all shadow-md disabled:opacity-50"
+              >
+                {fundingLoading ? (
+                  <>
+                    <Loader2 className="animate-spin" size={14} />
+                    Processing...
+                  </>
+                ) : (
+<>
+  <Plus size={14} />
+  {customAmount === ''
+    ? 'Enter Amount'
+    : `Add ₹${customAmount}`}
+</>
+                )}
+              </button>
+            </div>
           </div>
         </div>
 

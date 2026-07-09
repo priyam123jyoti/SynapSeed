@@ -16,10 +16,24 @@ const loadRazorpayScript = () => {
 
 export default function WalletTopUp({ userEmail }: { userEmail: string }) {
   const [isLoading, setIsLoading] = useState(false);
-  const [topUpAmount, setTopUpAmount] = useState<number>(50);
+  const [topUpAmount, setTopUpAmount] = useState<number>(1);
 
   const handlePayment = async () => {
     setIsLoading(true);
+    if (
+  !Number.isFinite(topUpAmount) ||
+  topUpAmount < 1
+) {
+  alert('Please enter a valid amount of at least ₹1.');
+  setIsLoading(false);
+  return;
+}
+
+if (topUpAmount > 50000) {
+  alert('Maximum top-up amount is ₹50,000.');
+  setIsLoading(false);
+  return;
+}
     try {
       const isScriptLoaded = await loadRazorpayScript();
       if (!isScriptLoaded) throw new Error('Razorpay SDK failed to load.');
@@ -93,22 +107,23 @@ handler: async function (response: any) {
       <h2 className="font-bold text-lg mb-2">Add Funds to Wallet</h2>
       <p className="text-xs text-slate-400 mb-6 text-center">Select an amount to top up your marketplace balance securely.</p>
       
-      <div className="flex w-full gap-2 mb-6">
-        {[20, 50, 100].map((amount) => (
-          <button
-            key={amount}
-            type="button"
-            onClick={() => setTopUpAmount(amount)}
-            className={`flex-1 py-2 rounded-lg border font-bold text-sm transition-all ${
-              topUpAmount === amount
-                ? 'bg-emerald-500 border-emerald-500 text-slate-950'
-                : 'border-slate-700 text-slate-300 hover:border-slate-500'
-            }`}
-          >
-            ₹{amount}
-          </button>
-        ))}
-      </div>
+<div className="w-full mb-6">
+  <label className="block text-xs font-bold text-slate-400 mb-2">
+    Enter Amount
+  </label>
+
+  <input
+    type="number"
+    min={1}
+    step={1}
+    value={topUpAmount}
+    onChange={(e) =>
+      setTopUpAmount(Number(e.target.value))
+    }
+    placeholder="Enter amount"
+    className="w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
+  />
+</div>
 
       <button
         onClick={handlePayment}
