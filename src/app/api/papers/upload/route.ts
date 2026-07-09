@@ -1,62 +1,337 @@
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
+import crypto from 'crypto';
+import { fileTypeFromBuffer } from 'file-type';
+import { uploadRateLimit } from '@/lib/upstash';
+
+const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
+
+const ALLOWED_TYPES = [
+  {
+    mime: 'application/pdf',
+    ext: 'pdf',
+  },
+  {
+    mime: 'image/png',
+    ext: 'png',
+  },
+  {
+    mime: 'image/jpeg',
+    ext: 'jpg',
+  },
+  {
+    mime: 'image/jpeg',
+    ext: 'jpeg',
+  },
+];
+
+function cleanText(value: FormDataEntryValue | null): string {
+  return String(value ?? '')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
 
 export async function POST(req: Request) {
   try {
     const supabase = await createClient();
-    
-    // 1. Authenticate user session
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+    //------------------------------------------------------
+    // Authenticate
+    //------------------------------------------------------
+
+    const {
+      data: { user },
+      error: authError,
+    } = await supabase.auth.getUser();
+
     if (authError || !user) {
-      return NextResponse.json({ error: 'Unauthorized access layer' }, { status: 401 });
+      return NextResponse.json(
+        {
+          error: 'Unauthorized access.',
+        },
+        {
+          status: 401,
+        }
+      );
     }
+
+    //------------------------------------------------------
+    // Rate limit
+    //------------------------------------------------------
+
+    const { success } = await uploadRateLimit.limit(
+      `upload:${user.id}`
+    );
+
+    if (!success) {
+      return NextResponse.json(
+        {
+          error:
+            'Upload limit exceeded. Maximum 5 uploads per hour.',
+        },
+        {
+          status: 429,
+        }
+      );
+    }
+
+    //------------------------------------------------------
+    // Read form
+    //------------------------------------------------------
 
     const formData = await req.formData();
+
     const file = formData.get('file') as File | null;
-    
+
     if (!file) {
-      return NextResponse.json({ error: 'No question paper file submitted' }, { status: 400 });
+      return NextResponse.json(
+        {
+          error: 'No file uploaded.',
+        },
+        {
+          status: 400,
+        }
+      );
     }
 
-    // Extract Flipkart-style required metadata filters
-    const college_name = formData.get('college_name') as string;
-    const program = formData.get('program') as string;
-    const department = formData.get('department') as string;
-    const semester = parseInt(formData.get('semester') as string, 10);
-    const year = parseInt(formData.get('year') as string, 10);
-    const course_code = formData.get('course_code') as string;
-    const course_title = formData.get('course_title') as string;
-    const exam_type = formData.get('exam_type') as string;
+    //------------------------------------------------------
+    // Validate size
+    //------------------------------------------------------
 
-    // Validate requirements
-    if (!college_name || !program || !department || !semester || !year || !course_code || !course_title || !exam_type) {
-      return NextResponse.json({ error: 'Missing mandatory metadata criteria properties.' }, { status: 400 });
+    if (file.size === 0) {
+      return NextResponse.json(
+        {
+          error: 'Uploaded file is empty.',
+        },
+        {
+          status: 400,
+        }
+      );
     }
 
-    // 2. Generate a unique cryptographic storage path inside the private bucket
-    const fileExtension = file.name.split('.').pop();
-    const uniqueFileName = `${crypto.randomUUID()}.${fileExtension}`;
-    const filePath = `vault/${user.id}/${uniqueFileName}`;
+    if (file.size > MAX_FILE_SIZE) {
+      return NextResponse.json(
+        {
+          error: 'Maximum file size is 2 MB.',
+        },
+        {
+          status: 400,
+        }
+      );
+    }
 
-    // Convert file object to buffer array data
+    //------------------------------------------------------
+    // Read buffer
+    //------------------------------------------------------
+
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // 3. Write binary stream array data to the secure-papers bucket
-    const { error: storageError } = await supabase.storage
-      .from('secure-papers')
-      .upload(filePath, buffer, {
-        contentType: file.type,
-        upsert: false,
-      });
+    //------------------------------------------------------
+    // Detect REAL file type
+    //------------------------------------------------------
 
-    if (storageError) {
-      return NextResponse.json({ error: `Storage commit failure: ${storageError.message}` }, { status: 500 });
+    const detectedType = await fileTypeFromBuffer(buffer);
+
+    if (!detectedType) {
+      return NextResponse.json(
+        {
+          error: 'Unable to determine uploaded file type.',
+        },
+        {
+          status: 400,
+        }
+      );
     }
 
-    // 4. Record entry to the main papers catalog database table
-    const { error: dbError } = await supabase.from('papers').insert({
-      uploader_id: user.id,
+    const isAllowed = ALLOWED_TYPES.some(
+      (type) =>
+        type.mime === detectedType.mime &&
+        type.ext === detectedType.ext
+    );
+
+    if (!isAllowed) {
+      return NextResponse.json(
+        {
+          error: 'Only PDF, JPG and PNG files are allowed.',
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+
+    //------------------------------------------------------
+    // Read metadata
+    //------------------------------------------------------
+
+    const college_name = cleanText(
+      formData.get('college_name')
+    );
+
+    const program = cleanText(
+      formData.get('program')
+    );
+
+    const department = cleanText(
+      formData.get('department')
+    );
+
+    const semester = Number(
+      cleanText(formData.get('semester'))
+    );
+
+    const year = Number(
+      cleanText(formData.get('year'))
+    );
+
+    const course_code = cleanText(
+      formData.get('course_code')
+    ).toUpperCase();
+
+    const course_title = cleanText(
+      formData.get('course_title')
+    );
+
+    const exam_type = cleanText(
+      formData.get('exam_type')
+    );
+
+    //------------------------------------------------------
+    // Validate metadata
+    //------------------------------------------------------
+
+    if (
+      !college_name ||
+      !program ||
+      !department ||
+      !course_code ||
+      !course_title ||
+      !exam_type ||
+      !Number.isInteger(semester) ||
+      !Number.isInteger(year)
+    ) {
+      return NextResponse.json(
+        {
+          error: 'Missing or invalid metadata.',
+        },
+        {
+          status: 400,
+        }
+      );
+    }
+    //------------------------------------------------------
+// Validate semester range
+//------------------------------------------------------
+
+if (semester < 1 || semester > 10) {
+  return NextResponse.json(
+    {
+      error: 'Semester must be between 1 and 10.',
+    },
+    {
+      status: 400,
+    }
+  );
+}
+
+//------------------------------------------------------
+// Validate year range
+//------------------------------------------------------
+
+const currentYear = new Date().getFullYear();
+
+if (year < 2000 || year > currentYear + 1) {
+  return NextResponse.json(
+    {
+      error: `Year must be between 2000 and ${currentYear + 1}.`,
+    },
+    {
+      status: 400,
+    }
+  );
+}
+
+    //------------------------------------------------------
+    // Generate secure filename
+    //------------------------------------------------------
+
+    const uniqueFileName =
+      `${crypto.randomUUID()}.${detectedType.ext}`;
+
+    const filePath =
+      `vault/${user.id}/${uniqueFileName}`;
+
+    //------------------------------------------------------
+    // Upload to private bucket
+    //------------------------------------------------------
+
+    const { error: storageError } =
+      await supabase.storage
+        .from('secure-papers')
+        .upload(filePath, buffer, {
+          contentType: detectedType.mime,
+          upsert: false,
+        });
+
+    if (storageError) {
+      return NextResponse.json(
+        {
+          error: storageError.message,
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
+    //------------------------------------------------------
+    // Save metadata
+    //------------------------------------------------------
+
+    const { error: dbError } =
+      await supabase
+        .from('papers')
+        .insert({
+          uploader_id: user.id,
+          college_name,
+          program,
+          department,
+          semester,
+          year,
+          course_code,
+          course_title,
+          exam_type,
+          file_path: filePath,
+        });
+
+    //------------------------------------------------------
+    // Rollback upload if database insert fails
+    //------------------------------------------------------
+
+    if (dbError) {
+      await supabase.storage
+        .from('secure-papers')
+        .remove([filePath]);
+
+      return NextResponse.json(
+        {
+          error: dbError.message,
+        },
+        {
+          status: 500,
+        }
+      );
+    }
+
+
+    try {
+  await supabase.rpc('log_audit', {
+    p_user_id: user.id,
+    p_action: 'paper_uploaded',
+    p_resource_type: 'paper',
+    p_resource_id: filePath,
+    p_details: {
       college_name,
       program,
       department,
@@ -65,17 +340,30 @@ export async function POST(req: Request) {
       course_code,
       course_title,
       exam_type,
-      file_path: filePath,
+    },
+  });
+} catch (err) {
+  console.error('Audit log failed:', err);
+}
+
+    //------------------------------------------------------
+    // Success
+    //------------------------------------------------------
+
+    return NextResponse.json({
+      success: true,
+      message: 'Paper uploaded successfully.',
     });
-
-    if (dbError) {
-      // Rollback file upload step if metadata tracking fails
-      await supabase.storage.from('secure-papers').remove([filePath]);
-      return NextResponse.json({ error: `Database entry tracking broken: ${dbError.message}` }, { status: 500 });
-    }
-
-    return NextResponse.json({ success: true, message: 'Paper catalog asset fully optimized and provisioned.' });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message || 'Fatal crash lifecycle' }, { status: 500 });
+    return NextResponse.json(
+      {
+        error:
+          error.message ||
+          'Internal server error.',
+      },
+      {
+        status: 500,
+      }
+    );
   }
 }

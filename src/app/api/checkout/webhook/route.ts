@@ -1,57 +1,106 @@
+//src/app/api/checkout/webhook/route.ts
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 import crypto from 'crypto';
 
-// Initialize a privileged direct bypass instance to handle background updates safely
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // Kept safe strictly on server systems
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
 export async function POST(request: Request) {
   try {
-    const bodyText = await request.text();
-    const signature = request.headers.get('x-razorpay-signature');
-    const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET!; // Set this key inside your dashboard configuration panels
+    const body = await request.text();
 
-    // 1. Verify that this incoming post message originates genuinely from Razorpay
+    const signature =
+      request.headers.get('x-razorpay-signature');
+
     const expectedSignature = crypto
-      .createHmac('sha256', webhookSecret)
-      .update(bodyText)
+      .createHmac(
+        'sha256',
+        process.env.RAZORPAY_WEBHOOK_SECRET!
+      )
+      .update(body)
       .digest('hex');
 
-    if (expectedSignature !== signature) {
-      return NextResponse.json({ error: 'Signature handshake failure.' }, { status: 400 });
+    if (signature !== expectedSignature) {
+      return NextResponse.json(
+        {
+          error: 'Invalid signature',
+        },
+        {
+          status: 400,
+        }
+      );
     }
 
-    const event = JSON.parse(bodyText);
+    const event = JSON.parse(body);
 
-    // 2. Process wallet top-ups on successful payment capture loops
     if (event.event === 'payment.captured') {
-      const paymentEntity = event.payload.payment.entity;
-      const orderId = paymentEntity.order_id;
 
-      // Pull up the initial order description metadata logs to check amount properties
-      // Note: Parse out your User ID from notes or target ledger links
-      const receiptString = paymentEntity.description || ''; 
-      
-      // If you pass user identity parameters inside notes objects:
-      const userId = paymentEntity.notes?.user_id;
-      const creditValue = paymentEntity.amount / 100; // Convert back to standard Rupees value
+      const payment = event.payload.payment.entity;
 
-      if (userId) {
-        // Increment user's profile balance directly inside the database securely
-        const { error } = await supabaseAdmin.rpc('increment_wallet_balance', {
-          p_user_id: userId,
-          p_amount: creditValue
-        });
+      const userId = payment.notes?.user_id;
 
-        if (error) console.error("Database update failure:", error);
+      if (!userId) {
+        return NextResponse.json(
+          {
+            error: 'Missing user_id',
+          },
+          {
+            status: 400,
+          }
+        );
       }
+
+      const processed =
+        await supabaseAdmin.rpc(
+          'process_wallet_payment',
+          {
+            p_user_id: userId,
+            p_payment_id: payment.id,
+            p_order_id: payment.order_id,
+            p_amount: payment.amount / 100,
+          }
+        );
+
+      if (processed.error) {
+
+        console.error(processed.error);
+
+        return NextResponse.json(
+          {
+            error: processed.error.message,
+          },
+          {
+            status: 500,
+          }
+        );
+      }
+
+      if (!processed.data) {
+
+        console.log(
+          'Duplicate payment ignored.'
+        );
+
+      }
+
     }
 
-    return NextResponse.json({ status: 'Handshake complete' });
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+    return NextResponse.json({
+      success: true,
+    });
+
+  } catch (err:any) {
+
+    return NextResponse.json(
+      {
+        error: err.message,
+      },
+      {
+        status: 500,
+      }
+    );
   }
 }

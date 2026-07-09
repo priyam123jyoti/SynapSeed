@@ -1,24 +1,32 @@
-//src/app/api/papers/[paperId]/route.ts
+// src/app/api/papers/[paperId]/route.ts
+
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
 
-// Type context params as a Promise
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ paperId: string }> }
 ) {
   try {
-    // Await the asynchronous params object before extracting the ID
     const { paperId } = await params;
-    
+
     const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
     if (!user) {
-      return NextResponse.json({ error: 'Authentication challenge failed' }, { status: 401 });
+      return NextResponse.json(
+        { error: 'Authentication required.' },
+        { status: 401 }
+      );
     }
 
-    // 1. Fetch metadata and check structural ledger configuration
+    //------------------------------------------------------
+    // Fetch paper
+    //------------------------------------------------------
+
     const { data: paper, error: paperError } = await supabase
       .from('papers')
       .select('file_path, uploader_id')
@@ -26,37 +34,62 @@ export async function GET(
       .single();
 
     if (paperError || !paper) {
-      return NextResponse.json({ error: 'Target question paper entity missing.' }, { status: 404 });
+      return NextResponse.json(
+        { error: 'Paper not found.' },
+        { status: 404 }
+      );
     }
 
-    // 2. Allow bypass parameters if the requester is the authentic author/uploader
-    if (paper.uploader_id !== user.id) {
+    //------------------------------------------------------
+    // Owner always has access
+    //------------------------------------------------------
+
+    let hasAccess = paper.uploader_id === user.id;
+
+    //------------------------------------------------------
+    // Check purchase
+    //------------------------------------------------------
+
+    if (!hasAccess) {
       const { data: unlock } = await supabase
         .from('paper_unlocks')
         .select('id')
         .eq('user_id', user.id)
         .eq('paper_id', paperId)
-        .single();
+        .maybeSingle();
 
-      if (!unlock) {
-        return NextResponse.json({ error: 'Payment clearance balance mismatch access barrier.' }, { status: 403 });
-      }
+      hasAccess = !!unlock;
     }
 
-    // 3. Issue a secure, 60-second time-locked cryptographic signed retrieval URL
-    const { data: storageData, error: storageError } = await supabase.storage
-      .from('secure-papers')
-      .createSignedUrl(paper.file_path, 60);
-
-    if (storageError || !storageData) {
-      return NextResponse.json({ error: 'Vault file retrieval execution failure.' }, { status: 500 });
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'You have not purchased this paper.' },
+        { status: 403 }
+      );
     }
+
+    //------------------------------------------------------
+    // Detect file type
+    //------------------------------------------------------
+
+    const extension =
+      paper.file_path.split('.').pop()?.toLowerCase() || '';
+
+    const isPdf = extension === 'pdf';
+
+    //------------------------------------------------------
+    // Return metadata only
+    //------------------------------------------------------
 
     return NextResponse.json({
-      signedUrl: storageData.signedUrl,
       identity: user.email,
+      isPdf,
+      streamUrl: `/api/papers/stream/${paperId}`,
     });
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    );
   }
 }

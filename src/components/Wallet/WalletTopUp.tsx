@@ -1,3 +1,4 @@
+//src/components/Wallet/WalletTopUp.tsx
 'use client';
 
 import { useState } from 'react';
@@ -23,7 +24,7 @@ export default function WalletTopUp({ userEmail }: { userEmail: string }) {
       const isScriptLoaded = await loadRazorpayScript();
       if (!isScriptLoaded) throw new Error('Razorpay SDK failed to load.');
 
-      const orderRes = await fetch('/api/user/create-razorpay-order', {
+      const orderRes = await fetch('/api/user/razorpay-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ amount: topUpAmount }),
@@ -38,30 +39,39 @@ export default function WalletTopUp({ userEmail }: { userEmail: string }) {
         name: 'Paper Marketplace',
         description: 'Wallet Top-up',
         order_id: orderData.id,
-        handler: async function (response: any) {
-          try {
-            const verifyRes = await fetch('/api/user/razorpay-verify', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                razorpay_order_id: response.razorpay_order_id,
-                razorpay_payment_id: response.razorpay_payment_id,
-                razorpay_signature: response.razorpay_signature,
-                amountAdded: topUpAmount,
-              }),
-            });
+handler: async function (response: any) {
+  try {
+    const verifyRes = await fetch('/api/user/razorpay-verify', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        razorpay_order_id: response.razorpay_order_id,
+        razorpay_payment_id: response.razorpay_payment_id,
+        razorpay_signature: response.razorpay_signature,
+      }),
+    });
 
-            const verifyData = await verifyRes.json();
-            if (verifyRes.ok) {
-              alert('Payment successful! Your wallet has been credited.');
-              window.location.reload(); // Refresh to catch updated DB balance
-            } else {
-              alert(`Verification failed: ${verifyData.error}`);
-            }
-          } catch (err) {
-            alert('An error occurred during verification.');
-          }
-        },
+    const verifyData = await verifyRes.json();
+
+    if (!verifyRes.ok) {
+      alert(verifyData.error || 'Payment verification failed.');
+      return;
+    }
+
+    alert(
+      'Payment successful. Your payment has been verified. Your wallet will be updated automatically in a few seconds.'
+    );
+
+    // Give the webhook time to process
+    setTimeout(() => {
+      window.location.reload();
+    }, 5000);
+  } catch (err) {
+    alert('An error occurred while verifying the payment.');
+  }
+},
         prefill: { email: userEmail },
         theme: { color: '#0f172a' },
       };

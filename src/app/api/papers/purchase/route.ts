@@ -1,6 +1,8 @@
 //src/app/api/papers/purchase/route.ts
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
+import { purchaseRateLimit } from '@/lib/upstash';
+
 
 export async function POST(request: Request) {
   try {
@@ -10,6 +12,25 @@ export async function POST(request: Request) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized login required' }, { status: 401 });
     }
+    //------------------------------------------------------
+// Rate limit
+//------------------------------------------------------
+
+const { success } = await purchaseRateLimit.limit(
+  `purchase:${user.id}`
+);
+
+if (!success) {
+  return NextResponse.json(
+    {
+      error:
+        'Too many purchase attempts. Please wait a minute and try again.',
+    },
+    {
+      status: 429,
+    }
+  );
+}
 
     const { paperId } = await request.json();
     if (!paperId) {

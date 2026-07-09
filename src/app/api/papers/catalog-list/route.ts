@@ -12,7 +12,18 @@ export async function GET() {
     // Fetch all available papers from your database catalog
     const { data: papers, error } = await supabase
       .from('papers')
-      .select('*')
+      .select(`
+  id,
+  college_name,
+  program,
+  department,
+  semester,
+  year,
+  course_code,
+  course_title,
+  exam_type,
+  created_at
+`)
       .order('created_at', { ascending: false });
 
     if (error) {
