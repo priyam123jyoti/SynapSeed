@@ -2,6 +2,7 @@
 
 'use client';
 
+import Link from 'next/link';
 import { Wallet, IndianRupee, Upload } from 'lucide-react';
 
 interface WalletCardProps {
@@ -53,13 +54,13 @@ export default function WalletCard({
             </div>
           </div>
 
-          <button
+          <Link
+            href="/papers/upload"
             className="rounded-2xl bg-white text-emerald-700 font-semibold hover:bg-emerald-50 transition flex flex-col justify-center items-center gap-2"
           >
-            <Upload size={22} />
-
+            <Upload size={20} />
             <span>Upload Paper</span>
-          </button>
+          </Link>
 
         </div>
 

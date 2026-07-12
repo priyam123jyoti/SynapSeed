@@ -1,6 +1,7 @@
 import { createClient } from '@/utils/supabase/server';
 import { NextResponse } from 'next/server';
 
+
 export async function GET() {
   try {
     const supabase = await createClient();
@@ -23,6 +24,20 @@ const { count: uploadedPapers, error: uploadError } = await supabase
 
 if (uploadError) {
   throw uploadError;
+}
+
+// Get total paper sales
+const { count: totalSales, error: salesError } = await supabase
+  .from('wallet_ledger')
+  .select('*', {
+    count: 'exact',
+    head: true,
+  })
+  .eq('user_id', user.id)
+  .eq('transaction_type', 'paper_sale');
+
+if (salesError) {
+  throw salesError;
 }
 
 
@@ -55,10 +70,33 @@ const lifetimeEarnings = earnings.reduce(
   0
 );
 
+const { data: recentSales, error: recentSalesError } = await supabase
+  .from('wallet_ledger')
+  .select(`
+    amount,
+    created_at,
+    papers (
+      course_title
+    )
+  `)
+  .eq('user_id', user.id)
+  .eq('transaction_type', 'paper_sale')
+  .order('created_at', { ascending: false })
+  .limit(5);
+
+if (recentSalesError) {
+  throw recentSalesError;
+}
+
 return NextResponse.json({
-  walletBalance: Number(profile.wallet_balance),
-  lifetimeEarnings,
-  uploadedPapers: uploadedPapers ?? 0,
+  stats: {
+    walletBalance: Number(profile.wallet_balance),
+    lifetimeEarnings,
+    uploadedPapers: uploadedPapers ?? 0,
+    totalSales: totalSales ?? 0,
+  },
+
+  recentSales,
 });
 
   } catch (error: any) {

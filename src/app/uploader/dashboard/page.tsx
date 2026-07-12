@@ -4,8 +4,6 @@ import DashboardLayout from '@/components/dashboard/DashboardLayout';
 import WalletCard from '@/components/dashboard/WalletCard';
 import StatCard from '@/components/dashboard/StatCard';
 import RecentSales from '@/components/dashboard/RecentSales';
-import UploadedPapersTable from '@/components/dashboard/UploadedPapersTable';
-
 
 import useDashboard from '@/hooks/useDashboard';
 
@@ -17,14 +15,33 @@ import {
 } from 'lucide-react';
 
 export default function DashboardPage() {
-  const { data } = useDashboard();
+  const { data, loading, error } = useDashboard();
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center py-20">
+          <p className="text-slate-500">Loading dashboard...</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (error) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center py-20">
+          <p className="text-red-500">{error}</p>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
-
-    
-
       <div className="space-y-8">
 
+        {/* Header */}
         <div>
           <h1 className="text-3xl font-bold">
             Welcome Back 👋
@@ -35,6 +52,7 @@ export default function DashboardPage() {
           </p>
         </div>
 
+        {/* Stats Cards */}
         <div className="grid gap-6 lg:grid-cols-4">
 
           <StatCard
@@ -63,28 +81,21 @@ export default function DashboardPage() {
 
         </div>
 
-        <div className="grid lg:grid-cols-3 gap-6">
+        {/* Wallet + Recent Sales */}
+        <div className="grid lg:grid-cols-2 gap-6">
+
           <WalletCard
             walletBalance={data?.stats.walletBalance ?? 0}
             lifetimeEarnings={data?.stats.lifetimeEarnings ?? 0}
           />
 
-        </div>
-
-        <div className="grid lg:grid-cols-2 gap-6">
-
           <RecentSales
-            sales={data?.recentSales ?? []}
-          />
-
-          <UploadedPapersTable
-            papers={data?.uploadedPapersTable ?? []}
+            sales={(data?.recentSales as any) ?? []}
           />
 
         </div>
 
       </div>
-
     </DashboardLayout>
   );
 }

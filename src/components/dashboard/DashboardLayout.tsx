@@ -1,8 +1,7 @@
 'use client';
 
 import { ReactNode } from 'react';
-import Sidebar from './Sidebar';
-import Topbar from './Topbar';
+import Navbar from '../layout/Navbar';
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -14,13 +13,11 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-slate-100">
       <div className="flex">
-        {/* Sidebar */}
-        <Sidebar />
 
-        {/* Main Area */}
-        <div className="flex-1 lg:ml-72">
+       {/* Main Area */}
+        <div >
           {/* Top Navigation */}
-          <Topbar />
+          <Navbar />
 
           {/* Page Content */}
           <main className="p-6 lg:p-8">
