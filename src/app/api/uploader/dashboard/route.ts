@@ -15,6 +15,16 @@ export async function GET() {
         { status: 401 }
       );
     }
+    // Get total uploaded papers
+const { count: uploadedPapers, error: uploadError } = await supabase
+  .from('papers')
+  .select('*', { count: 'exact', head: true })
+  .eq('uploader_id', user.id);
+
+if (uploadError) {
+  throw uploadError;
+}
+
 
     // We will continue from here...
 
@@ -29,8 +39,26 @@ if (profileError) {
   throw profileError;
 }
 
+// Get lifetime earnings from paper sales
+const { data: earnings, error: earningsError } = await supabase
+  .from('wallet_ledger')
+  .select('amount')
+  .eq('user_id', user.id)
+  .eq('transaction_type', 'paper_sale');
+
+if (earningsError) {
+  throw earningsError;
+}
+
+const lifetimeEarnings = earnings.reduce(
+  (total, row) => total + Number(row.amount),
+  0
+);
+
 return NextResponse.json({
-  walletBalance: profile.wallet_balance,
+  walletBalance: Number(profile.wallet_balance),
+  lifetimeEarnings,
+  uploadedPapers: uploadedPapers ?? 0,
 });
 
   } catch (error: any) {
