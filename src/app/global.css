@@ -1,0 +1,16 @@
+/* 1. The Default state (when mouse is just moving) */
+.custom-canvas-cursor .react-flow__pane {
+  cursor: url('https://www.google.com/intl/en_ALL/help/terms_maps/images/closedhand_white_black_border.png'), auto !important;
+  /* If the image above doesn't load, we fall back to a high-visibility crosshair */
+  cursor: crosshair !important;
+}
+
+/* 2. The Dragging state (when user clicks and holds to move) */
+.custom-canvas-cursor .react-flow__pane:active {
+  cursor: grabbing !important;
+}
+
+/* 3. Ensure the cursor stays a pointer for cards and branches */
+.react-flow__node, .react-flow__edge {
+  cursor: pointer !important;
+}
