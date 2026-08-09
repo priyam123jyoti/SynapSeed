@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
-import { generateMoanaQuiz } from '@/services/moanaAI';
 
 import { SUBJECT_TOPICS } from '@/components/quiz/constants'; 
 import TopicSelectionView from '@/components/quiz/TopicSelectionView';
@@ -35,25 +34,37 @@ export default function QuizClient() {
 
   /** * 4. Callbacks (Defined BEFORE useEffect to avoid TS2448)
    */
-  const handleStartQuiz = useCallback(async (topic: string) => {
-    setLoading(true);
-    setSelectedTopic(topic);
-    setQuestions([]); 
-    
-    try {
-      const data = await generateMoanaQuiz(topic, subjectTitle);
-      if (data && Array.isArray(data) && data.length > 0) {
-        setQuestions(data);
-      } else {
-        throw new Error("Invalid question format");
-      }
-    } catch (err) {
-      console.error("MOANA_SYNC_FAILURE:", err);
-      setSelectedTopic(null);
-    } finally {
-      setLoading(false);
+const handleStartQuiz = useCallback(async (topic: string) => {
+  setLoading(true);
+  setSelectedTopic(topic);
+  setQuestions([]); 
+
+  try {
+    const res = await fetch('/api/quiz', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic, subject: subjectTitle }),
+    });
+
+    if (!res.ok) {
+      throw new Error(`Server error: ${res.status}`);
     }
-  }, [subjectTitle]);
+
+    const result = await res.json();
+    const data = result.questions;
+
+    if (data && Array.isArray(data) && data.length > 0) {
+      setQuestions(data);
+    } else {
+      throw new Error("Invalid question format");
+    }
+  } catch (err) {
+    console.error("MOANA_SYNC_FAILURE:", err);
+    setSelectedTopic(null);
+  } finally {
+    setLoading(false);
+  }
+}, [subjectTitle]);
 
   const saveQuizScore = useCallback(async (percentage: number) => {
     if (!user) return;

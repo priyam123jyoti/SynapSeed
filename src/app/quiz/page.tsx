@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { generateMoanaQuiz } from '@/services/moanaAI';
 import type { User } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
 
@@ -49,31 +48,41 @@ function QuizContent() {
   const researcherName = user?.user_metadata?.full_name?.split(' ')[0] || "Researcher";
 
   // --- CORE LOGIC ---
-  const startQuiz = async (topic: string) => {
-    setLoading(true);
-    setSelectedTopic(topic);
-    try {
-      // Calling your AI service
-      const data = await generateMoanaQuiz(topic, subjectTitle);
-      
-      if (data && Array.isArray(data) && data.length > 0) {
-        setQuestions(data);
-        setCurrentIdx(0);
-        setUserAnswers(new Array(data.length).fill(-1));
-        setIsRecapMode(false);
-        setShowResultsModal(false);
-      } else {
-        throw new Error("Invalid data format received from AI");
-      }
-    } catch (err) {
-      console.error("Quiz Generation Error:", err);
-      alert(`🚨 NEURAL LINK ERROR: Moana could not sync ${subjectTitle} data. Check your API connection.`);
-      setSelectedTopic(null); // Return to topic selection
-    } finally {
-      setLoading(false);
-    }
-  };
+const startQuiz = async (topic: string) => {
+  setLoading(true);
+  setSelectedTopic(topic);
+  try {
+    // Call API route instead of direct function call
+    const res = await fetch('/api/quiz', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic, subject: subjectTitle }),
+    });
 
+    if (!res.ok) {
+      throw new Error(`Server returned status ${res.status}`);
+    }
+
+    const result = await res.json();
+    const data = result.questions;
+
+    if (data && Array.isArray(data) && data.length > 0) {
+      setQuestions(data);
+      setCurrentIdx(0);
+      setUserAnswers(new Array(data.length).fill(-1));
+      setIsRecapMode(false);
+      setShowResultsModal(false);
+    } else {
+      throw new Error("Invalid data format received from AI");
+    }
+  } catch (err) {
+    console.error("Quiz Generation Error:", err);
+    alert(`🚨 NEURAL LINK ERROR: Moana could not sync ${subjectTitle} data. Check your API connection.`);
+    setSelectedTopic(null); // Return to topic selection
+  } finally {
+    setLoading(false);
+  }
+};
   const scorePercentage = questions.length > 0 
     ? Math.round((userAnswers.reduce((score, ans, idx) => 
         ans === questions[idx]?.correct ? score + 1 : score, 0
