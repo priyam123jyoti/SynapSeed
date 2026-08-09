@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Building2, GraduationCap, Calendar, Loader2, MessageSquare, Eye, ShieldCheck } from 'lucide-react';
+import { Search, Building2, GraduationCap, Calendar, Loader2, MessageSquare, Eye, ShieldCheck, QrCode } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface PaperItem {
@@ -37,7 +37,7 @@ export default function PaperCatalogPage() {
       // Check current user session for admin privilege
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.email) {
-        setCurrentUserEmail(user.email.toLowerCase());
+        setCurrentUserEmail(user.email.toLowerCase().trim());
       }
 
       // Fetch Catalog List
@@ -213,14 +213,25 @@ export default function PaperCatalogPage() {
                     <MessageSquare size={16} /> Request on WhatsApp (₹5.00)
                   </button>
 
-                  {/* ADMIN ONLY BUTTON: Direct View Link (Visible exclusively to dihingiapriyamjyoti@gmail.com) */}
+                  {/* ADMIN ONLY BUTTONS */}
                   {currentUserEmail === ADMIN_EMAIL && (
-                    <button
-                      onClick={() => window.open(`/papers/view/${paper.id}`, '_blank')}
-                      className="w-full py-2.5 px-4 rounded-xl font-black text-xs uppercase tracking-widest bg-slate-900 hover:bg-slate-800 text-amber-400 border border-amber-400/40 transition-colors flex items-center justify-center gap-2 shadow-sm"
-                    >
-                      <Eye size={15} /> Admin Direct View
-                    </button>
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      {/* Direct PDF View Button */}
+                      <button
+                        onClick={() => window.open(`/papers/view/${paper.id}`, '_blank')}
+                        className="py-2.5 px-3 rounded-xl font-black text-[11px] uppercase tracking-wider bg-slate-900 hover:bg-slate-800 text-amber-400 border border-amber-400/40 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                      >
+                        <Eye size={14} /> View PDF
+                      </button>
+
+                      {/* Payment Info Button (Opens Payment Info Page) */}
+                      <button
+                        onClick={() => window.open(`/papers/payment-info/${paper.id}`, '_blank')}
+                        className="py-2.5 px-3 rounded-xl font-black text-[11px] uppercase tracking-wider bg-amber-500 hover:bg-amber-400 text-slate-950 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                      >
+                        <QrCode size={14} /> Payment Info
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
