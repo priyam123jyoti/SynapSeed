@@ -1,3 +1,4 @@
+//src/app/papers/view/[paperId]/page.tsx
 'use client';
 
 import { useEffect, useState } from 'react';

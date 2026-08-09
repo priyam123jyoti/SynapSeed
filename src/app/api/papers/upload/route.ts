@@ -5,24 +5,19 @@ import { fileTypeFromBuffer } from 'file-type';
 import { uploadRateLimit } from '@/lib/upstash';
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
+const MAX_QR_FILE_SIZE = 3 * 1024 * 1024; // 3 MB for QR image
 
-const ALLOWED_TYPES = [
-  {
-    mime: 'application/pdf',
-    ext: 'pdf',
-  },
-  {
-    mime: 'image/png',
-    ext: 'png',
-  },
-  {
-    mime: 'image/jpeg',
-    ext: 'jpg',
-  },
-  {
-    mime: 'image/jpeg',
-    ext: 'jpeg',
-  },
+const ALLOWED_PAPER_TYPES = [
+  { mime: 'application/pdf', ext: 'pdf' },
+  { mime: 'image/png', ext: 'png' },
+  { mime: 'image/jpeg', ext: 'jpg' },
+  { mime: 'image/jpeg', ext: 'jpeg' },
+];
+
+const ALLOWED_IMAGE_TYPES = [
+  { mime: 'image/png', ext: 'png' },
+  { mime: 'image/jpeg', ext: 'jpg' },
+  { mime: 'image/jpeg', ext: 'jpeg' },
 ];
 
 function cleanText(value: FormDataEntryValue | null): string {
@@ -36,9 +31,8 @@ export async function POST(req: Request) {
     const supabase = await createClient();
 
     //------------------------------------------------------
-    // Authenticate
+    // 1. Authenticate User
     //------------------------------------------------------
-
     const {
       data: { user },
       error: authError,
@@ -46,105 +40,138 @@ export async function POST(req: Request) {
 
     if (authError || !user) {
       return NextResponse.json(
-        {
-          error: 'Unauthorized access.',
-        },
-        {
-          status: 401,
-        }
+        { error: 'Unauthorized access.' },
+        { status: 401 }
       );
     }
 
     //------------------------------------------------------
-    // Rate limit
+    // 2. Rate Limit Check (Upstash)
     //------------------------------------------------------
-
-    const { success } = await uploadRateLimit.limit(
-      `upload:${user.id}`
-    );
+    const { success } = await uploadRateLimit.limit(`upload:${user.id}`);
 
     if (!success) {
       return NextResponse.json(
-        {
-          error:
-            'Upload limit exceeded. Maximum 5 uploads per hour.',
-        },
-        {
-          status: 429,
-        }
+        { error: 'Upload limit exceeded. Maximum 5 uploads per hour.' },
+        { status: 429 }
       );
     }
 
     //------------------------------------------------------
-    // Read form
+    // 3. Read Form Data
     //------------------------------------------------------
-
     const formData = await req.formData();
-
     const file = formData.get('file') as File | null;
 
     if (!file) {
       return NextResponse.json(
-        {
-          error: 'No file uploaded.',
-        },
-        {
-          status: 400,
-        }
+        { error: 'No paper file uploaded.' },
+        { status: 400 }
       );
     }
 
     //------------------------------------------------------
-    // Validate size
+    // 4. Optional: Process Payout Profile Updates
     //------------------------------------------------------
+    const payout_upi_id = cleanText(formData.get('payout_upi_id'));
+    const payout_phone = cleanText(formData.get('payout_phone'));
+    const payout_qr_file = formData.get('payout_qr_file') as File | null;
 
+    if (payout_upi_id && payout_phone) {
+      let qrCodeUrl: string | null = null;
+
+      // If user uploaded a new QR code image
+      if (payout_qr_file && payout_qr_file.size > 0) {
+        if (payout_qr_file.size > MAX_QR_FILE_SIZE) {
+          return NextResponse.json(
+            { error: 'Payment QR code image must be smaller than 3 MB.' },
+            { status: 400 }
+          );
+        }
+
+        const qrBytes = await payout_qr_file.arrayBuffer();
+        const qrBuffer = Buffer.from(qrBytes);
+        const detectedQrType = await fileTypeFromBuffer(qrBuffer);
+
+        const isValidQr = detectedQrType && ALLOWED_IMAGE_TYPES.some(
+          (t) => t.mime === detectedQrType.mime && t.ext === detectedQrType.ext
+        );
+
+        if (!isValidQr) {
+          return NextResponse.json(
+            { error: 'Invalid QR code image format. Only PNG and JPG are allowed.' },
+            { status: 400 }
+          );
+        }
+
+        const qrFileName = `qr_${user.id}_${crypto.randomUUID()}.${detectedQrType.ext}`;
+        const qrFilePath = `payout_qrs/${qrFileName}`;
+
+        const { error: qrUploadError } = await supabase.storage
+          .from('secure-papers')
+          .upload(qrFilePath, qrBuffer, {
+            contentType: detectedQrType.mime,
+            upsert: true,
+          });
+
+        if (!qrUploadError) {
+          const { data: publicUrlData } = supabase.storage
+            .from('secure-papers')
+            .getPublicUrl(qrFilePath);
+          qrCodeUrl = publicUrlData.publicUrl;
+        }
+      }
+
+      // Upsert uploader payout profile
+      const profileData: Record<string, any> = {
+        id: user.id,
+        email: user.email,
+        upi_id: payout_upi_id,
+        phone_number: payout_phone,
+        updated_at: new Date().toISOString(),
+      };
+      if (qrCodeUrl) profileData.qr_code_url = qrCodeUrl;
+
+      const { error: profileError } = await supabase
+        .from('uploader_profiles')
+        .upsert(profileData);
+
+      if (profileError) {
+        console.error('Failed to update payout profile:', profileError.message);
+      }
+    }
+
+    //------------------------------------------------------
+    // 5. Validate Paper File (Size & Type)
+    //------------------------------------------------------
     if (file.size === 0) {
       return NextResponse.json(
-        {
-          error: 'Uploaded file is empty.',
-        },
-        {
-          status: 400,
-        }
+        { error: 'Uploaded paper file is empty.' },
+        { status: 400 }
       );
     }
 
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        {
-          error: 'Maximum file size is 2 MB.',
-        },
-        {
-          status: 400,
-        }
+        { error: 'Maximum paper file size is 2 MB.' },
+        { status: 400 }
       );
     }
-
-    //------------------------------------------------------
-    // Read buffer
-    //------------------------------------------------------
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    //------------------------------------------------------
-    // Detect REAL file type
-    //------------------------------------------------------
-
+    // Detect REAL paper file type from buffer
     const detectedType = await fileTypeFromBuffer(buffer);
 
     if (!detectedType) {
       return NextResponse.json(
-        {
-          error: 'Unable to determine uploaded file type.',
-        },
-        {
-          status: 400,
-        }
+        { error: 'Unable to determine uploaded file type.' },
+        { status: 400 }
       );
     }
 
-    const isAllowed = ALLOWED_TYPES.some(
+    const isAllowed = ALLOWED_PAPER_TYPES.some(
       (type) =>
         type.mime === detectedType.mime &&
         type.ext === detectedType.ext
@@ -152,55 +179,26 @@ export async function POST(req: Request) {
 
     if (!isAllowed) {
       return NextResponse.json(
-        {
-          error: 'Only PDF, JPG and PNG files are allowed.',
-        },
-        {
-          status: 400,
-        }
+        { error: 'Only PDF, JPG and PNG files are allowed for question papers.' },
+        { status: 400 }
       );
     }
 
     //------------------------------------------------------
-    // Read metadata
+    // 6. Read and Clean Metadata
     //------------------------------------------------------
-
-    const college_name = cleanText(
-      formData.get('college_name')
-    );
-
-    const program = cleanText(
-      formData.get('program')
-    );
-
-    const department = cleanText(
-      formData.get('department')
-    );
-
-    const semester = Number(
-      cleanText(formData.get('semester'))
-    );
-
-    const year = Number(
-      cleanText(formData.get('year'))
-    );
-
-    const course_code = cleanText(
-      formData.get('course_code')
-    ).toUpperCase();
-
-    const course_title = cleanText(
-      formData.get('course_title')
-    );
-
-    const exam_type = cleanText(
-      formData.get('exam_type')
-    );
+    const college_name = cleanText(formData.get('college_name'));
+    const program = cleanText(formData.get('program'));
+    const department = cleanText(formData.get('department'));
+    const semester = Number(cleanText(formData.get('semester')));
+    const year = Number(cleanText(formData.get('year')));
+    const course_code = cleanText(formData.get('course_code')).toUpperCase();
+    const course_title = cleanText(formData.get('course_title'));
+    const exam_type = cleanText(formData.get('exam_type'));
 
     //------------------------------------------------------
-    // Validate metadata
+    // 7. Validate Metadata Fields
     //------------------------------------------------------
-
     if (
       !college_name ||
       !program ||
@@ -212,88 +210,90 @@ export async function POST(req: Request) {
       !Number.isInteger(year)
     ) {
       return NextResponse.json(
-        {
-          error: 'Missing or invalid metadata.',
-        },
-        {
-          status: 400,
-        }
+        { error: 'Missing or invalid paper metadata.' },
+        { status: 400 }
       );
     }
-    //------------------------------------------------------
-// Validate semester range
-//------------------------------------------------------
 
-if (semester < 1 || semester > 10) {
-  return NextResponse.json(
-    {
-      error: 'Semester must be between 1 and 10.',
-    },
-    {
-      status: 400,
+    if (semester < 1 || semester > 10) {
+      return NextResponse.json(
+        { error: 'Semester must be between 1 and 10.' },
+        { status: 400 }
+      );
     }
-  );
-}
 
-//------------------------------------------------------
-// Validate year range
-//------------------------------------------------------
-
-const currentYear = new Date().getFullYear();
-
-if (year < 2000 || year > currentYear + 1) {
-  return NextResponse.json(
-    {
-      error: `Year must be between 2000 and ${currentYear + 1}.`,
-    },
-    {
-      status: 400,
+    const currentYear = new Date().getFullYear();
+    if (year < 2000 || year > currentYear + 1) {
+      return NextResponse.json(
+        { error: `Year must be between 2000 and ${currentYear + 1}.` },
+        { status: 400 }
+      );
     }
-  );
-}
 
     //------------------------------------------------------
-    // Generate secure filename
+    // 8. Generate File Path & Upload to Private Bucket
     //------------------------------------------------------
+    const uniqueFileName = `${crypto.randomUUID()}.${detectedType.ext}`;
+    const filePath = `vault/${user.id}/${uniqueFileName}`;
 
-    const uniqueFileName =
-      `${crypto.randomUUID()}.${detectedType.ext}`;
-
-    const filePath =
-      `vault/${user.id}/${uniqueFileName}`;
-
-    //------------------------------------------------------
-    // Upload to private bucket
-    //------------------------------------------------------
-
-    const { error: storageError } =
-      await supabase.storage
-        .from('secure-papers')
-        .upload(filePath, buffer, {
-          contentType: detectedType.mime,
-          upsert: false,
-        });
+    const { error: storageError } = await supabase.storage
+      .from('secure-papers')
+      .upload(filePath, buffer, {
+        contentType: detectedType.mime,
+        upsert: false,
+      });
 
     if (storageError) {
       return NextResponse.json(
-        {
-          error: storageError.message,
-        },
-        {
-          status: 500,
-        }
+        { error: storageError.message },
+        { status: 500 }
       );
     }
 
     //------------------------------------------------------
-    // Save metadata
+    // 9. Save Metadata to DB (`papers` Table)
     //------------------------------------------------------
+    const { data: insertedPaper, error: dbError } = await supabase
+      .from('papers')
+      .insert({
+        uploader_id: user.id,
+        uploader_email: user.email,
+        college_name,
+        program,
+        department,
+        semester,
+        year,
+        course_code,
+        course_title,
+        exam_type,
+        file_path: filePath,
+        price: 5.0,
+        uploader_cut: 3.0,
+      })
+      .select()
+      .single();
 
-    const { error: dbError } =
-      await supabase
-        .from('papers')
-        .insert({
-          uploader_id: user.id,
+    // Rollback storage upload if DB insert fails
+    if (dbError) {
+      await supabase.storage.from('secure-papers').remove([filePath]);
+
+      return NextResponse.json(
+        { error: dbError.message },
+        { status: 500 }
+      );
+    }
+
+    //------------------------------------------------------
+    // 10. Audit Logging
+    //------------------------------------------------------
+    try {
+      await supabase.rpc('log_audit', {
+        p_user_id: user.id,
+        p_action: 'paper_uploaded',
+        p_resource_type: 'paper',
+        p_resource_id: filePath,
+        p_details: {
+          paper_id: insertedPaper?.id,
           college_name,
           program,
           department,
@@ -302,68 +302,24 @@ if (year < 2000 || year > currentYear + 1) {
           course_code,
           course_title,
           exam_type,
-          file_path: filePath,
-        });
-
-    //------------------------------------------------------
-    // Rollback upload if database insert fails
-    //------------------------------------------------------
-
-    if (dbError) {
-      await supabase.storage
-        .from('secure-papers')
-        .remove([filePath]);
-
-      return NextResponse.json(
-        {
-          error: dbError.message,
         },
-        {
-          status: 500,
-        }
-      );
+      });
+    } catch (err) {
+      console.error('Audit log failed:', err);
     }
 
-
-    try {
-  await supabase.rpc('log_audit', {
-    p_user_id: user.id,
-    p_action: 'paper_uploaded',
-    p_resource_type: 'paper',
-    p_resource_id: filePath,
-    p_details: {
-      college_name,
-      program,
-      department,
-      semester,
-      year,
-      course_code,
-      course_title,
-      exam_type,
-    },
-  });
-} catch (err) {
-  console.error('Audit log failed:', err);
-}
-
     //------------------------------------------------------
-    // Success
+    // 11. Return Success Response
     //------------------------------------------------------
-
     return NextResponse.json({
       success: true,
       message: 'Paper uploaded successfully.',
+      paper: insertedPaper,
     });
   } catch (error: any) {
     return NextResponse.json(
-      {
-        error:
-          error.message ||
-          'Internal server error.',
-      },
-      {
-        status: 500,
-      }
+      { error: error.message || 'Internal server error.' },
+      { status: 500 }
     );
   }
 }

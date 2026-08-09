@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Building2, GraduationCap, Calendar, Loader2, MessageSquare } from 'lucide-react';
+import { Search, Building2, GraduationCap, Calendar, Loader2, MessageSquare, Eye, ShieldCheck } from 'lucide-react';
+import { supabase } from '@/lib/supabase';
 
 interface PaperItem {
   id: string;
@@ -16,12 +17,13 @@ interface PaperItem {
   uploader_id: string;
 }
 
-// Replace with your active business WhatsApp number (with country code, e.g., 919876543210)
 const WHATSAPP_NUMBER = '917637968060';
+const ADMIN_EMAIL = 'dihingiapriyamjyoti@gmail.com';
 
 export default function PaperCatalogPage() {
   const [papers, setPapers] = useState<PaperItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
 
   // Filter states
   const [search, setSearch] = useState('');
@@ -31,13 +33,21 @@ export default function PaperCatalogPage() {
   async function fetchMarketplaceData() {
     try {
       setLoading(true);
+
+      // Check current user session for admin privilege
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        setCurrentUserEmail(user.email.toLowerCase());
+      }
+
+      // Fetch Catalog List
       const resCatalog = await fetch('/api/papers/catalog-list');
       if (resCatalog.ok) {
         const catalogData = await resCatalog.json();
         setPapers(catalogData);
       }
     } catch (e) {
-      console.error("Error fetching catalog data:", e);
+      console.error('Error fetching catalog data:', e);
     } finally {
       setLoading(false);
     }
@@ -48,7 +58,8 @@ export default function PaperCatalogPage() {
   }, []);
 
   const handleRequestPaper = (paper: PaperItem) => {
-    const message = `Hello! I would like to buy the following question paper:\n\n` +
+    const message =
+      `Hello! I would like to buy the following question paper:\n\n` +
       `*Course:* ${paper.course_title} (${paper.course_code})\n` +
       `*Institution:* ${paper.college_name}\n` +
       `*Program & Sem:* ${paper.program} - Sem ${paper.semester}\n` +
@@ -61,11 +72,11 @@ export default function PaperCatalogPage() {
   };
 
   const filteredPapers = papers.filter((paper) => {
-    const matchesSearch = 
+    const matchesSearch =
       paper.course_title.toLowerCase().includes(search.toLowerCase()) ||
       paper.course_code.toLowerCase().includes(search.toLowerCase()) ||
       paper.college_name.toLowerCase().includes(search.toLowerCase());
-    
+
     const matchesProgram = programFilter === '' || paper.program === programFilter;
     const matchesSemester = semFilter === '' || paper.semester.toString() === semFilter;
 
@@ -85,11 +96,18 @@ export default function PaperCatalogPage() {
       <div className="max-w-7xl mx-auto space-y-8">
         
         {/* Marketplace Header Banner */}
-        <div className="bg-slate-900 text-white p-8 rounded-2xl shadow-xl space-y-1">
-          <h1 className="text-2xl font-black uppercase tracking-tight">Question Paper Catalog</h1>
-          <p className="text-xs text-slate-400 font-bold">
-            All Question Papers Fixed at ₹5.00 • Instant Delivery via WhatsApp & QR Payment
-          </p>
+        <div className="bg-slate-900 text-white p-8 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="text-2xl font-black uppercase tracking-tight">Question Paper Catalog</h1>
+            <p className="text-xs text-slate-400 font-bold">
+              All Question Papers Fixed at ₹5.00 • Instant Delivery via WhatsApp & QR Payment
+            </p>
+          </div>
+          {currentUserEmail === ADMIN_EMAIL && (
+            <div className="flex items-center gap-1.5 bg-amber-400/10 text-amber-400 border border-amber-400/30 px-3 py-1.5 rounded-full text-xs font-black uppercase tracking-wider">
+              <ShieldCheck size={16} /> Admin Controls Active
+            </div>
+          )}
         </div>
 
         {/* Dynamic Navigation Filter Framework */}
@@ -148,7 +166,9 @@ export default function PaperCatalogPage() {
               onChange={(e) => setSemFilter(e.target.value)}
             >
               <option value="">All Semesters</option>
-              {[1,2,3,4,5,6,7,8].map(s => <option key={s} value={s.toString()}>Sem {s}</option>)}
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
+                <option key={s} value={s.toString()}>Sem {s}</option>
+              ))}
             </select>
           </div>
         </div>
@@ -184,12 +204,25 @@ export default function PaperCatalogPage() {
                   </div>
                 </div>
 
-                <button
-                  onClick={() => handleRequestPaper(paper)}
-                  className="w-full py-3 px-4 rounded-xl font-black text-xs uppercase tracking-widest bg-emerald-600 hover:bg-emerald-500 text-white transition-colors flex items-center justify-center gap-2 shadow-sm"
-                >
-                  <MessageSquare size={16} /> Request on WhatsApp (₹5.00)
-                </button>
+                <div className="space-y-2 pt-2">
+                  {/* Public WhatsApp Request Button */}
+                  <button
+                    onClick={() => handleRequestPaper(paper)}
+                    className="w-full py-3 px-4 rounded-xl font-black text-xs uppercase tracking-widest bg-emerald-600 hover:bg-emerald-500 text-white transition-colors flex items-center justify-center gap-2 shadow-sm"
+                  >
+                    <MessageSquare size={16} /> Request on WhatsApp (₹5.00)
+                  </button>
+
+                  {/* ADMIN ONLY BUTTON: Direct View Link (Visible exclusively to dihingiapriyamjyoti@gmail.com) */}
+                  {currentUserEmail === ADMIN_EMAIL && (
+                    <button
+                      onClick={() => window.open(`/papers/view/${paper.id}`, '_blank')}
+                      className="w-full py-2.5 px-4 rounded-xl font-black text-xs uppercase tracking-widest bg-slate-900 hover:bg-slate-800 text-amber-400 border border-amber-400/40 transition-colors flex items-center justify-center gap-2 shadow-sm"
+                    >
+                      <Eye size={15} /> Admin Direct View
+                    </button>
+                  )}
+                </div>
               </div>
             ))}
           </div>
