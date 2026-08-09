@@ -14,7 +14,6 @@ import 'reactflow/dist/style.css';
 import { ShieldAlert } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthProvider';
-import { generateMindMap } from '@/services/moanaAI';
 import { supabase } from '@/lib/supabase';
 
 import { Sidebar } from '@/components/mindmap/Sidebar';
@@ -107,12 +106,20 @@ export default function MindMapPage() {
     }
   };
 
-  const handleGenerate = async () => {
+const handleGenerate = async () => {
     if (!inputText.trim()) return;
     setIsGenerating(true);
     
     try {
-      const result: any = await generateMindMap(inputText);
+      // 1. Replaced direct function call with an API fetch
+      const response = await fetch('/api/mindmap', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rawText: inputText })
+      });
+      
+      const result = await response.json();
+
       if (result?.maps && result.maps.length > 0) {
         const allNodes: any[] = [];
         const allEdges: any[] = [];
@@ -120,7 +127,6 @@ export default function MindMapPage() {
         // --- PERFECTED SPACING CONSTANTS ---
         const NODE_WIDTH = 320;
         const HORIZONTAL_GAP = 150; 
-        // 350px vertical gap is plenty because truncating text keeps node height < 150px
         const VERTICAL_GAP = 350; 
 
         let globalMapCursorX = 0;
@@ -145,7 +151,6 @@ export default function MindMapPage() {
               id,
               type: 'neuralNode',
               position: { x: xPos, y: yPos },
-              // IMPORTANT: Pass the full object so the modal gets the whole description, not just the truncated part
               data: { ...nodeData, isRoot, color: branchColor },
               style: { 
                 background: isRoot ? '#020617' : 'white', 
@@ -192,6 +197,8 @@ export default function MindMapPage() {
         const displayTopic = result.maps[0].topic || inputText.substring(0, 40);
         await saveMapToCloud(displayTopic, allNodes, allEdges);
       }
+    } catch (error) {
+      console.error("Failed to generate map:", error);
     } finally { 
       setIsGenerating(false); 
     }
