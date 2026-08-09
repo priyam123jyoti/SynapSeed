@@ -1,18 +1,14 @@
 import Groq from "groq-sdk";
 
+// Initialize ONLY on the server with standard non-public env variable
 const groq = new Groq({
-  apiKey: process.env.NEXT_PUBLIC_GROQ_API_KEY,
-  dangerouslyAllowBrowser: true 
+  apiKey: process.env.GROQ_API_KEY,
 });
 
 const MOANA_IDENTITY = `You are KAKU. 
 Created by Priyamjyoti Dihingia. 
 You are a master of Physics, Chemistry, Botany, and Zoology curriculum (HS to MSc levels).`;
 
-/**
- * PROTOCOL: Unified Singular Mind-Map Architect
- * REVISED: Force a single root node even for long/complex texts.
- */
 export const generateMindMap = async (rawText: string) => {
   const prompt = `
     COMMAND: Perform an EXHAUSTIVE ANALYSIS of the following scientific text and synthesize it into a SINGLE UNIFIED mind map.
@@ -54,7 +50,6 @@ export const generateMindMap = async (rawText: string) => {
     const content = response.choices[0]?.message?.content;
     const parsed = content ? JSON.parse(content) : null;
 
-    // Convert the single object back into an array to maintain compatibility with your UI
     if (parsed && parsed.map) {
       return { maps: [parsed.map] };
     }
@@ -66,10 +61,6 @@ export const generateMindMap = async (rawText: string) => {
   }
 };
 
-/**
- * PROTOCOL: Examination Engine
- * REPAIRED: Forces strict correct answer indexing and explanations.
- */
 export const generateMoanaQuiz = async (topic: string, subject: string) => {
   const levels = ["HS Level (NEET/NCERT)", "BSc Level (Core Academic)", "MSc Level (Analytical/Research)"];
   const selectedLevel = levels[Math.floor(Math.random() * levels.length)];
