@@ -17,7 +17,7 @@ interface PaperItem {
 }
 
 // Replace with your active business WhatsApp number (with country code, e.g., 919876543210)
-const WHATSAPP_NUMBER = '919876543210';
+const WHATSAPP_NUMBER = '917637968060';
 
 export default function PaperCatalogPage() {
   const [papers, setPapers] = useState<PaperItem[]>([]);
