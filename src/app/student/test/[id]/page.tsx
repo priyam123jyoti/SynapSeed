@@ -1,4 +1,3 @@
-//src/app/student/test/[id]/page.tsx
 'use client';
 
 import { useEffect, useState, use } from 'react';
@@ -50,10 +49,6 @@ export default function StudentTestPage({ params }: { params: Promise<{ id: stri
     setResponses({ ...responses, [questionId]: updatedSelection });
   };
 
-  const handleTextValueChange = (questionId: string, value: string) => {
-    setResponses({ ...responses, [questionId]: value.trim() ? [value] : [] });
-  };
-
   const handleFormSubmission = async () => {
     setSubmitting(true);
     try {
@@ -93,7 +88,7 @@ export default function StudentTestPage({ params }: { params: Promise<{ id: stri
               </div>
               <h3 className="font-bold text-slate-900 text-md leading-snug">{q.question_text}</h3>
 
-              {q.type !== 'FITB' && q.options && (
+              {q.options && (
                 <div className="grid grid-cols-1 gap-2.5">
                   {q.options.map((option, oIdx) => {
                     const selected = responses[q.id]?.includes(option) || false;
@@ -112,14 +107,6 @@ export default function StudentTestPage({ params }: { params: Promise<{ id: stri
                     );
                   })}
                 </div>
-              )}
-
-              {q.type === 'FITB' && (
-                <input
-                  type="text" placeholder="Type evaluation target term keyword string response here..."
-                  onChange={(e) => handleTextValueChange(q.id, e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-slate-900 focus:bg-white transition-all"
-                />
               )}
             </div>
           ))}
