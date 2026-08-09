@@ -1,21 +1,32 @@
-//src/app/papers/view/[paperId]/page.tsx
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, use } from 'react';
 import { ShieldAlert, Loader2, Lock } from 'lucide-react';
 
 export default function SecurePaperViewerPage({
   params,
 }: {
-  params: { paperId: string };
+  params: Promise<{ paperId: string }>;
 }) {
+  // 1. Unwrap Next.js 15 async params using React's use() hook
+  const resolvedParams = use(params);
+  const paperId = resolvedParams?.paperId;
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    // Prevent fetching if paperId is missing or literal string "undefined"
+    if (!paperId || paperId === 'undefined') {
+      setError('Invalid Paper ID.');
+      setLoading(false);
+      return;
+    }
+
     async function checkAccess() {
       try {
-        const res = await fetch(`/api/papers/${params.paperId}`, {
+        // 2. Updated endpoint to /api/papers/stream/${paperId}
+        const res = await fetch(`/api/papers/stream/${paperId}`, {
           method: 'HEAD',
         });
 
@@ -31,7 +42,7 @@ export default function SecurePaperViewerPage({
     }
 
     checkAccess();
-  }, [params.paperId]);
+  }, [paperId]);
 
   useEffect(() => {
     const blockContextMenu = (e: MouseEvent) => e.preventDefault();
@@ -93,32 +104,25 @@ export default function SecurePaperViewerPage({
 
   return (
     <main className="min-h-screen bg-slate-950 p-6">
-
       <div className="max-w-6xl mx-auto mb-4">
-
         <div className="bg-slate-900 rounded-xl border border-slate-800 p-4 flex items-center gap-3">
-
           <ShieldAlert
             className="text-emerald-400"
             size={18}
           />
-
           <span className="text-slate-300 font-semibold">
             Protected Viewer
           </span>
-
         </div>
-
       </div>
 
       <div className="max-w-6xl mx-auto rounded-xl overflow-hidden border border-slate-800 bg-white h-[85vh]">
-
+        {/* 3. Updated iframe src to /api/papers/stream/${paperId} */}
         <iframe
-          src={`/api/papers/${params.paperId}`}
+          src={`/api/papers/stream/${paperId}`}
           className="w-full h-full border-0"
           title="Secure Paper Viewer"
         />
-
       </div>
 
       <style jsx global>{`
@@ -133,7 +137,6 @@ export default function SecurePaperViewerPage({
           }
         }
       `}</style>
-
     </main>
   );
 }
