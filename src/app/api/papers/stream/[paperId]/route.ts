@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { supabaseAdmin } from '@/utils/supabase/admin';
 
+export const dynamic = 'force-dynamic';
+
 const ADMIN_EMAIL = 'dihingiapriyamjyoti@gmail.com';
 
 export async function GET(
@@ -12,55 +14,91 @@ export async function GET(
     const { paperId } = await params;
     const supabase = await createClient();
 
-    // 1. Authenticate user
+    // ------------------------------------------------------------------
+    // CHECK 1: Authenticate User Session
+    // ------------------------------------------------------------------
     const {
       data: { user },
+      error: userError,
     } = await supabase.auth.getUser();
 
-    if (!user) {
-      return new NextResponse('Unauthorized', { status: 401 });
+    if (userError || !user) {
+      console.error('[STREAM_ERR] 401 Unauthorized: Session missing or invalid.', userError?.message);
+      return new NextResponse('Unauthorized: Please log in again.', { status: 401 });
     }
 
-    // 2. Fetch paper record
+    const currentEmail = user.email?.trim().toLowerCase() || '';
+    console.log(`[STREAM_LOG] User authenticated: ${currentEmail} (ID: ${user.id})`);
+
+    // ------------------------------------------------------------------
+    // CHECK 2: Fetch Paper Record (Select * to handle schema variations)
+    // ------------------------------------------------------------------
     const { data: paper, error: paperError } = await supabase
       .from('papers')
-      .select('file_path, uploader_id')
+      .select('*')
       .eq('id', paperId)
-      .single();
+      .maybeSingle();
 
     if (paperError || !paper) {
-      return new NextResponse('Paper not found', { status: 404 });
+      console.error('[STREAM_ERR] 404 Paper Not Found:', paperError?.message);
+      return new NextResponse(`Paper not found: ${paperError?.message || 'Invalid ID'}`, { status: 404 });
     }
 
-    // 3. Check Access Hierarchy: Admin -> Uploader -> Purchase
-    const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL;
-    const isOwner = paper.uploader_id === user.id;
+    // ------------------------------------------------------------------
+    // CHECK 3: Verify Admin / Ownership Access Hierarchy
+    // ------------------------------------------------------------------
+    const isAdmin = currentEmail === ADMIN_EMAIL.toLowerCase();
+
+    // Supports 'uploader_id', 'user_id', or 'uploader_email' column naming
+    const isOwner =
+      (paper.uploader_id && paper.uploader_id === user.id) ||
+      (paper.user_id && paper.user_id === user.id) ||
+      (paper.uploader_email && paper.uploader_email.toLowerCase() === currentEmail);
 
     let hasAccess = isAdmin || isOwner;
 
-    // Check purchase status if not Admin/Owner
+    console.log(`[STREAM_LOG] Access Check -> isAdmin: ${isAdmin}, isOwner: ${isOwner}`);
+
+    // Check Purchase Table if neither Admin nor Owner
     if (!hasAccess) {
-      const { data: unlock } = await supabase
+      const { data: unlock, error: unlockError } = await supabase
         .from('paper_unlocks')
         .select('id')
         .eq('paper_id', paperId)
         .eq('user_id', user.id)
         .maybeSingle();
 
+      if (unlockError) {
+        console.error('[STREAM_ERR] Unlock Check Failed:', unlockError.message);
+      }
+
       hasAccess = !!unlock;
+      console.log(`[STREAM_LOG] Purchase Unlock Found: ${hasAccess}`);
     }
 
     if (!hasAccess) {
-      return new NextResponse('Access denied', { status: 403 });
+      console.error(`[STREAM_ERR] 403 Forbidden for user ${currentEmail} on paper ${paperId}`);
+      return new NextResponse('Access denied: You do not have permission to view this paper.', { status: 403 });
     }
 
-    // 4. Download file from private bucket using admin client
-    const { data, error } = await supabaseAdmin.storage
+    // ------------------------------------------------------------------
+    // CHECK 4: Storage Bucket Download via Admin Service Key
+    // ------------------------------------------------------------------
+    if (!paper.file_path) {
+      console.error('[STREAM_ERR] 500: Database paper record is missing file_path');
+      return new NextResponse('Paper record missing file path.', { status: 500 });
+    }
+
+    const { data, error: storageError } = await supabaseAdmin.storage
       .from('secure-papers')
       .download(paper.file_path);
 
-    if (error || !data) {
-      return new NextResponse('Unable to load paper from storage', { status: 500 });
+    if (storageError || !data) {
+      console.error('[STREAM_ERR] 500 Storage Download Failed:', storageError?.message);
+      return new NextResponse(
+        `Storage Download Error: ${storageError?.message || 'Check SUPABASE_SERVICE_ROLE_KEY'}`,
+        { status: 500 }
+      );
     }
 
     const contentType = data.type || 'application/pdf';
@@ -74,8 +112,7 @@ export async function GET(
       },
     });
   } catch (err: any) {
-    return new NextResponse(err.message || 'Internal Server Error', {
-      status: 500,
-    });
+    console.error('[STREAM_ERR] Unhandled Exception:', err);
+    return new NextResponse(err.message || 'Internal Server Error', { status: 500 });
   }
 }
