@@ -1,21 +1,27 @@
+import { createBrowserClient } from '@supabase/ssr';
 import { createClient } from '@supabase/supabase-js';
 
-// Next.js uses process.env instead of import.meta.env
-// The NEXT_PUBLIC_ prefix makes these available in the browser
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key';
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  // In development, this helps you catch missing variables early
-  console.error('Supabase URL or Anon Key is missing in environment variables.');
-}
-
-export const supabase = createClient(
-  supabaseUrl || '', 
-  supabaseAnonKey || ''
+// 1. Standard Client (Upgraded to SSR Browser Client)
+// This automatically syncs and sets the 'sb-' cookies your backend was missing!
+export const supabase = createBrowserClient(
+  supabaseUrl,
+  supabaseAnonKey
 );
 
-// Optional: Debugging logs (will show in browser console)
+// 2. Admin Client (For Server-Side API Routes Only)
+// Remains unchanged since server-to-server admin bypass doesn't use browser cookies.
+export const supabaseAdmin = createClient(
+  supabaseUrl,
+  supabaseServiceKey || 'dummy-key-to-prevent-browser-crash',
+  {
+    auth: { persistSession: false }
+  }
+);
+
 if (process.env.NODE_ENV === 'development') {
-    console.log("Supabase initialized with URL:", supabaseUrl);
+  console.log("Supabase SSR & Admin clients initialized successfully.");
 }

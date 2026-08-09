@@ -4,9 +4,6 @@ export const validateAnswer = (question: any, userSelection: any) => {
     return userSelection === question.correct_answers[0];
   }
 
-  if (question.type === 'FITB') {
-    return userSelection.toLowerCase().trim() === question.correct_answers[0].toLowerCase().trim();
-  }
 
   if (question.type === 'MSQ') {
     const isCorrect = 

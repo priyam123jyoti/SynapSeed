@@ -1,29 +1,95 @@
-"use client";
+import { supabase } from '@/lib/supabase';
+import { Metadata } from 'next';
 
 import Navbar from '@/components/layout/Navbar'; 
-import Chloroplast3D from '@/components/layout/Chloroplast3D';
-import RightPanel from '@/components/layout/RightPanel';
+import BotanyHero from '@/components/layout/HeroSection';
 import MobileBottomNavbar from '@/components/layout/MobileBottomNavbar';
 import AIFloatingButton from '@/components/layout/AIFloatingButton';
+import Footer from '@/components/layout/Footer'; 
 
-export default function Home() {
+import SubjectPillars from '@/components/home/SubjectPillars';
+import FeatureShowcase from '@/components/home/FeatureShowcase';
+import ImpactStats from '@/components/home/ImpactStats';
+import LatestEvents from '@/components/home/LatestEvents';
+import TestJoinCard from '@/components/home/TestJoinCard';
+
+// DYNAMIC PERFORMANCE MATCH
+export const revalidate = 30; 
+
+export const metadata: Metadata = {
+  title: "Department of Botany | Dhakuakhana College | Home Page",
+  description: "Official Botany Department portal. Explore interactive AI mind maps and science quizzes.",
+  alternates: { canonical: 'https://synap-seed.vercel.app' }, 
+  openGraph: {
+    title: "Botany Department | Dhakuakhana College",
+    description: "Visualizing Plant Science with AI-powered tools.",
+    url: 'https://synap-seed.vercel.app',
+    images: '/botany-department-dhakuakhana-college.png',
+  }
+};
+
+async function getLatestQuiz() {
+  const { data, error } = await supabase
+    .from('quizzes')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle(); 
+    
+  if (error) {
+    console.error("Quiz Fetch Error:", error);
+    return null;
+  }
+  return data;
+}
+
+export default async function Home() {
+  const activeQuiz = await getLatestQuiz();
+
   return (
-    <div className="w-full bg-[#f8fafc] flex flex-col min-h-screen pb-15">
+    <div className="w-full bg-[#f8fafc] flex flex-col min-h-screen">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "EducationalOrganization",
+            "name": "Dhakuakhana College Botany Department",
+            "url": "https://synap-seed.vercel.app"
+          })
+        }}
+      />
+
       <Navbar /> 
       
-      <main className="flex-1 p-4 md:p-10">
-        <div className="flex flex-col xl:flex-row gap-8 max-w-[1600px] mx-auto w-full">
-          <div className="flex-1 flex flex-col lg:flex-row gap-8">
-            {/* The 3D model container */}
-            <div className="flex-1 min-h-[50vh] lg:min-h-[70vh]">
-              <Chloroplast3D />
+      <main id="main-content" className="flex-grow">
+        <BotanyHero />
+        
+        <section className="max-w-xl mx-auto px-6 py-12">
+            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
+              <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">
+                {activeQuiz ? "Active Challenge" : "Stay Tuned"}
+              </h2>
             </div>
-            {/* The Side Panel */}
-            <div className="w-full lg:w-96">
-              <RightPanel />
-            </div>
+        </section>
+
+        <div className="p-1 md:p-10">
+          <div className="max-w-[1600px] mx-auto w-full space-y-20">
+            <TestJoinCard 
+        testId="math-101" 
+        title="Algebra Basics Quiz" 
+        questionCount={10} 
+        durationMinutes={20}
+        isUrgent={true}
+      />
+            <LatestEvents />
+            <SubjectPillars />
+            <FeatureShowcase />
+            <ImpactStats />
           </div>
         </div>
+
+        <Footer />
       </main>
       
       <AIFloatingButton />

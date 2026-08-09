@@ -9,7 +9,7 @@ export interface Test {
 export interface Question {
   id: string;
   test_id: string;
-  type: 'MCQ' | 'MSQ' | 'FITB';
+  type: 'MCQ' | 'MSQ';
   question_text: string;
   options: string[] | null;
   correct_answers: string[];
