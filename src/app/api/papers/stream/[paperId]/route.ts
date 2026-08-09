@@ -1,7 +1,8 @@
-//src/app/api/papers/stream/[paperId]/route.ts
 import { NextResponse } from 'next/server';
 import { createClient } from '@/utils/supabase/server';
 import { supabaseAdmin } from '@/utils/supabase/admin';
+
+const ADMIN_EMAIL = 'dihingiapriyamjyoti@gmail.com';
 
 export async function GET(
   request: Request,
@@ -9,9 +10,9 @@ export async function GET(
 ) {
   try {
     const { paperId } = await params;
-
     const supabase = await createClient();
 
+    // 1. Authenticate user
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -20,13 +21,10 @@ export async function GET(
       return new NextResponse('Unauthorized', { status: 401 });
     }
 
-    //-------------------------------------------------------
-    // Fetch paper
-    //-------------------------------------------------------
-
+    // 2. Fetch paper record
     const { data: paper, error: paperError } = await supabase
       .from('papers')
-      .select('file_path,uploader_id')
+      .select('file_path, uploader_id')
       .eq('id', paperId)
       .single();
 
@@ -34,16 +32,13 @@ export async function GET(
       return new NextResponse('Paper not found', { status: 404 });
     }
 
-    //-------------------------------------------------------
-    // Owner always has access
-    //-------------------------------------------------------
+    // 3. Check Access Hierarchy: Admin -> Uploader -> Purchase
+    const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL;
+    const isOwner = paper.uploader_id === user.id;
 
-    let hasAccess = paper.uploader_id === user.id;
+    let hasAccess = isAdmin || isOwner;
 
-    //-------------------------------------------------------
-    // Purchased?
-    //-------------------------------------------------------
-
+    // Check purchase status if not Admin/Owner
     if (!hasAccess) {
       const { data: unlock } = await supabase
         .from('paper_unlocks')
@@ -56,52 +51,30 @@ export async function GET(
     }
 
     if (!hasAccess) {
-      return new NextResponse('Access denied', {
-        status: 403,
-      });
+      return new NextResponse('Access denied', { status: 403 });
     }
 
-    //-------------------------------------------------------
-    // Download directly from private bucket
-    //-------------------------------------------------------
-
+    // 4. Download file from private bucket using admin client
     const { data, error } = await supabaseAdmin.storage
       .from('secure-papers')
       .download(paper.file_path);
 
     if (error || !data) {
-      return new NextResponse('Unable to load paper', {
-        status: 500,
-      });
+      return new NextResponse('Unable to load paper from storage', { status: 500 });
     }
 
-    //-------------------------------------------------------
-    // Detect content type
-    //-------------------------------------------------------
-
-    const contentType =
-      data.type || 'application/octet-stream';
-
-    //-------------------------------------------------------
-    // Return file
-    //-------------------------------------------------------
+    const contentType = data.type || 'application/pdf';
 
     return new NextResponse(data.stream(), {
       headers: {
         'Content-Type': contentType,
-
-        // Prevent browser download
         'Content-Disposition': 'inline',
-
-        // Prevent caching
-        'Cache-Control': 'no-store',
-
-        // Prevent MIME sniffing
+        'Cache-Control': 'no-store, max-age=0',
         'X-Content-Type-Options': 'nosniff',
       },
     });
   } catch (err: any) {
-    return new NextResponse(err.message, {
+    return new NextResponse(err.message || 'Internal Server Error', {
       status: 500,
     });
   }
