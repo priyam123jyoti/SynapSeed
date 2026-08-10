@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import { Image as ImageIcon, FileText, CheckCircle2, ShieldAlert } from 'lucide-react';
 
 export function PaperDetailsForm() {
@@ -165,17 +166,20 @@ export function PaperDetailsForm() {
           The thumbnail should be like this and no question visible in the thumbnail.
         </p>
 
-        {/* Visual Example Box */}
+        {/* Static Image Example Box */}
         <div className="bg-white border border-amber-200 rounded-xl p-3 flex flex-col sm:flex-row items-center gap-4">
-          <div className="w-full sm:w-36 h-28 bg-slate-100 border-2 border-dashed border-emerald-400 rounded-lg flex flex-col items-center justify-center p-2 text-center relative overflow-hidden shrink-0">
-            <div className="absolute top-1 right-1 bg-emerald-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+          <div className="relative shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+            {/* Replace /images/thumbnail-example.png with your image file path in /public */}
+            <Image
+              src="/thumbnail-example.jpg"
+              alt="Thumbnail Example"
+              width={176}
+              height={112}
+              className="w-full sm:w-44 h-28 object-cover rounded-lg"
+            />
+            <span className="absolute top-1 right-1 bg-emerald-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded shadow-sm">
               Example
-            </div>
-            <p className="text-[10px] font-black text-slate-800 uppercase">UNIVERSITY / COLLEGE</p>
-            <p className="text-[9px] font-bold text-indigo-600 mt-1">B.Sc 3rd Sem Exam 2026</p>
-            <p className="text-[8px] text-slate-500 font-semibold">Paper: Computer Science</p>
-            <div className="w-full border-t border-slate-300 my-1"></div>
-            <p className="text-[8px] text-slate-400 italic font-medium">[ Questions Area Cropped Out ]</p>
+            </span>
           </div>
 
           <div className="space-y-1 text-[11px] text-slate-600">

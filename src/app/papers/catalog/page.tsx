@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Building2, GraduationCap, Calendar, Loader2, MessageSquare, Eye, ShieldCheck, QrCode } from 'lucide-react';
+import { Search, Building2, GraduationCap, Calendar, Loader2, MessageSquare, Eye, ShieldCheck, QrCode, FileText } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface PaperItem {
@@ -15,6 +15,7 @@ interface PaperItem {
   course_title: string;
   exam_type: string;
   uploader_id: string;
+  thumbnail_url?: string; // Added optional thumbnail URL field
 }
 
 const WHATSAPP_NUMBER = '917637968060';
@@ -24,6 +25,7 @@ export default function PaperCatalogPage() {
   const [papers, setPapers] = useState<PaperItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentUserEmail, setCurrentUserEmail] = useState<string | null>(null);
+  const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
 
   // Filter states
   const [search, setSearch] = useState('');
@@ -69,6 +71,10 @@ export default function PaperCatalogPage() {
 
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodedMessage}`, '_blank');
+  };
+
+  const handleImageError = (paperId: string) => {
+    setImageErrors((prev) => ({ ...prev, [paperId]: true }));
   };
 
   const filteredPapers = papers.filter((paper) => {
@@ -180,62 +186,107 @@ export default function PaperCatalogPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredPapers.map((paper) => (
-              <div key={paper.id} className="bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all p-6 flex flex-col justify-between space-y-4">
-                <div className="space-y-3">
-                  <div className="flex justify-between items-start">
-                    <span className="bg-slate-100 text-slate-700 px-2.5 py-1 rounded text-[10px] font-black uppercase tracking-widest">
-                      {paper.exam_type}
-                    </span>
-                    <span className="text-xs font-black text-slate-900">₹5.00</span>
-                  </div>
+            {filteredPapers.map((paper) => {
+              const thumbnailUrl = paper.thumbnail_url || `/api/papers/thumbnail/${paper.id}`;
+              const isImageFailed = imageErrors[paper.id];
 
-                  <div>
-                    <h3 className="font-black text-slate-900 text-sm tracking-tight leading-tight uppercase">{paper.course_title}</h3>
-                    <p className="text-[11px] font-bold text-slate-500 mt-0.5">{paper.course_code} • {paper.department}</p>
-                  </div>
+              return (
+                <div 
+                  key={paper.id} 
+                  className="group bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all p-5 flex flex-col justify-between space-y-4 overflow-hidden"
+                >
+                  <div className="space-y-4">
+                    
+                    {/* Paper Thumbnail Container */}
+                    <div className="relative w-full aspect-[4/3] bg-slate-100 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center">
+                      {!isImageFailed ? (
+                        <img
+                          src={thumbnailUrl}
+                          alt={paper.course_title}
+                          onError={() => handleImageError(paper.id)}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center gap-2 text-slate-400 p-4 text-center">
+                          <FileText size={36} className="text-slate-300" />
+                          <span className="text-[10px] font-black uppercase tracking-wider">Preview Unavailable</span>
+                        </div>
+                      )}
 
-                  <hr className="border-slate-100" />
+                      {/* Floating Badge Tag */}
+                      <span className="absolute top-2.5 left-2.5 bg-slate-900/90 backdrop-blur-md text-white px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest shadow-sm">
+                        {paper.exam_type}
+                      </span>
 
-                  <div className="space-y-2 text-[11px] font-bold text-slate-600">
-                    <div className="flex items-center gap-2"><Building2 size={14} className="text-slate-400" /> {paper.college_name}</div>
-                    <div className="flex items-center gap-2"><GraduationCap size={14} className="text-slate-400" /> {paper.program} • Semester {paper.semester}</div>
-                    <div className="flex items-center gap-2"><Calendar size={14} className="text-slate-400" /> Academic Exam Term Year: {paper.year}</div>
-                  </div>
-                </div>
-
-                <div className="space-y-2 pt-2">
-                  {/* Public WhatsApp Request Button */}
-                  <button
-                    onClick={() => handleRequestPaper(paper)}
-                    className="w-full py-3 px-4 rounded-xl font-black text-xs uppercase tracking-widest bg-emerald-600 hover:bg-emerald-500 text-white transition-colors flex items-center justify-center gap-2 shadow-sm"
-                  >
-                    <MessageSquare size={16} /> Request on WhatsApp (₹5.00)
-                  </button>
-
-                  {/* ADMIN ONLY BUTTONS */}
-                  {currentUserEmail === ADMIN_EMAIL && (
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      {/* Direct PDF View Button */}
-                      <button
-                        onClick={() => window.open(`/papers/view/${paper.id}`, '_blank')}
-                        className="py-2.5 px-3 rounded-xl font-black text-[11px] uppercase tracking-wider bg-slate-900 hover:bg-slate-800 text-amber-400 border border-amber-400/40 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
-                      >
-                        <Eye size={14} /> View PDF
-                      </button>
-
-                      {/* Payment Info Button (Opens Payment Info Page) */}
-                      <button
-                        onClick={() => window.open(`/papers/payment-info/${paper.id}`, '_blank')}
-                        className="py-2.5 px-3 rounded-xl font-black text-[11px] uppercase tracking-wider bg-amber-500 hover:bg-amber-400 text-slate-950 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
-                      >
-                        <QrCode size={14} /> Payment Info
-                      </button>
+                      {/* Floating Price Tag */}
+                      <span className="absolute top-2.5 right-2.5 bg-emerald-600 text-white px-2.5 py-1 rounded-md text-xs font-black shadow-sm">
+                        ₹5.00
+                      </span>
                     </div>
-                  )}
+
+                    {/* Paper Metadata Header */}
+                    <div>
+                      <h3 className="font-black text-slate-900 text-sm tracking-tight leading-tight uppercase line-clamp-2">
+                        {paper.course_title}
+                      </h3>
+                      <p className="text-[11px] font-bold text-slate-500 mt-1">
+                        {paper.course_code} • {paper.department}
+                      </p>
+                    </div>
+
+                    <hr className="border-slate-100" />
+
+                    <div className="space-y-2 text-[11px] font-bold text-slate-600">
+                      <div className="flex items-center gap-2">
+                        <Building2 size={14} className="text-slate-400 shrink-0" /> 
+                        <span className="truncate">{paper.college_name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <GraduationCap size={14} className="text-slate-400 shrink-0" /> 
+                        <span>{paper.program} • Semester {paper.semester}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Calendar size={14} className="text-slate-400 shrink-0" /> 
+                        <span>Academic Exam Term Year: {paper.year}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Actions Section */}
+                  <div className="space-y-2 pt-2">
+                    {/* Public WhatsApp Request Button */}
+                    <button
+                      onClick={() => handleRequestPaper(paper)}
+                      className="w-full py-3 px-4 rounded-xl font-black text-xs uppercase tracking-widest bg-emerald-600 hover:bg-emerald-500 text-white transition-colors flex items-center justify-center gap-2 shadow-sm"
+                    >
+                      <MessageSquare size={16} /> Request on WhatsApp (₹5.00)
+                    </button>
+
+                    {/* ADMIN ONLY BUTTONS */}
+                    {currentUserEmail === ADMIN_EMAIL && (
+                      <div className="grid grid-cols-2 gap-2 pt-1">
+                        {/* Direct PDF View Button */}
+                        <button
+                          onClick={() => window.open(`/papers/view/${paper.id}`, '_blank')}
+                          className="py-2.5 px-3 rounded-xl font-black text-[11px] uppercase tracking-wider bg-slate-900 hover:bg-slate-800 text-amber-400 border border-amber-400/40 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                        >
+                          <Eye size={14} /> View PDF
+                        </button>
+
+                        {/* Payment Info Button */}
+                        <button
+                          onClick={() => window.open(`/papers/payment-info/${paper.id}`, '_blank')}
+                          className="py-2.5 px-3 rounded-xl font-black text-[11px] uppercase tracking-wider bg-amber-500 hover:bg-amber-400 text-slate-950 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
+                        >
+                          <QrCode size={14} /> Payment Info
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
