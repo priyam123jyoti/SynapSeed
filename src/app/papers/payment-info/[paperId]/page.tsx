@@ -2,7 +2,6 @@
 
 import { use, useEffect, useState } from 'react';
 import { 
-  QrCode, 
   Phone, 
   Copy, 
   Check, 
@@ -26,9 +25,6 @@ interface PaymentDetails {
   uploader_id?: string;
   upi_id?: string;
   phone_number?: string;
-  qr_code_url?: string;
-  qr_code_path?: string;
-  payment_qr_path?: string;
 }
 
 export default function PaperPaymentInfoPage({
@@ -42,7 +38,6 @@ export default function PaperPaymentInfoPage({
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [paper, setPaper] = useState<PaymentDetails | null>(null);
-  const [qrImageUrl, setQrImageUrl] = useState<string | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -72,7 +67,7 @@ export default function PaperPaymentInfoPage({
         // 2. Fetch Paper Payment Details
         const { data: paperData, error: fetchErr } = await supabase
           .from('papers')
-          .select('*')
+          .select('id, course_title, course_code, college_name, uploader_email, uploader_id, upi_id, phone_number')
           .eq('id', paperId)
           .maybeSingle();
 
@@ -84,11 +79,11 @@ export default function PaperPaymentInfoPage({
 
         let finalPaperData = { ...paperData };
 
-        // 3. Fallback: If paper record is missing UPI/Phone/QR, fetch from uploader_profiles
+        // 3. Fallback to uploader_profiles if upi_id or phone_number is missing
         if ((!finalPaperData.upi_id || !finalPaperData.phone_number) && finalPaperData.uploader_id) {
           const { data: uploaderProfile } = await supabase
             .from('uploader_profiles')
-            .select('upi_id, phone_number, qr_code_url')
+            .select('upi_id, phone_number')
             .eq('id', finalPaperData.uploader_id)
             .maybeSingle();
 
@@ -97,27 +92,11 @@ export default function PaperPaymentInfoPage({
               ...finalPaperData,
               upi_id: finalPaperData.upi_id || uploaderProfile.upi_id,
               phone_number: finalPaperData.phone_number || uploaderProfile.phone_number,
-              qr_code_url: finalPaperData.qr_code_url || uploaderProfile.qr_code_url,
             };
           }
         }
 
         setPaper(finalPaperData);
-
-        // 4. Resolve QR Code Image (Handles direct URL or Supabase Storage bucket path)
-        const pathOrUrl = finalPaperData.qr_code_url || finalPaperData.qr_code_path || finalPaperData.payment_qr_path;
-        if (pathOrUrl) {
-          if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
-            setQrImageUrl(pathOrUrl);
-          } else {
-            // Generates public URL from storage bucket
-            const { data: publicUrlData } = supabase.storage
-              .from('payment-qrs')
-              .getPublicUrl(pathOrUrl);
-
-            setQrImageUrl(publicUrlData.publicUrl);
-          }
-        }
       } catch (err: any) {
         setError(err.message || 'Failed to load payment info.');
       } finally {
@@ -209,66 +188,46 @@ export default function PaperPaymentInfoPage({
           </p>
         </div>
 
-        {/* QR Code Container */}
-        <div className="space-y-2 text-center">
-          <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center justify-center gap-1.5">
-            <QrCode size={14} className="text-amber-400" /> Uploaded Payment QR Code
-          </label>
-          <div className="bg-white p-4 rounded-2xl border-2 border-slate-800 flex items-center justify-center min-h-[220px]">
-            {qrImageUrl ? (
-              <img
-                src={qrImageUrl}
-                alt="Uploader Payment QR Code"
-                className="w-52 h-52 object-contain rounded-lg"
-              />
-            ) : (
-              <div className="text-slate-400 text-xs font-bold uppercase tracking-wider p-6">
-                No QR Code image attached to this paper
-              </div>
-            )}
-          </div>
-        </div>
-
         {/* UPI & Phone Credentials */}
         <div className="space-y-3">
           {/* UPI ID */}
-          <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between gap-2">
+          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center justify-between gap-2">
             <div className="space-y-0.5 overflow-hidden">
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1">
-                <CreditCard size={11} /> UPI ID
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
+                <CreditCard size={12} className="text-amber-400" /> UPI ID
               </span>
-              <p className="text-xs font-mono font-bold text-slate-200 truncate">
+              <p className="text-sm font-mono font-bold text-slate-100 truncate pt-0.5">
                 {upiId}
               </p>
             </div>
             {upiId !== 'Not Provided' && (
               <button
                 onClick={() => handleCopy(upiId, 'upi')}
-                className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 transition-colors"
+                className="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 transition-colors"
                 title="Copy UPI ID"
               >
-                {copiedField === 'upi' ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                {copiedField === 'upi' ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
               </button>
             )}
           </div>
 
           {/* Phone Number */}
-          <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between gap-2">
+          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 flex items-center justify-between gap-2">
             <div className="space-y-0.5 overflow-hidden">
-              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1">
-                <Phone size={11} /> Mobile / WhatsApp Number
+              <span className="text-[10px] font-black uppercase tracking-widest text-slate-500 flex items-center gap-1.5">
+                <Phone size={12} className="text-amber-400" /> Mobile / WhatsApp Number
               </span>
-              <p className="text-xs font-mono font-bold text-slate-200 truncate">
+              <p className="text-sm font-mono font-bold text-slate-100 truncate pt-0.5">
                 {phoneNumber}
               </p>
             </div>
             {phoneNumber !== 'Not Provided' && (
               <button
                 onClick={() => handleCopy(phoneNumber, 'phone')}
-                className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 transition-colors"
+                className="p-2.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-slate-300 transition-colors"
                 title="Copy Phone Number"
               >
-                {copiedField === 'phone' ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
+                {copiedField === 'phone' ? <Check size={16} className="text-emerald-400" /> : <Copy size={16} />}
               </button>
             )}
           </div>

@@ -1,11 +1,10 @@
 'use client';
 
-import { Wallet, Phone, QrCode, Edit3, ShieldCheck } from 'lucide-react';
+import { Wallet, Phone, Edit3, ShieldCheck } from 'lucide-react';
 
 export interface PayoutProfile {
   upi_id: string;
   phone_number: string;
-  qr_code_url: string | null;
 }
 
 interface PayoutDetailsCardProps {
@@ -62,55 +61,44 @@ export function PayoutDetailsCard({
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
-          {/* UPI ID */}
-          <div className="flex flex-col gap-1.5">
-            <label className="flex items-center gap-1">
-              <Wallet size={12} /> UPI ID (For ₹3 Payout)
-            </label>
-            <input
-              type="text"
-              name="payout_upi_id"
-              value={upiId}
-              onChange={(e) => setUpiId(e.target.value)}
-              required
-              placeholder="e.g., username@okaxis / upi@ybl"
-              className="p-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none"
-            />
+        <div className="space-y-3 pt-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {/* UPI ID */}
+            <div className="flex flex-col gap-1.5">
+              <label className="flex items-center gap-1 text-xs font-bold text-slate-700">
+                <Wallet size={12} /> UPI ID (For ₹3 Payout)
+              </label>
+              <input
+                type="text"
+                name="payout_upi_id"
+                value={upiId}
+                onChange={(e) => setUpiId(e.target.value)}
+                required
+                placeholder="e.g., username@okaxis / upi@ybl"
+                className="p-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none text-xs font-medium text-slate-900"
+              />
+            </div>
+
+            {/* Mobile / WhatsApp */}
+            <div className="flex flex-col gap-1.5">
+              <label className="flex items-center gap-1 text-xs font-bold text-slate-700">
+                <Phone size={12} /> WhatsApp / Phone Number
+              </label>
+              <input
+                type="tel"
+                name="payout_phone"
+                value={phoneNo}
+                onChange={(e) => setPhoneNo(e.target.value)}
+                required
+                placeholder="e.g., 9876543210"
+                className="p-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none text-xs font-medium text-slate-900"
+              />
+            </div>
           </div>
 
-          {/* Mobile / WhatsApp */}
-          <div className="flex flex-col gap-1.5">
-            <label className="flex items-center gap-1">
-              <Phone size={12} /> WhatsApp / Phone Number
-            </label>
-            <input
-              type="tel"
-              name="payout_phone"
-              value={phoneNo}
-              onChange={(e) => setPhoneNo(e.target.value)}
-              required
-              placeholder="e.g., 9876543210"
-              className="p-3 bg-white border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none"
-            />
-          </div>
-
-          {/* Payment QR Code Image */}
-          <div className="flex flex-col gap-1.5 md:col-span-2">
-            <label className="flex items-center gap-1">
-              <QrCode size={12} /> Payment QR Code Image {payoutProfile?.qr_code_url && '(Optional if already uploaded)'}
-            </label>
-            <input
-              type="file"
-              name="payout_qr_file"
-              accept="image/*"
-              required={!payoutProfile?.qr_code_url}
-              className="p-2.5 border border-dashed border-slate-300 rounded-xl bg-white file:mr-4 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:font-bold file:bg-slate-900 file:text-white cursor-pointer"
-            />
-            <p className="text-[10px] text-slate-400 font-semibold">
-              This info will be permanently saved to your account so you don not need to re-enter it for future uploads.
-            </p>
-          </div>
+          <p className="text-[10px] text-slate-400 font-semibold">
+            This info will be permanently saved to your account so you do not need to re-enter it for future uploads.
+          </p>
         </div>
       )}
     </div>
