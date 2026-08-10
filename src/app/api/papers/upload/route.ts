@@ -5,6 +5,7 @@ import { fileTypeFromBuffer } from 'file-type';
 import { uploadRateLimit } from '@/lib/upstash';
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
+const MAX_THUMBNAIL_SIZE = 1 * 1024 * 1024; // 1 MB for Thumbnail
 const MAX_QR_FILE_SIZE = 3 * 1024 * 1024; // 3 MB for QR image
 
 const ALLOWED_PAPER_TYPES = [
@@ -18,6 +19,7 @@ const ALLOWED_IMAGE_TYPES = [
   { mime: 'image/png', ext: 'png' },
   { mime: 'image/jpeg', ext: 'jpg' },
   { mime: 'image/jpeg', ext: 'jpeg' },
+  { mime: 'image/webp', ext: 'webp' },
 ];
 
 function cleanText(value: FormDataEntryValue | null): string {
@@ -58,14 +60,22 @@ export async function POST(req: Request) {
     }
 
     //------------------------------------------------------
-    // 3. Read Form Data
+    // 3. Read Form Data & Extract Files
     //------------------------------------------------------
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
+    const thumbnailFile = formData.get('thumbnail_file') as File | null;
 
     if (!file) {
       return NextResponse.json(
         { error: 'No paper file uploaded.' },
+        { status: 400 }
+      );
+    }
+
+    if (!thumbnailFile) {
+      return NextResponse.json(
+        { error: 'No cover thumbnail image uploaded.' },
         { status: 400 }
       );
     }
@@ -80,7 +90,6 @@ export async function POST(req: Request) {
     if (payout_upi_id && payout_phone) {
       let qrCodeUrl: string | null = null;
 
-      // If user uploaded a new QR code image
       if (payout_qr_file && payout_qr_file.size > 0) {
         if (payout_qr_file.size > MAX_QR_FILE_SIZE) {
           return NextResponse.json(
@@ -99,7 +108,7 @@ export async function POST(req: Request) {
 
         if (!isValidQr) {
           return NextResponse.json(
-            { error: 'Invalid QR code image format. Only PNG and JPG are allowed.' },
+            { error: 'Invalid QR code image format. Only PNG, JPG, and WEBP are allowed.' },
             { status: 400 }
           );
         }
@@ -122,7 +131,6 @@ export async function POST(req: Request) {
         }
       }
 
-      // Upsert uploader payout profile
       const profileData: Record<string, any> = {
         id: user.id,
         email: user.email,
@@ -160,8 +168,6 @@ export async function POST(req: Request) {
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
-
-    // Detect REAL paper file type from buffer
     const detectedType = await fileTypeFromBuffer(buffer);
 
     if (!detectedType) {
@@ -172,9 +178,7 @@ export async function POST(req: Request) {
     }
 
     const isAllowed = ALLOWED_PAPER_TYPES.some(
-      (type) =>
-        type.mime === detectedType.mime &&
-        type.ext === detectedType.ext
+      (type) => type.mime === detectedType.mime && type.ext === detectedType.ext
     );
 
     if (!isAllowed) {
@@ -185,7 +189,46 @@ export async function POST(req: Request) {
     }
 
     //------------------------------------------------------
-    // 6. Read and Clean Metadata
+    // 6. Validate Thumbnail File (Size & Type)
+    //------------------------------------------------------
+    if (thumbnailFile.size === 0) {
+      return NextResponse.json(
+        { error: 'Uploaded thumbnail image is empty.' },
+        { status: 400 }
+      );
+    }
+
+    if (thumbnailFile.size > MAX_THUMBNAIL_SIZE) {
+      return NextResponse.json(
+        { error: 'Maximum thumbnail image size is 1 MB.' },
+        { status: 400 }
+      );
+    }
+
+    const thumbBytes = await thumbnailFile.arrayBuffer();
+    const thumbBuffer = Buffer.from(thumbBytes);
+    const detectedThumbType = await fileTypeFromBuffer(thumbBuffer);
+
+    if (!detectedThumbType) {
+      return NextResponse.json(
+        { error: 'Unable to determine uploaded thumbnail file type.' },
+        { status: 400 }
+      );
+    }
+
+    const isThumbAllowed = ALLOWED_IMAGE_TYPES.some(
+      (type) => type.mime === detectedThumbType.mime && type.ext === detectedThumbType.ext
+    );
+
+    if (!isThumbAllowed) {
+      return NextResponse.json(
+        { error: 'Only PNG, JPG, and WEBP images are allowed for paper thumbnails.' },
+        { status: 400 }
+      );
+    }
+
+    //------------------------------------------------------
+    // 7. Read and Clean Metadata
     //------------------------------------------------------
     const college_name = cleanText(formData.get('college_name'));
     const program = cleanText(formData.get('program'));
@@ -196,9 +239,6 @@ export async function POST(req: Request) {
     const course_title = cleanText(formData.get('course_title'));
     const exam_type = cleanText(formData.get('exam_type'));
 
-    //------------------------------------------------------
-    // 7. Validate Metadata Fields
-    //------------------------------------------------------
     if (
       !college_name ||
       !program ||
@@ -231,11 +271,19 @@ export async function POST(req: Request) {
     }
 
     //------------------------------------------------------
-    // 8. Generate File Path & Upload to Private Bucket
+    // 8. Generate File Paths & Upload to Buckets
     //------------------------------------------------------
-    const uniqueFileName = `${crypto.randomUUID()}.${detectedType.ext}`;
+    const fileUUID = crypto.randomUUID();
+    
+    // PDF File Path
+    const uniqueFileName = `${fileUUID}.${detectedType.ext}`;
     const filePath = `vault/${user.id}/${uniqueFileName}`;
 
+    // Thumbnail File Path
+    const uniqueThumbName = `${fileUUID}.${detectedThumbType.ext}`;
+    const thumbnailPath = `thumbs/${user.id}/${uniqueThumbName}`;
+
+    // Upload PDF File to Private Storage
     const { error: storageError } = await supabase.storage
       .from('secure-papers')
       .upload(filePath, buffer, {
@@ -250,8 +298,26 @@ export async function POST(req: Request) {
       );
     }
 
+    // Upload Thumbnail to Storage (paper-thumbnails bucket)
+    const { error: thumbStorageError } = await supabase.storage
+      .from('paper-thumbnails')
+      .upload(thumbnailPath, thumbBuffer, {
+        contentType: detectedThumbType.mime,
+        upsert: false,
+      });
+
+    if (thumbStorageError) {
+      // Rollback PDF upload if thumbnail upload fails
+      await supabase.storage.from('secure-papers').remove([filePath]);
+
+      return NextResponse.json(
+        { error: thumbStorageError.message },
+        { status: 500 }
+      );
+    }
+
     //------------------------------------------------------
-    // 9. Save Metadata to DB (`papers` Table)
+    // 9. Save Metadata to Database (`papers` Table)
     //------------------------------------------------------
     const { data: insertedPaper, error: dbError } = await supabase
       .from('papers')
@@ -267,15 +333,17 @@ export async function POST(req: Request) {
         course_title,
         exam_type,
         file_path: filePath,
+        thumbnail_path: thumbnailPath, // Stored in database
         price: 5.0,
         uploader_cut: 3.0,
       })
       .select()
       .single();
 
-    // Rollback storage upload if DB insert fails
+    // Rollback both file uploads if DB insert fails
     if (dbError) {
       await supabase.storage.from('secure-papers').remove([filePath]);
+      await supabase.storage.from('paper-thumbnails').remove([thumbnailPath]);
 
       return NextResponse.json(
         { error: dbError.message },
@@ -302,6 +370,7 @@ export async function POST(req: Request) {
           course_code,
           course_title,
           exam_type,
+          thumbnail_path: thumbnailPath,
         },
       });
     } catch (err) {
@@ -313,7 +382,7 @@ export async function POST(req: Request) {
     //------------------------------------------------------
     return NextResponse.json({
       success: true,
-      message: 'Paper uploaded successfully.',
+      message: 'Paper uploaded successfully with thumbnail.',
       paper: insertedPaper,
     });
   } catch (error: any) {
