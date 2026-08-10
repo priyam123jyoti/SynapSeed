@@ -4,8 +4,8 @@ export const ProfileHeader = ({ profile, loading, onEdit }: any) => {
   const displayUsername = profile?.username || "Neural Node";
   
   // Logic to check if YOU are the viewer (Lead Developer)
-  // Replace 'your-email@gmail.com' with your actual email
-  const isDeveloper = profile?.email === 'your-email@gmail.com' || profile?.username === 'priyam';
+  
+  const isDeveloper = profile?.email === 'dihingiapriyamjyoti@gmail.com' || profile?.username === 'priyam_sun';
 
   return (
     <div className="relative bg-[#fcfcfc]">

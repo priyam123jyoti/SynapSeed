@@ -11,7 +11,7 @@ import SubjectPillars from '@/components/home/SubjectPillars';
 import FeatureShowcase from '@/components/home/FeatureShowcase';
 import ImpactStats from '@/components/home/ImpactStats';
 import LatestEvents from '@/components/home/LatestEvents';
-import TestJoinCard from '@/components/home/TestJoinCard';
+
 
 // DYNAMIC PERFORMANCE MATCH
 export const revalidate = 30; 
@@ -65,23 +65,8 @@ export default async function Home() {
       <main id="main-content" className="flex-grow">
         <BotanyHero />
         
-        <section className="max-w-xl mx-auto px-6 py-12">
-            <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-700">
-              <h2 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] text-center">
-                {activeQuiz ? "Active Challenge" : "Stay Tuned"}
-              </h2>
-            </div>
-        </section>
-
         <div className="p-1 md:p-10">
           <div className="max-w-[1600px] mx-auto w-full space-y-20">
-            <TestJoinCard 
-        testId="math-101" 
-        title="Algebra Basics Quiz" 
-        questionCount={10} 
-        durationMinutes={20}
-        isUrgent={true}
-      />
             <LatestEvents />
             <SubjectPillars />
             <FeatureShowcase />

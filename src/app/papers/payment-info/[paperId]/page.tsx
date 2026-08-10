@@ -28,6 +28,7 @@ interface PaymentDetails {
   phone_number?: string;
   qr_code_url?: string;
   qr_code_path?: string;
+  payment_qr_path?: string;
 }
 
 export default function PaperPaymentInfoPage({
@@ -69,27 +70,47 @@ export default function PaperPaymentInfoPage({
         }
 
         // 2. Fetch Paper Payment Details
-        const { data, error: fetchErr } = await supabase
+        const { data: paperData, error: fetchErr } = await supabase
           .from('papers')
           .select('*')
           .eq('id', paperId)
           .maybeSingle();
 
-        if (fetchErr || !data) {
+        if (fetchErr || !paperData) {
           setError(fetchErr?.message || 'Paper record not found.');
           setLoading(false);
           return;
         }
 
-        setPaper(data);
+        let finalPaperData = { ...paperData };
 
-        // 3. Resolve QR Code Image (Handles direct URL or Supabase Storage bucket path)
-        const pathOrUrl = data.qr_code_url || data.qr_code_path || data.payment_qr_path;
+        // 3. Fallback: If paper record is missing UPI/Phone/QR, fetch from uploader_profiles
+        if ((!finalPaperData.upi_id || !finalPaperData.phone_number) && finalPaperData.uploader_id) {
+          const { data: uploaderProfile } = await supabase
+            .from('uploader_profiles')
+            .select('upi_id, phone_number, qr_code_url')
+            .eq('id', finalPaperData.uploader_id)
+            .maybeSingle();
+
+          if (uploaderProfile) {
+            finalPaperData = {
+              ...finalPaperData,
+              upi_id: finalPaperData.upi_id || uploaderProfile.upi_id,
+              phone_number: finalPaperData.phone_number || uploaderProfile.phone_number,
+              qr_code_url: finalPaperData.qr_code_url || uploaderProfile.qr_code_url,
+            };
+          }
+        }
+
+        setPaper(finalPaperData);
+
+        // 4. Resolve QR Code Image (Handles direct URL or Supabase Storage bucket path)
+        const pathOrUrl = finalPaperData.qr_code_url || finalPaperData.qr_code_path || finalPaperData.payment_qr_path;
         if (pathOrUrl) {
           if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
             setQrImageUrl(pathOrUrl);
           } else {
-            // Generates public or signed URL from payment-qrs storage bucket
+            // Generates public URL from storage bucket
             const { data: publicUrlData } = supabase.storage
               .from('payment-qrs')
               .getPublicUrl(pathOrUrl);
