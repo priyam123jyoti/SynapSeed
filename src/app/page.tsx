@@ -11,6 +11,7 @@ import SubjectPillars from '@/components/home/SubjectPillars';
 import FeatureShowcase from '@/components/home/FeatureShowcase';
 import ImpactStats from '@/components/home/ImpactStats';
 import LatestEvents from '@/components/home/LatestEvents';
+import { HomePaperPortal } from '@/components/home/HomePaperPortal';
 
 
 // DYNAMIC PERFORMANCE MATCH
@@ -67,6 +68,7 @@ export default async function Home() {
         
         <div className="p-1 md:p-10">
           <div className="max-w-[1600px] mx-auto w-full space-y-20">
+            <HomePaperPortal />
             <LatestEvents />
             <SubjectPillars />
             <FeatureShowcase />
