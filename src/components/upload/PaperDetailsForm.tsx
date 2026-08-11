@@ -8,7 +8,7 @@ export function PaperDetailsForm() {
     <>
       {/* College / Institute */}
       <div className="flex flex-col gap-1.5">
-        <label>Institute Name</label>
+        <label className="font-semibold text-slate-700 text-sm">Institute Name</label>
         <input
           type="text"
           name="college_name"
@@ -20,7 +20,7 @@ export function PaperDetailsForm() {
 
       {/* Program */}
       <div className="flex flex-col gap-1.5">
-        <label>Academic Program</label>
+        <label className="font-semibold text-slate-700 text-sm">Academic Program</label>
         <select
           name="program"
           required
@@ -58,21 +58,33 @@ export function PaperDetailsForm() {
         </select>
       </div>
 
-      {/* Department Stream */}
+      {/* Academic Stream */}
       <div className="flex flex-col gap-1.5">
-        <label>Stream / Department</label>
+        <label className="font-semibold text-slate-700 text-sm">Academic Stream</label>
+        <input
+          type="text"
+          name="stream"
+          required
+          placeholder="e.g., Science, Arts, Commerce, Technology..."
+          className="p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none"
+        />
+      </div>
+
+      {/* Department / Subject */}
+      <div className="flex flex-col gap-1.5">
+        <label className="font-semibold text-slate-700 text-sm">Department / Subject</label>
         <input
           type="text"
           name="department"
           required
-          placeholder="e.g., Physics, Chemistry, Botany, Computer Science, Commerce..."
+          placeholder="e.g., Physics, Chemistry, History, Computer Science..."
           className="p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none"
         />
       </div>
 
       {/* Course Type */}
       <div className="flex flex-col gap-1.5">
-        <label>Course Type</label>
+        <label className="font-semibold text-slate-700 text-sm">Course Type</label>
         <select
           name="course_type"
           required
@@ -92,7 +104,7 @@ export function PaperDetailsForm() {
 
       {/* Semester */}
       <div className="flex flex-col gap-1.5">
-        <label>Semester Lifecycle</label>
+        <label className="font-semibold text-slate-700 text-sm">Semester Lifecycle</label>
         <input
           type="number"
           name="semester"
@@ -106,7 +118,7 @@ export function PaperDetailsForm() {
 
       {/* Year */}
       <div className="flex flex-col gap-1.5">
-        <label>Examination Year Conducted</label>
+        <label className="font-semibold text-slate-700 text-sm">Examination Year Conducted</label>
         <input
           type="number"
           name="year"
@@ -120,7 +132,7 @@ export function PaperDetailsForm() {
 
       {/* Course Code */}
       <div className="flex flex-col gap-1.5">
-        <label>Paper/Course Code</label>
+        <label className="font-semibold text-slate-700 text-sm">Paper/Course Code</label>
         <input
           type="text"
           name="course_code"
@@ -131,8 +143,8 @@ export function PaperDetailsForm() {
       </div>
 
       {/* Course Title */}
-      <div className="flex flex-col gap-1.5">
-        <label>Course Title</label>
+      <div className="flex flex-col gap-1.5 md:col-span-2">
+        <label className="font-semibold text-slate-700 text-sm">Course Title</label>
         <input
           type="text"
           name="course_title"
@@ -144,12 +156,12 @@ export function PaperDetailsForm() {
 
       {/* Exam Type */}
       <div className="flex flex-col gap-1.5 md:col-span-2">
-        <label>Exam Assessment Classification Type</label>
+        <label className="font-semibold text-slate-700 text-sm">Exam Assessment Classification Type</label>
         <div className="flex gap-4 p-1">
-          <label className="flex items-center gap-2 font-semibold cursor-pointer">
+          <label className="flex items-center gap-2 font-semibold cursor-pointer text-sm">
             <input type="radio" name="exam_type" value="Semester End" defaultChecked /> Semester End Exam
           </label>
-          <label className="flex items-center gap-2 font-semibold cursor-pointer">
+          <label className="flex items-center gap-2 font-semibold cursor-pointer text-sm">
             <input type="radio" name="exam_type" value="Sessional" /> Sessional / Mid-Term Test
           </label>
         </div>
@@ -197,7 +209,7 @@ export function PaperDetailsForm() {
 
       {/* Paper Cover Thumbnail Upload Input */}
       <div className="flex flex-col gap-1.5 md:col-span-2">
-        <label className="flex items-center gap-1.5 font-bold">
+        <label className="flex items-center gap-1.5 font-bold text-sm">
           <ImageIcon size={14} className="text-amber-500" />
           Paper Front Cover Thumbnail Photo (Max 500 KB)
         </label>
@@ -212,7 +224,7 @@ export function PaperDetailsForm() {
 
       {/* Full Question Paper PDF ONLY Input */}
       <div className="flex flex-col gap-1.5 md:col-span-2 mt-1">
-        <label className="flex items-center gap-1.5 font-bold">
+        <label className="flex items-center gap-1.5 font-bold text-sm">
           <FileText size={14} className="text-indigo-600" />
           Full Question Paper File (PDF Only, Max 1 MB)
         </label>

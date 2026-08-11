@@ -7,13 +7,14 @@ export async function GET() {
   try {
     const supabase = await createClient();
 
-    // Fetch all available papers including course_type from database catalog
+    // Fetch all available papers including stream and course_type from database catalog
     const { data: papers, error } = await supabase
       .from('papers')
       .select(`
         id,
         college_name,
         program,
+        stream,
         department,
         course_type,
         semester,

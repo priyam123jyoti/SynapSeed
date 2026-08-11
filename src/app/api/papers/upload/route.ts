@@ -225,10 +225,11 @@ export async function POST(req: Request) {
     }
 
     //------------------------------------------------------
-    // 7. Read and Clean Metadata (Including course_type)
+    // 7. Read and Clean Metadata (Including stream & department)
     //------------------------------------------------------
     const college_name = cleanText(formData.get('college_name'));
     const program = cleanText(formData.get('program'));
+    const stream = cleanText(formData.get('stream'));
     const department = cleanText(formData.get('department'));
     const course_type = cleanText(formData.get('course_type'));
     const semester = Number(cleanText(formData.get('semester')));
@@ -240,6 +241,7 @@ export async function POST(req: Request) {
     if (
       !college_name ||
       !program ||
+      !stream ||
       !department ||
       !course_type ||
       !course_code ||
@@ -325,6 +327,7 @@ export async function POST(req: Request) {
         uploader_email: user.email,
         college_name,
         program,
+        stream,
         department,
         course_type,
         semester,
@@ -364,6 +367,7 @@ export async function POST(req: Request) {
           paper_id: insertedPaper?.id,
           college_name,
           program,
+          stream,
           department,
           course_type,
           semester,
