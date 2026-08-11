@@ -8,7 +8,7 @@ export function PaperDetailsForm() {
     <>
       {/* College / Institute */}
       <div className="flex flex-col gap-1.5">
-        <label>College / Institute Name</label>
+        <label>Institute Name</label>
         <input
           type="text"
           name="college_name"
@@ -60,12 +60,12 @@ export function PaperDetailsForm() {
 
       {/* Department Stream */}
       <div className="flex flex-col gap-1.5">
-        <label>Department Stream</label>
+        <label>Stream / Department</label>
         <input
           type="text"
           name="department"
           required
-          placeholder="e.g., Computer Science"
+          placeholder="e.g., Physics, Chemistry, Botany, Computer Science, Commerce..."
           className="p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-slate-900 focus:outline-none"
         />
       </div>
@@ -120,7 +120,7 @@ export function PaperDetailsForm() {
 
       {/* Course Code */}
       <div className="flex flex-col gap-1.5">
-        <label>Paper/Course Code Identification</label>
+        <label>Paper/Course Code</label>
         <input
           type="text"
           name="course_code"
@@ -132,7 +132,7 @@ export function PaperDetailsForm() {
 
       {/* Course Title */}
       <div className="flex flex-col gap-1.5">
-        <label>Course Title Specification</label>
+        <label>Course Title</label>
         <input
           type="text"
           name="course_title"
@@ -169,7 +169,6 @@ export function PaperDetailsForm() {
         {/* Static Image Example Box */}
         <div className="bg-white border border-amber-200 rounded-xl p-3 flex flex-col sm:flex-row items-center gap-4">
           <div className="relative shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
-            {/* Replace /images/thumbnail-example.png with your image file path in /public */}
             <Image
               src="/thumbnail-example.jpg"
               alt="Thumbnail Example"
@@ -187,7 +186,7 @@ export function PaperDetailsForm() {
               <CheckCircle2 size={14} /> Include top header / cover title only
             </div>
             <div className="flex items-center gap-1.5 text-emerald-700 font-bold">
-              <CheckCircle2 size={14} /> Maximum photo file size: 1 MB
+              <CheckCircle2 size={14} /> Maximum photo file size: 500 KB
             </div>
             <p className="text-[10px] text-slate-400 font-medium">
               Crop the photo so only college name, paper title, course code, and exam year are shown. Keep actual exam questions hidden.
@@ -200,7 +199,7 @@ export function PaperDetailsForm() {
       <div className="flex flex-col gap-1.5 md:col-span-2">
         <label className="flex items-center gap-1.5 font-bold">
           <ImageIcon size={14} className="text-amber-500" />
-          Paper Front Cover Thumbnail Photo (Max 1 MB)
+          Paper Front Cover Thumbnail Photo (Max 500 KB)
         </label>
         <input
           type="file"
@@ -215,7 +214,7 @@ export function PaperDetailsForm() {
       <div className="flex flex-col gap-1.5 md:col-span-2 mt-1">
         <label className="flex items-center gap-1.5 font-bold">
           <FileText size={14} className="text-indigo-600" />
-          Full Question Paper File (PDF Only, Max 2 MB)
+          Full Question Paper File (PDF Only, Max 1 MB)
         </label>
         <input
           type="file"

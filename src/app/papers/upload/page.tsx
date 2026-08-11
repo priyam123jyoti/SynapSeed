@@ -163,7 +163,7 @@ export default function PaperUploadClientPage() {
             </span>
           </div>
           <p className="text-xs text-slate-500 font-bold mt-1">
-            Uploader Split: <strong className="text-slate-900">₹3.00</strong> | Fixed Paper Price: <strong className="text-slate-900">₹5.00</strong>
+            Uploader Split: <strong className="text-slate-900">₹3.00</strong> | Fixed Paper Price: <strong className="text-slate-900">₹5.00</strong> | Platform Fee: <strong className="text-slate-900">₹2.00</strong> 
           </p>
         </div>
 

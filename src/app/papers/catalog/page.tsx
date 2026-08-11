@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Building2, GraduationCap, Calendar, Loader2, MessageSquare, Eye, ShieldCheck, QrCode, FileText } from 'lucide-react';
+import { Search, Building2, GraduationCap, Calendar, Loader2, MessageSquare, Eye, ShieldCheck, QrCode, FileText, Bookmark } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 
 interface PaperItem {
@@ -9,13 +9,14 @@ interface PaperItem {
   college_name: string;
   program: string;
   department: string;
+  course_type?: string;
   semester: number;
   year: number;
   course_code: string;
   course_title: string;
   exam_type: string;
   uploader_id: string;
-  thumbnail_url?: string; // Added optional thumbnail URL field
+  thumbnail_url?: string;
 }
 
 const WHATSAPP_NUMBER = '917637968060';
@@ -36,13 +37,11 @@ export default function PaperCatalogPage() {
     try {
       setLoading(true);
 
-      // Check current user session for admin privilege
       const { data: { user } } = await supabase.auth.getUser();
       if (user?.email) {
         setCurrentUserEmail(user.email.toLowerCase().trim());
       }
 
-      // Fetch Catalog List
       const resCatalog = await fetch('/api/papers/catalog-list');
       if (resCatalog.ok) {
         const catalogData = await resCatalog.json();
@@ -63,8 +62,10 @@ export default function PaperCatalogPage() {
     const message =
       `Hello! I would like to buy the following question paper:\n\n` +
       `*Course:* ${paper.course_title} (${paper.course_code})\n` +
+      `*Course Type:* ${paper.course_type || 'N/A'}\n` +
       `*Institution:* ${paper.college_name}\n` +
       `*Program & Sem:* ${paper.program} - Sem ${paper.semester}\n` +
+      `*Department:* ${paper.department}\n` +
       `*Year:* ${paper.year}\n` +
       `*Paper ID:* ${paper.id}\n\n` +
       `Please share the UPI QR Code for ₹5.00 payment.`;
@@ -81,6 +82,7 @@ export default function PaperCatalogPage() {
     const matchesSearch =
       paper.course_title.toLowerCase().includes(search.toLowerCase()) ||
       paper.course_code.toLowerCase().includes(search.toLowerCase()) ||
+      paper.department.toLowerCase().includes(search.toLowerCase()) ||
       paper.college_name.toLowerCase().includes(search.toLowerCase());
 
     const matchesProgram = programFilter === '' || paper.program === programFilter;
@@ -122,7 +124,7 @@ export default function PaperCatalogPage() {
             <Search className="absolute left-3 top-3.5 text-slate-400" size={16} />
             <input 
               type="text" 
-              placeholder="Search by Course Title, Course Code or Institution Name..." 
+              placeholder="Search by Course Title, Code, Department, or Institution Name..." 
               className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-slate-900"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -227,6 +229,14 @@ export default function PaperCatalogPage() {
 
                     {/* Paper Metadata Header */}
                     <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        {paper.course_type && (
+                          <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-black uppercase px-2 py-0.5 rounded-md flex items-center gap-1">
+                            <Bookmark size={10} /> {paper.course_type}
+                          </span>
+                        )}
+                      </div>
+
                       <h3 className="font-black text-slate-900 text-sm tracking-tight leading-tight uppercase line-clamp-2">
                         {paper.course_title}
                       </h3>
@@ -255,7 +265,6 @@ export default function PaperCatalogPage() {
 
                   {/* Actions Section */}
                   <div className="space-y-2 pt-2">
-                    {/* Public WhatsApp Request Button */}
                     <button
                       onClick={() => handleRequestPaper(paper)}
                       className="w-full py-3 px-4 rounded-xl font-black text-xs uppercase tracking-widest bg-emerald-600 hover:bg-emerald-500 text-white transition-colors flex items-center justify-center gap-2 shadow-sm"
@@ -266,7 +275,6 @@ export default function PaperCatalogPage() {
                     {/* ADMIN ONLY BUTTONS */}
                     {currentUserEmail === ADMIN_EMAIL && (
                       <div className="grid grid-cols-2 gap-2 pt-1">
-                        {/* Direct PDF View Button */}
                         <button
                           onClick={() => window.open(`/papers/view/${paper.id}`, '_blank')}
                           className="py-2.5 px-3 rounded-xl font-black text-[11px] uppercase tracking-wider bg-slate-900 hover:bg-slate-800 text-amber-400 border border-amber-400/40 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
@@ -274,7 +282,6 @@ export default function PaperCatalogPage() {
                           <Eye size={14} /> View PDF
                         </button>
 
-                        {/* Payment Info Button */}
                         <button
                           onClick={() => window.open(`/papers/payment-info/${paper.id}`, '_blank')}
                           className="py-2.5 px-3 rounded-xl font-black text-[11px] uppercase tracking-wider bg-amber-500 hover:bg-amber-400 text-slate-950 transition-colors flex items-center justify-center gap-1.5 shadow-sm"

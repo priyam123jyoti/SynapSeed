@@ -4,15 +4,12 @@ import crypto from 'crypto';
 import { fileTypeFromBuffer } from 'file-type';
 import { uploadRateLimit } from '@/lib/upstash';
 
-const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
-const MAX_THUMBNAIL_SIZE = 1 * 1024 * 1024; // 1 MB for Thumbnail
+const MAX_FILE_SIZE = 1 * 1024 * 1024; // 1 MB max for PDF
+const MAX_THUMBNAIL_SIZE = 500 * 1024; // 500 KB max for Thumbnail
 const MAX_QR_FILE_SIZE = 3 * 1024 * 1024; // 3 MB for QR image
 
 const ALLOWED_PAPER_TYPES = [
   { mime: 'application/pdf', ext: 'pdf' },
-  { mime: 'image/png', ext: 'png' },
-  { mime: 'image/jpeg', ext: 'jpg' },
-  { mime: 'image/jpeg', ext: 'jpeg' },
 ];
 
 const ALLOWED_IMAGE_TYPES = [
@@ -150,7 +147,7 @@ export async function POST(req: Request) {
     }
 
     //------------------------------------------------------
-    // 5. Validate Paper File (Size & Type)
+    // 5. Validate Paper File (Size & Strict PDF Format)
     //------------------------------------------------------
     if (file.size === 0) {
       return NextResponse.json(
@@ -161,7 +158,7 @@ export async function POST(req: Request) {
 
     if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
-        { error: 'Maximum paper file size is 2 MB.' },
+        { error: 'Maximum paper file size is 1 MB.' },
         { status: 400 }
       );
     }
@@ -183,13 +180,13 @@ export async function POST(req: Request) {
 
     if (!isAllowed) {
       return NextResponse.json(
-        { error: 'Only PDF, JPG and PNG files are allowed for question papers.' },
+        { error: 'Only PDF document files are allowed for question papers.' },
         { status: 400 }
       );
     }
 
     //------------------------------------------------------
-    // 6. Validate Thumbnail File (Size & Type)
+    // 6. Validate Thumbnail File (Size & Image Types)
     //------------------------------------------------------
     if (thumbnailFile.size === 0) {
       return NextResponse.json(
@@ -200,7 +197,7 @@ export async function POST(req: Request) {
 
     if (thumbnailFile.size > MAX_THUMBNAIL_SIZE) {
       return NextResponse.json(
-        { error: 'Maximum thumbnail image size is 1 MB.' },
+        { error: 'Maximum thumbnail image size is 500 KB.' },
         { status: 400 }
       );
     }
@@ -228,11 +225,12 @@ export async function POST(req: Request) {
     }
 
     //------------------------------------------------------
-    // 7. Read and Clean Metadata
+    // 7. Read and Clean Metadata (Including course_type)
     //------------------------------------------------------
     const college_name = cleanText(formData.get('college_name'));
     const program = cleanText(formData.get('program'));
     const department = cleanText(formData.get('department'));
+    const course_type = cleanText(formData.get('course_type'));
     const semester = Number(cleanText(formData.get('semester')));
     const year = Number(cleanText(formData.get('year')));
     const course_code = cleanText(formData.get('course_code')).toUpperCase();
@@ -243,6 +241,7 @@ export async function POST(req: Request) {
       !college_name ||
       !program ||
       !department ||
+      !course_type ||
       !course_code ||
       !course_title ||
       !exam_type ||
@@ -250,7 +249,7 @@ export async function POST(req: Request) {
       !Number.isInteger(year)
     ) {
       return NextResponse.json(
-        { error: 'Missing or invalid paper metadata.' },
+        { error: 'Missing or invalid paper metadata. Please complete all fields.' },
         { status: 400 }
       );
     }
@@ -271,11 +270,11 @@ export async function POST(req: Request) {
     }
 
     //------------------------------------------------------
-    // 8. Generate File Paths & Upload to Buckets
+    // 8. Generate Unique File Paths & Upload to Buckets
     //------------------------------------------------------
     const fileUUID = crypto.randomUUID();
     
-    // PDF File Path
+    // PDF File Path (Vault Storage)
     const uniqueFileName = `${fileUUID}.${detectedType.ext}`;
     const filePath = `vault/${user.id}/${uniqueFileName}`;
 
@@ -283,7 +282,7 @@ export async function POST(req: Request) {
     const uniqueThumbName = `${fileUUID}.${detectedThumbType.ext}`;
     const thumbnailPath = `thumbs/${user.id}/${uniqueThumbName}`;
 
-    // Upload PDF File to Private Storage
+    // Upload PDF File to Private Storage ('secure-papers')
     const { error: storageError } = await supabase.storage
       .from('secure-papers')
       .upload(filePath, buffer, {
@@ -293,12 +292,12 @@ export async function POST(req: Request) {
 
     if (storageError) {
       return NextResponse.json(
-        { error: storageError.message },
+        { error: `Paper upload failed: ${storageError.message}` },
         { status: 500 }
       );
     }
 
-    // Upload Thumbnail to Storage (paper-thumbnails bucket)
+    // Upload Thumbnail Image to Storage ('paper-thumbnails')
     const { error: thumbStorageError } = await supabase.storage
       .from('paper-thumbnails')
       .upload(thumbnailPath, thumbBuffer, {
@@ -311,7 +310,7 @@ export async function POST(req: Request) {
       await supabase.storage.from('secure-papers').remove([filePath]);
 
       return NextResponse.json(
-        { error: thumbStorageError.message },
+        { error: `Thumbnail upload failed: ${thumbStorageError.message}` },
         { status: 500 }
       );
     }
@@ -327,13 +326,14 @@ export async function POST(req: Request) {
         college_name,
         program,
         department,
+        course_type,
         semester,
         year,
         course_code,
         course_title,
         exam_type,
         file_path: filePath,
-        thumbnail_path: thumbnailPath, // Stored in database
+        thumbnail_path: thumbnailPath,
         price: 5.0,
         uploader_cut: 3.0,
       })
@@ -346,7 +346,7 @@ export async function POST(req: Request) {
       await supabase.storage.from('paper-thumbnails').remove([thumbnailPath]);
 
       return NextResponse.json(
-        { error: dbError.message },
+        { error: `Database insert failed: ${dbError.message}` },
         { status: 500 }
       );
     }
@@ -365,6 +365,7 @@ export async function POST(req: Request) {
           college_name,
           program,
           department,
+          course_type,
           semester,
           year,
           course_code,
