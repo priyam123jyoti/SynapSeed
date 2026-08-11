@@ -1,26 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Building2, GraduationCap, Calendar, Loader2, MessageSquare, Eye, ShieldCheck, QrCode, FileText, Bookmark } from 'lucide-react';
+import { Loader2, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-
-interface PaperItem {
-  id: string;
-  college_name: string;
-  program: string;
-  department: string;
-  course_type?: string;
-  semester: number;
-  year: number;
-  course_code: string;
-  course_title: string;
-  exam_type: string;
-  uploader_id: string;
-  thumbnail_url?: string;
-}
+import { PaperCard, PaperItem } from '@/components/catalog/PaperCard';
+import { PaperFilters } from '@/components/catalog/PaperFilters';
 
 const WHATSAPP_NUMBER = '917637968060';
 const ADMIN_EMAIL = 'dihingiapriyamjyoti@gmail.com';
+
+// Helper to convert numbers (1, 2, 3) to ordinal strings (1st, 2nd, 3rd)
+function getOrdinalSuffix(num: number): string {
+  const j = num % 10;
+  const k = num % 100;
+  if (j === 1 && k !== 11) return `${num}st`;
+  if (j === 2 && k !== 12) return `${num}nd`;
+  if (j === 3 && k !== 13) return `${num}rd`;
+  return `${num}th`;
+}
 
 export default function PaperCatalogPage() {
   const [papers, setPapers] = useState<PaperItem[]>([]);
@@ -30,6 +27,7 @@ export default function PaperCatalogPage() {
 
   // Filter states
   const [search, setSearch] = useState('');
+  const [collegeFilter, setCollegeFilter] = useState('');
   const [programFilter, setProgramFilter] = useState('');
   const [semFilter, setSemFilter] = useState('');
 
@@ -63,6 +61,7 @@ export default function PaperCatalogPage() {
       `Hello! I would like to buy the following question paper:\n\n` +
       `*Course:* ${paper.course_title} (${paper.course_code})\n` +
       `*Course Type:* ${paper.course_type || 'N/A'}\n` +
+      `*Stream:* ${paper.stream || 'N/A'}\n` +
       `*Institution:* ${paper.college_name}\n` +
       `*Program & Sem:* ${paper.program} - Sem ${paper.semester}\n` +
       `*Department:* ${paper.department}\n` +
@@ -78,17 +77,47 @@ export default function PaperCatalogPage() {
     setImageErrors((prev) => ({ ...prev, [paperId]: true }));
   };
 
+  // Multi-Token Search & Filter Logic
   const filteredPapers = papers.filter((paper) => {
-    const matchesSearch =
-      paper.course_title.toLowerCase().includes(search.toLowerCase()) ||
-      paper.course_code.toLowerCase().includes(search.toLowerCase()) ||
-      paper.department.toLowerCase().includes(search.toLowerCase()) ||
-      paper.college_name.toLowerCase().includes(search.toLowerCase());
+    // Build comprehensive search text including all aliases and fields
+    const semNumber = paper.semester;
+    const semOrdinal = getOrdinalSuffix(semNumber);
 
+    const searchableText = [
+      paper.course_title,
+      paper.course_code,
+      paper.department,
+      paper.college_name,
+      paper.program,
+      paper.stream || '',
+      paper.course_type || '',
+      paper.exam_type,
+      paper.year.toString(),
+      `sem ${semNumber}`,
+      `semester ${semNumber}`,
+      semOrdinal,
+      `${semOrdinal} sem`,
+      `${semOrdinal} semester`,
+    ]
+      .join(' ')
+      .toLowerCase();
+
+    // Split search input into tokens (e.g., "2024", "botany", "2nd", "sem")
+    const searchTokens = search.toLowerCase().trim().split(/\s+/).filter(Boolean);
+
+    // Ensure EVERY search term matches somewhere in the paper data
+    const matchesSearch = searchTokens.every((token) => searchableText.includes(token));
+
+    // College Name Filter (Typeable string matching)
+    const matchesCollege =
+      collegeFilter.trim() === '' ||
+      paper.college_name.toLowerCase().includes(collegeFilter.toLowerCase().trim());
+
+    // Dropdown Filters
     const matchesProgram = programFilter === '' || paper.program === programFilter;
     const matchesSemester = semFilter === '' || paper.semester.toString() === semFilter;
 
-    return matchesSearch && matchesProgram && matchesSemester;
+    return matchesSearch && matchesCollege && matchesProgram && matchesSemester;
   });
 
   if (loading) {
@@ -102,7 +131,6 @@ export default function PaperCatalogPage() {
   return (
     <main className="min-h-screen bg-slate-50 p-6 md:p-12">
       <div className="max-w-7xl mx-auto space-y-8">
-        
         {/* Marketplace Header Banner */}
         <div className="bg-slate-900 text-white p-8 rounded-2xl shadow-xl flex flex-wrap items-center justify-between gap-4">
           <div className="space-y-1">
@@ -118,182 +146,36 @@ export default function PaperCatalogPage() {
           )}
         </div>
 
-        {/* Dynamic Navigation Filter Framework */}
-        <div className="bg-white border border-slate-200 p-4 rounded-xl shadow-sm flex flex-col md:flex-row gap-4 items-center">
-          <div className="relative w-full md:flex-1">
-            <Search className="absolute left-3 top-3.5 text-slate-400" size={16} />
-            <input 
-              type="text" 
-              placeholder="Search by Course Title, Code, Department, or Institution Name..." 
-              className="w-full pl-10 pr-4 py-3 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-slate-900"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-          </div>
-          
-          <div className="flex gap-2 w-full md:w-auto">
-            <select 
-              className="p-3 border border-slate-200 rounded-xl text-xs font-bold bg-white focus:outline-none"
-              value={programFilter}
-              onChange={(e) => setProgramFilter(e.target.value)}
-            >
-              <option value="">Select Programs</option>
-              <option value="BTech">B.TECH</option>
-              <option value="MTech">M.TECH</option>
-              <option value="BSc">B.Sc</option>
-              <option value="MSc">M.Sc</option>
-              <option value="BCA">BCA</option>
-              <option value="MCA">MCA</option>
-              <option value="BBA">BBA</option>
-              <option value="MBA">MBA</option>
-              <option value="BCom">B.COM</option>
-              <option value="MCom">M.COM</option>
-              <option value="BA">B.A.</option>
-              <option value="MA">M.A.</option>
-              <option value="BEd">B.Ed</option>
-              <option value="MEd">M.Ed</option>
-              <option value="BPharma">B.PHARMA</option>
-              <option value="MPharma">M.PHARMA</option>
-              <option value="DPharma">D.PHARMA</option>
-              <option value="LLB">LLB</option>
-              <option value="LLM">LLM</option>
-              <option value="BArch">B.ARCH</option>
-              <option value="MArch">M.ARCH</option>
-              <option value="MBBS">MBBS</option>
-              <option value="BDS">BDS</option>
-              <option value="BAMS">BAMS</option>
-              <option value="BHMS">BHMS</option>
-              <option value="Nursing">B.Sc NURSING</option>
-              <option value="BPT">BPT</option>
-              <option value="MPT">MPT</option>
-            </select>
+        {/* Filters Component */}
+        <PaperFilters
+          search={search}
+          setSearch={setSearch}
+          collegeFilter={collegeFilter}
+          setCollegeFilter={setCollegeFilter}
+          programFilter={programFilter}
+          setProgramFilter={setProgramFilter}
+          semFilter={semFilter}
+          setSemFilter={setSemFilter}
+        />
 
-            <select 
-              className="p-3 border border-slate-200 rounded-xl text-xs font-bold bg-white focus:outline-none"
-              value={semFilter}
-              onChange={(e) => setSemFilter(e.target.value)}
-            >
-              <option value="">All Semesters</option>
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((s) => (
-                <option key={s} value={s.toString()}>Sem {s}</option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        {/* Catalog Grid Distribution */}
+        {/* Catalog Grid */}
         {filteredPapers.length === 0 ? (
           <div className="text-center p-12 bg-white rounded-2xl border border-slate-200 text-slate-400 text-xs font-bold uppercase tracking-wider">
             No papers found matching the specified parameters.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredPapers.map((paper) => {
-              const thumbnailUrl = paper.thumbnail_url || `/api/papers/thumbnail/${paper.id}`;
-              const isImageFailed = imageErrors[paper.id];
-
-              return (
-                <div 
-                  key={paper.id} 
-                  className="group bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all p-5 flex flex-col justify-between space-y-4 overflow-hidden"
-                >
-                  <div className="space-y-4">
-                    
-                    {/* Paper Thumbnail Container */}
-                    <div className="relative w-full aspect-[4/3] bg-slate-100 rounded-xl overflow-hidden border border-slate-200 flex items-center justify-center">
-                      {!isImageFailed ? (
-                        <img
-                          src={thumbnailUrl}
-                          alt={paper.course_title}
-                          onError={() => handleImageError(paper.id)}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                          loading="lazy"
-                        />
-                      ) : (
-                        <div className="flex flex-col items-center justify-center gap-2 text-slate-400 p-4 text-center">
-                          <FileText size={36} className="text-slate-300" />
-                          <span className="text-[10px] font-black uppercase tracking-wider">Preview Unavailable</span>
-                        </div>
-                      )}
-
-                      {/* Floating Badge Tag */}
-                      <span className="absolute top-2.5 left-2.5 bg-slate-900/90 backdrop-blur-md text-white px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-widest shadow-sm">
-                        {paper.exam_type}
-                      </span>
-
-                      {/* Floating Price Tag */}
-                      <span className="absolute top-2.5 right-2.5 bg-emerald-600 text-white px-2.5 py-1 rounded-md text-xs font-black shadow-sm">
-                        ₹5.00
-                      </span>
-                    </div>
-
-                    {/* Paper Metadata Header */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-1">
-                        {paper.course_type && (
-                          <span className="bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-black uppercase px-2 py-0.5 rounded-md flex items-center gap-1">
-                            <Bookmark size={10} /> {paper.course_type}
-                          </span>
-                        )}
-                      </div>
-
-                      <h3 className="font-black text-slate-900 text-sm tracking-tight leading-tight uppercase line-clamp-2">
-                        {paper.course_title}
-                      </h3>
-                      <p className="text-[11px] font-bold text-slate-500 mt-1">
-                        {paper.course_code} • {paper.department}
-                      </p>
-                    </div>
-
-                    <hr className="border-slate-100" />
-
-                    <div className="space-y-2 text-[11px] font-bold text-slate-600">
-                      <div className="flex items-center gap-2">
-                        <Building2 size={14} className="text-slate-400 shrink-0" /> 
-                        <span className="truncate">{paper.college_name}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <GraduationCap size={14} className="text-slate-400 shrink-0" /> 
-                        <span>{paper.program} • Semester {paper.semester}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Calendar size={14} className="text-slate-400 shrink-0" /> 
-                        <span>Academic Exam Term Year: {paper.year}</span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Actions Section */}
-                  <div className="space-y-2 pt-2">
-                    <button
-                      onClick={() => handleRequestPaper(paper)}
-                      className="w-full py-3 px-4 rounded-xl font-black text-xs uppercase tracking-widest bg-emerald-600 hover:bg-emerald-500 text-white transition-colors flex items-center justify-center gap-2 shadow-sm"
-                    >
-                      <MessageSquare size={16} /> Request on WhatsApp (₹5.00)
-                    </button>
-
-                    {/* ADMIN ONLY BUTTONS */}
-                    {currentUserEmail === ADMIN_EMAIL && (
-                      <div className="grid grid-cols-2 gap-2 pt-1">
-                        <button
-                          onClick={() => window.open(`/papers/view/${paper.id}`, '_blank')}
-                          className="py-2.5 px-3 rounded-xl font-black text-[11px] uppercase tracking-wider bg-slate-900 hover:bg-slate-800 text-amber-400 border border-amber-400/40 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
-                        >
-                          <Eye size={14} /> View PDF
-                        </button>
-
-                        <button
-                          onClick={() => window.open(`/papers/payment-info/${paper.id}`, '_blank')}
-                          className="py-2.5 px-3 rounded-xl font-black text-[11px] uppercase tracking-wider bg-amber-500 hover:bg-amber-400 text-slate-950 transition-colors flex items-center justify-center gap-1.5 shadow-sm"
-                        >
-                          <QrCode size={14} /> Payment Info
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
+            {filteredPapers.map((paper) => (
+              <PaperCard
+                key={paper.id}
+                paper={paper}
+                currentUserEmail={currentUserEmail}
+                adminEmail={ADMIN_EMAIL}
+                isImageFailed={!!imageErrors[paper.id]}
+                onImageError={handleImageError}
+                onRequestPaper={handleRequestPaper}
+              />
+            ))}
           </div>
         )}
       </div>
