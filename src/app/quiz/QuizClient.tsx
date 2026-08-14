@@ -40,6 +40,12 @@ const handleStartQuiz = useCallback(async (topic: string) => {
   setQuestions([]); 
 
   try {
+    console.log("🚀 QUIZ REQUEST:", {
+  subjectKey,
+  subjectName,
+  subjectTitle,
+  topic,
+});
     const res = await fetch('/api/quiz', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

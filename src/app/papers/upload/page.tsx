@@ -140,7 +140,7 @@ export default function PaperUploadClientPage() {
             You must be logged in to upload question papers and receive your ₹3 per download sale split.
           </p>
           <button
-            onClick={() => router.push('/login')}
+            onClick={() => router.push('/onboarding')}
             className="w-full bg-slate-900 text-white p-3 rounded-xl font-bold text-xs uppercase tracking-wider hover:bg-slate-800 transition-all"
           >
             Log In To Continue

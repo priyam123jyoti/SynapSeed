@@ -4,6 +4,10 @@ import { generateMoanaQuiz } from '@/services/moanaAI';
 export async function POST(req: Request) {
   try {
     const { topic, subject } = await req.json();
+    console.log("🧠 API RECEIVED:", {
+  topic,
+  subject,
+});
 
     if (!topic || !subject) {
       return NextResponse.json(
@@ -20,5 +24,7 @@ export async function POST(req: Request) {
       { error: error.message || 'Internal Server Error' },
       { status: 500 }
     );
+    
   }
+  
 }
