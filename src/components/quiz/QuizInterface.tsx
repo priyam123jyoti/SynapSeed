@@ -12,7 +12,7 @@ interface Question {
 }
 
 interface QuizInterfaceProps {
-  subjectLabel: string;
+  selectedTopic: string;
   question: Question;
   currentIdx: number;
   totalQuestions: number;
@@ -25,7 +25,7 @@ interface QuizInterfaceProps {
 }
 
 export const QuizInterface = ({
-  subjectLabel,
+  selectedTopic,
   question,
   currentIdx,
   totalQuestions = 10,
@@ -47,7 +47,7 @@ export const QuizInterface = ({
       return "border-white/10 bg-slate-800/40 text-slate-400 opacity-60"; 
     }
 
-    if (isSelected) return "border-emerald-400 bg-emerald-400/10 text-emerald-50 shadow-[0_0_15px_rgba(52,211,153,0.2)] scale-[1.02]";
+    if (isSelected) return "border-emerald-400 bg-emerald-400/10 text-white shadow-[0_0_15px_rgba(52,211,153,0.2)] scale-[1.02]";
     return "border-slate-400 border-[0.2px] hover:bg-emerald-500/5 hover:border-emerald-500/30 text-slate-300";
   };
 
@@ -71,22 +71,21 @@ export const QuizInterface = ({
         <div className="flex justify-between items-center mb-10">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <Leaf size={16} className="text-emerald-500 animate-pulse" />
+              <Leaf size={16} className="text-white animate-pulse" />
               <motion.div 
                 animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
                 transition={{ repeat: Infinity, duration: 2 }}
                 className="absolute inset-0 bg-emerald-500 rounded-full blur-md"
               />
             </div>
-            <span className="text-[10px] font-black text-emerald-500 tracking-[0.25em] uppercase bg-emerald-500/10 px-4 py-1.5 rounded-full border border-emerald-500/20">
-              {isRecap ? "MOANA_RECALL_MODE" : `MOANA_SYNC: ${subjectLabel}`}
+            <span className="text-[10px] font-black text-emerald-200 tracking-[0.25em] uppercase bg-emerald-500/10 px-4 py-1.5 rounded-full border border-white/70 shadow-[0_0_20px_rgba(16,185,129,0.2)]">
+              {isRecap ? `Review: ${selectedTopic}` : `KakuAI: ${selectedTopic}`}
             </span>
           </div>
           <div className="flex flex-col items-end">
-            <span className="text-[10px] text-emerald-200/50 font-bold tracking-widest uppercase">
-              NODE {currentIdx + 1} <span className="text-emerald-900 mx-1">/</span> {totalQuestions}
+            <span className="text-[10px] text-white p-1 border rounded-lg border-white/70 font-bold tracking-widest uppercase">
+               {currentIdx + 1} <span className="text-white justify-center align-middle  mx-1">/</span> {totalQuestions}
             </span>
-            <div className="text-[8px] text-emerald-700 font-bold uppercase tracking-tighter">Bio_Link_Active</div>
           </div>
         </div>
 
@@ -112,10 +111,10 @@ export const QuizInterface = ({
               key={i}
               disabled={isRecap}
               onClick={() => onAnswer(i)}
-              className={`w-full p-5 rounded-2xl border text-left text-sm font-medium transition-all duration-300 flex justify-between items-center group ${getOptionStyle(i)}`}
+              className={`w-full p-5 rounded-2xl border  text-left text-sm font-medium transition-all duration-300 flex justify-between items-center group ${getOptionStyle(i)}`}
             >
               <div className="flex items-center gap-4">
-                <span className={`text-[10px] font-bold uppercase tracking-widest w-7 h-7 rounded-lg flex items-center justify-center border transition-all ${userAnswer === i ? 'border-emerald-400 bg-emerald-400 text-slate-950 shadow-[0_0_10px_#10b981]' : 'border-white/10 text-emerald-500/50 group-hover:border-emerald-500/50'}`}>
+                <span className={`text-[20px]  uppercase tracking-widest w-8 h-7 rounded-lg flex items-center justify-center border transition-all ${userAnswer === i ? 'border-emerald-400 bg-emerald-400 text-white shadow-[0_0_10px_#10b981]' : 'border-white/70 text-white group-hover:border-emerald-500/50'}`}>
                   {String.fromCharCode(65 + i)}
                 </span>
                 <span className="leading-tight group-hover:translate-x-1 transition-transform">{opt}</span>
@@ -140,7 +139,7 @@ export const QuizInterface = ({
               className="p-6 bg-emerald-950/20 rounded-2xl border border-emerald-500/20 text-[12px] text-emerald-100/80 mb-8 leading-relaxed shadow-inner overflow-hidden"
             >
               <span className="text-emerald-400 font-black tracking-[0.3em] uppercase text-[9px] block mb-3 flex items-center gap-2">
-                <Dna size={12} className="animate-spin" /> MOANA_ANALYSIS_ENGINE
+                <Dna size={12} className="animate-spin" /> Kaku is Analysing
               </span> 
               {question.explanation || "Biological data pattern confirmed. No genetic anomalies detected in this module."}
             </motion.div>
@@ -152,9 +151,9 @@ export const QuizInterface = ({
           <button 
             disabled={currentIdx === 0} 
             onClick={onPrev} 
-            className="flex items-center gap-2 px-4 py-2 text-emerald-500/50 hover:text-emerald-400 disabled:opacity-0 transition-all text-xs font-bold tracking-[0.2em] uppercase"
+            className="flex items-center gap-2 px-4 py-2 text-white cursor-pointer border p-2 rounded-lg hover:text-emerald-400 disabled:opacity-0 transition-all text-xs font-bold tracking-[0.2em] uppercase"
           >
-            <ChevronLeft size={16} /> Previous_Node
+            <ChevronLeft size={16} /> Previous
           </button>
           
           {currentIdx === totalQuestions - 1 ? (
@@ -162,14 +161,14 @@ export const QuizInterface = ({
               onClick={onFinish} 
               className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-10 py-4 rounded-xl font-black text-[10px] uppercase tracking-[0.3em] shadow-[0_0_30px_rgba(16,185,129,0.3)] hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
             >
-              {isRecap ? "EXIT_REVIEW" : "FINALIZE_SYNC"} <ChevronRight size={14} />
+              {isRecap ? "Exit Review" : "Done"} <ChevronRight size={14} />
             </button>
           ) : (
             <button 
               onClick={onNext} 
-              className="flex items-center gap-2 px-8 py-4 bg-emerald-500/5 hover:bg-emerald-500/10 border border-emerald-500/20 rounded-2xl text-emerald-400 transition-all text-[10px] font-black tracking-[0.3em] uppercase group"
+              className="flex items-center cursor-pointer gap-2 px-8 py-4 bg-emerald-500/5 hover:bg-emerald-500/10 border border-white rounded-2xl text-white transition-all text-[10px] font-black tracking-[0.3em] uppercase group"
             >
-              Next_Node <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
+              Next<ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </button>
           )}
         </div>

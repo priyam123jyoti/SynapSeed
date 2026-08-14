@@ -78,7 +78,7 @@ export const TopicSelection = ({ subjectTitle, topics, onStart, onBack }: TopicS
               className="group flex items-center gap-2 text-slate-400 font-bold hover:text-emerald-400 transition-all text-xs tracking-[0.2em] mb-4"
             >
               <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> 
-              EXIT_TO_MOANA_GATEWAY
+              Back to Gateway
             </button>
             <h1 className="text-3xl md:text-4xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-700 tracking-tighter uppercase">
               {subjectTitle} Core_Database
