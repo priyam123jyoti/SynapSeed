@@ -64,10 +64,10 @@ export default function PaperPaymentInfoPage({
           return;
         }
 
-        // 2. Fetch Paper Payment Details
+        // 2. Fetch base Paper Details (safely avoiding non-existent columns on 'papers')
         const { data: paperData, error: fetchErr } = await supabase
           .from('papers')
-          .select('id, course_title, course_code, college_name, uploader_email, uploader_id, upi_id, phone_number')
+          .select('id, course_title, course_code, college_name, uploader_email, uploader_id')
           .eq('id', paperId)
           .maybeSingle();
 
@@ -77,26 +77,28 @@ export default function PaperPaymentInfoPage({
           return;
         }
 
-        let finalPaperData = { ...paperData };
+        let upi_id: string | undefined;
+        let phone_number: string | undefined;
 
-        // 3. Fallback to uploader_profiles if upi_id or phone_number is missing
-        if ((!finalPaperData.upi_id || !finalPaperData.phone_number) && finalPaperData.uploader_id) {
+        // 3. Fetch payment details from uploader_profiles table
+        if (paperData.uploader_id) {
           const { data: uploaderProfile } = await supabase
             .from('uploader_profiles')
             .select('upi_id, phone_number')
-            .eq('id', finalPaperData.uploader_id)
+            .eq('id', paperData.uploader_id)
             .maybeSingle();
 
           if (uploaderProfile) {
-            finalPaperData = {
-              ...finalPaperData,
-              upi_id: finalPaperData.upi_id || uploaderProfile.upi_id,
-              phone_number: finalPaperData.phone_number || uploaderProfile.phone_number,
-            };
+            upi_id = uploaderProfile.upi_id;
+            phone_number = uploaderProfile.phone_number;
           }
         }
 
-        setPaper(finalPaperData);
+        setPaper({
+          ...paperData,
+          upi_id,
+          phone_number,
+        });
       } catch (err: any) {
         setError(err.message || 'Failed to load payment info.');
       } finally {
