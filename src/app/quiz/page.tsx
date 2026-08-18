@@ -16,14 +16,14 @@ function QuizContent() {
   const searchParams = useSearchParams();
 
   // ---------------------------------------------------------
-  // 1. DYNAMIC SUBJECT LOGIC
+  // 1. DYNAMIC SUBJECT LOGIC & CASE NORMALIZATION
   // ---------------------------------------------------------
 
-  const subjectKey = searchParams.get("subject") || "botany";
+  // Normalize subject parameter to lowercase to match object keys reliably
+  const rawSubject = searchParams.get("subject") || "botany";
+  const subjectKey = rawSubject.toLowerCase();
 
-  // IMPORTANT:
-  // Never default the display name to "Botany Quiz".
-  // Derive it from subjectKey when name is missing.
+  // Derive display name from subjectKey when name parameter is omitted
   const subjectName =
     searchParams.get("name") ||
     `${subjectKey.charAt(0).toUpperCase() + subjectKey.slice(1)} Quiz`;
@@ -33,29 +33,13 @@ function QuizContent() {
     [subjectName]
   );
 
-  // Get topics belonging to the selected subject.
-  // Only fall back to Botany if an invalid subjectKey is supplied.
+  // Retrieve topics matching subjectKey, defaulting to botany if key is missing
   const currentTopics = useMemo(() => {
     return (
-      SUBJECT_TOPICS[
-        subjectKey as keyof typeof SUBJECT_TOPICS
-      ] || SUBJECT_TOPICS.botany
+      SUBJECT_TOPICS[subjectKey as keyof typeof SUBJECT_TOPICS] ||
+      SUBJECT_TOPICS.botany
     );
   }, [subjectKey]);
-
-  // ---------------------------------------------------------
-  // DEBUGGING
-  // ---------------------------------------------------------
-
-  console.log("🔥 QUIZ URL DEBUG:", {
-    fullURL: window.location.href,
-    subjectParam: searchParams.get("subject"),
-    nameParam: searchParams.get("name"),
-    subjectKey,
-    subjectName,
-    subjectTitle,
-    topicCount: currentTopics.length,
-  });
 
   // ---------------------------------------------------------
   // 2. STATE
@@ -71,20 +55,36 @@ function QuizContent() {
   const [isRecapMode, setIsRecapMode] = useState(false);
 
   // ---------------------------------------------------------
-  // 3. AUTH
+  // 3. AUTH & CLIENT GUARD
   // ---------------------------------------------------------
 
   useEffect(() => {
     const fetchUser = async () => {
       const {
         data: { user },
+        error,
       } = await supabase.auth.getUser();
+
+      if (error || !user) {
+        router.replace("/?error=unauthorized");
+        return;
+      }
 
       setUser(user);
     };
 
     fetchUser();
-  }, []);
+  }, [router]);
+
+  // Reset quiz state whenever subject route param updates dynamically
+  useEffect(() => {
+    setSelectedTopic(null);
+    setQuestions([]);
+    setCurrentIdx(0);
+    setUserAnswers([]);
+    setShowResultsModal(false);
+    setIsRecapMode(false);
+  }, [subjectKey]);
 
   const researcherName =
     user?.user_metadata?.full_name?.split(" ")[0] || "Researcher";
@@ -96,13 +96,6 @@ function QuizContent() {
   const startQuiz = async (topic: string) => {
     setLoading(true);
     setSelectedTopic(topic);
-
-    console.log("🚀 QUIZ REQUEST:", {
-      subjectKey,
-      subjectName,
-      subjectTitle,
-      topic,
-    });
 
     try {
       const res = await fetch("/api/quiz", {
@@ -134,11 +127,9 @@ function QuizContent() {
       }
     } catch (err) {
       console.error("❌ QUIZ GENERATION ERROR:", err);
-
       alert(
-        `🚨 NEURAL LINK ERROR: KAKU could not sync ${subjectTitle} data.`
+        `🚨 NEURAL LINK ERROR: Could not sync ${subjectTitle} data.`
       );
-
       setSelectedTopic(null);
       setQuestions([]);
     } finally {
@@ -147,7 +138,7 @@ function QuizContent() {
   };
 
   // ---------------------------------------------------------
-  // 5. SCORE
+  // 5. SCORE CALCULATION
   // ---------------------------------------------------------
 
   const scorePercentage =
@@ -164,7 +155,7 @@ function QuizContent() {
       : 0;
 
   // ---------------------------------------------------------
-  // 6. LOADING
+  // 6. LOADING SCREEN
   // ---------------------------------------------------------
 
   if (loading) {
@@ -197,52 +188,48 @@ function QuizContent() {
   }
 
   // ---------------------------------------------------------
-  // 8. QUIZ INTERFACE
+  // 8. QUIZ INTERFACE & RESULTS
   // ---------------------------------------------------------
 
   return (
     <div className="min-h-screen bg-[#020617] text-white">
       <QuizInterface
-  selectedTopic={selectedTopic}
-  question={questions[currentIdx]}
-  currentIdx={currentIdx}
-  totalQuestions={questions.length}
-  userAnswer={userAnswers[currentIdx]}
-  isRecap={isRecapMode}
-  onAnswer={(i) => {
-    if (isRecapMode) return;
-
-    const updatedAnswers = [...userAnswers];
-    updatedAnswers[currentIdx] = i;
-    setUserAnswers(updatedAnswers);
-  }}
-  onNext={() =>
-    setCurrentIdx((prev) =>
-      Math.min(prev + 1, questions.length - 1)
-    )
-  }
-  onPrev={() =>
-    setCurrentIdx((prev) =>
-      Math.max(prev - 1, 0)
-    )
-  }
-  onFinish={() => setShowResultsModal(true)}
-/>
+        selectedTopic={selectedTopic}
+        question={questions[currentIdx]}
+        currentIdx={currentIdx}
+        totalQuestions={questions.length}
+        userAnswer={userAnswers[currentIdx]}
+        isRecap={isRecapMode}
+        onAnswer={(i) => {
+          if (isRecapMode) return;
+          const updatedAnswers = [...userAnswers];
+          updatedAnswers[currentIdx] = i;
+          setUserAnswers(updatedAnswers);
+        }}
+        onNext={() =>
+          setCurrentIdx((prev) =>
+            Math.min(prev + 1, questions.length - 1)
+          )
+        }
+        onPrev={() =>
+          setCurrentIdx((prev) =>
+            Math.max(prev - 1, 0)
+          )
+        }
+        onFinish={() => setShowResultsModal(true)}
+      />
 
       {showResultsModal && (
         <ResultsModal
           score={scorePercentage}
-
           onReview={() => {
             setIsRecapMode(true);
             setShowResultsModal(false);
             setCurrentIdx(0);
           }}
-
           onTerminate={() => {
             router.push("/moana-gateway");
           }}
-
           onRestart={() => {
             if (selectedTopic) {
               startQuiz(selectedTopic);

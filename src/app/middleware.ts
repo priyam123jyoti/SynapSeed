@@ -37,7 +37,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // 2. Define routes that require authentication
-  const protectedRoutes = ['/moana-ai-unlimited-quiz-generator', '/quiz',];
+  const protectedRoutes = ['/moana-ai-unlimited-quiz-generator', '/quiz'];
   const pathname = request.nextUrl.pathname;
 
   // 3. Check if current URL matches any protected route
