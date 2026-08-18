@@ -158,7 +158,7 @@ Return ONLY JSON.
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
+          model: 'gpt-oss-120b', // Updated from llama-3.3-70b-versatile
 
           temperature: 0.3,
 

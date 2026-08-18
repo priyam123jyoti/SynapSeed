@@ -31,9 +31,26 @@ export async function middleware(request: NextRequest) {
     }
   );
 
-  // CRITICAL: This extracts and refreshes the login session. 
-  // Without this, your API routes will keep saying "Unauthorized".
-  await supabase.auth.getUser();
+  // 1. Extract and refresh session
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // 2. Define routes that require authentication
+  const protectedRoutes = ['/moana-ai-unlimited-quiz-generator', '/', '/z'];
+  const pathname = request.nextUrl.pathname;
+
+  // 3. Check if current URL matches any protected route
+  const isProtectedRoute = protectedRoutes.some((route) =>
+    pathname.startsWith(route)
+  );
+
+  // 4. Block access server-side if not logged in
+  if (isProtectedRoute && !user) {
+    const redirectUrl = new URL('/', request.url);
+    redirectUrl.searchParams.set('error', 'unauthorized');
+    return NextResponse.redirect(redirectUrl);
+  }
 
   return response;
 }

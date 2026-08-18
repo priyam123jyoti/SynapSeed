@@ -42,7 +42,7 @@ export const generateMindMap = async (rawText: string) => {
         { role: "system", content: `${MOANA_IDENTITY} Output ONLY valid JSON.` },
         { role: "user", content: prompt }
       ],
-      model: "llama-3.3-70b-versatile",
+      model: "gpt-oss-120b", // Updated from llama-3.3-70b-versatile
       response_format: { type: "json_object" },
       temperature: 0.3, 
     });
@@ -587,7 +587,7 @@ Output ONLY valid JSON.
           content: prompt,
         },
       ],
-      model: "llama-3.3-70b-versatile",
+      model: "gpt-oss-120b", // Updated from llama-3.3-70b-versatile
       response_format: { type: "json_object" },
       temperature: 0.3,
     });
@@ -605,7 +605,7 @@ Output ONLY valid JSON.
 
     return data.questions;
   } catch (error) {
-    console.error("KAKU_QUIZ_ENGINE_FAILURE:", error);
+    console.error("KAKU QUIZ ENGINE FAILURE:", error);
     return [];
   }
 };
