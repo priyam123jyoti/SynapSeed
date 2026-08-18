@@ -74,7 +74,7 @@ export const TopicSelection = ({ subjectTitle, topics, onStart, onBack }: TopicS
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-12">
           <div>
             <button 
-              onClick={onBack} 
+              onClick={() => window.location.href = '/moana-ai-unlimited-quiz-generator'} 
               className="group flex items-center gap-2 text-slate-400 font-bold hover:text-emerald-400 transition-all text-xs tracking-[0.2em] mb-4"
             >
               <ArrowLeft size={14} className="group-hover:-translate-x-1 transition-transform" /> 
