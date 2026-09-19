@@ -3,6 +3,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft, CheckCircle, XCircle, Leaf, Dna } from 'lucide-react';
+import MathText from './MathText';
 
 interface Question {
   question: string;
@@ -98,9 +99,9 @@ export const QuizInterface = ({
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
           >
-            <h2 className="text-xl md:text-2xl font-bold text-white mb-10 leading-relaxed tracking-tight min-h-[80px]">
-              {question.question}
-            </h2>
+          <h2 className="text-xl md:text-2xl font-bold text-white mb-10 leading-relaxed tracking-tight min-h-[80px]">
+  <MathText text={question.question} />
+</h2>
           </motion.div>
         </AnimatePresence>
 

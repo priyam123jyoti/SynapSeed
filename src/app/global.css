@@ -1,3 +1,4 @@
+@import 'katex/dist/katex.min.css';
 /* 1. The Default state (when mouse is just moving) */
 .custom-canvas-cursor .react-flow__pane {
   cursor: url('https://www.google.com/intl/en_ALL/help/terms_maps/images/closedhand_white_black_border.png'), auto !important;
