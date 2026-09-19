@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft, CheckCircle, XCircle, Leaf, Dna } from 'lucide-react';
-import MathText from './MathText';
+import MathText from '../MathText';
 
 interface Question {
   question: string;
@@ -99,9 +99,9 @@ export const QuizInterface = ({
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3 }}
           >
-          <h2 className="text-xl md:text-2xl font-bold text-white mb-10 leading-relaxed tracking-tight min-h-[80px]">
-  <MathText text={question.question} />
-</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-white mb-10 leading-relaxed tracking-tight min-h-[80px]">
+              <MathText text={question.question} />
+            </h2>
           </motion.div>
         </AnimatePresence>
 
@@ -112,13 +112,13 @@ export const QuizInterface = ({
               key={i}
               disabled={isRecap}
               onClick={() => onAnswer(i)}
-              className={`w-full p-5 rounded-2xl border  text-left text-sm font-medium transition-all duration-300 flex justify-between items-center group ${getOptionStyle(i)}`}
+              className={`w-full p-5 rounded-2xl border text-left text-sm font-medium transition-all duration-300 flex justify-between items-center group ${getOptionStyle(i)}`}
             >
-              <div className="flex items-center gap-4">
-                <span className={`text-[20px]  uppercase tracking-widest w-8 h-7 rounded-lg flex items-center justify-center border transition-all ${userAnswer === i ? 'border-emerald-400 bg-emerald-400 text-white shadow-[0_0_10px_#10b981]' : 'border-white/70 text-white group-hover:border-emerald-500/50'}`}>
+              <div className="flex items-center gap-4 w-full">
+                <span className={`text-[20px] uppercase tracking-widest w-8 h-7 shrink-0 rounded-lg flex items-center justify-center border transition-all ${userAnswer === i ? 'border-emerald-400 bg-emerald-400 text-white shadow-[0_0_10px_#10b981]' : 'border-white/70 text-white group-hover:border-emerald-500/50'}`}>
                   {String.fromCharCode(65 + i)}
                 </span>
-                <span className="leading-tight group-hover:translate-x-1 transition-transform">{opt}</span>
+                <MathText text={opt} className="leading-tight group-hover:translate-x-1 transition-transform" />
               </div>
               
               {isRecap && (
