@@ -42,7 +42,7 @@ export const generateMindMap = async (rawText: string) => {
         { role: "system", content: `${MOANA_IDENTITY} Output ONLY valid JSON.` },
         { role: "user", content: prompt }
       ],
-      model: "llama-3.3-70b-versatile", // FIXED MODEL
+      model: "llama-3.1-8b-instant", // UPDATED: Active Groq Model
       response_format: { type: "json_object" },
       temperature: 0.3, 
     });
@@ -54,10 +54,10 @@ export const generateMindMap = async (rawText: string) => {
       return { maps: [parsed.map] };
     }
     
-    return { maps: [] };
-  } catch (error) {
-    console.error("KAKU ARCHITECT ERROR:", error);
-    return { maps: [] };
+    throw new Error("AI response did not match the expected mind map JSON schema.");
+  } catch (error: any) {
+    console.error("KAKU ARCHITECT ERROR:", error?.message || error);
+    throw new Error(error?.message || "Failed to generate mind map.");
   }
 };
 
@@ -181,7 +181,7 @@ Output ONLY valid JSON.
           content: prompt,
         },
       ],
-      model: "llama-3.3-70b-versatile", // FIXED MODEL
+      model: "llama-3.1-8b-instant", // UPDATED: Active Groq Model
       response_format: { type: "json_object" },
       temperature: 0.3,
     });
@@ -192,14 +192,13 @@ Output ONLY valid JSON.
 
     const data = content ? JSON.parse(content) : {};
 
-    if (!Array.isArray(data.questions)) {
-      console.error("❌ KAKU returned invalid questions format.");
-      return [];
+    if (!Array.isArray(data.questions) || data.questions.length === 0) {
+      throw new Error("KAKU returned invalid or empty questions format.");
     }
 
     return data.questions;
-  } catch (error) {
-    console.error("KAKU QUIZ ENGINE FAILURE:", error);
-    return [];
+  } catch (error: any) {
+    console.error("KAKU QUIZ ENGINE FAILURE:", error?.message || error);
+    throw new Error(error?.message || "Failed to generate quiz questions via Groq.");
   }
 };
