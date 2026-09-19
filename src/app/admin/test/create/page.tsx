@@ -222,85 +222,205 @@ export default function AdminTestCreatePage() {
   };
 
   // --- 2. AI Generation (Multi-Chunk Pipeline) ---
+
+  // Retry transient API/network failures without hiding permanent validation errors.
+  const generateChunkWithRetry = useCallback(async (
+    chunkText: string,
+    chunkTarget: number,
+    maxAttempts: number = 2
+  ) => {
+    let lastError = 'Unknown generation error.';
+
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        const res = await fetch('/api/generate-questions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            context: chunkText,
+            count: chunkTarget
+          })
+        });
+
+        const data = await res.json().catch(() => null);
+
+        if (res.ok) {
+          return { ok: true as const, data };
+        }
+
+        lastError =
+          data?.error ||
+          data?.message ||
+          `HTTP ${res.status} ${res.statusText}`;
+
+        // Retry rate limits and server failures only.
+        const retryable = res.status === 429 || res.status >= 500;
+
+        if (!retryable || attempt === maxAttempts) {
+          return { ok: false as const, error: lastError };
+        }
+      } catch (error) {
+        lastError =
+          error instanceof Error
+            ? error.message
+            : 'Network error while generating questions.';
+
+        if (attempt === maxAttempts) {
+          return { ok: false as const, error: lastError };
+        }
+      }
+
+      await new Promise(resolve => setTimeout(resolve, 700 * attempt));
+    }
+
+    return { ok: false as const, error: lastError };
+  }, []);
+
   const handleAiGeneration = async () => {
     if (!aiContext || aiContext.length > MAX_CONTEXT_LENGTH) {
       setError(`Context structure payload out of limits. Maximum bounds ${MAX_CONTEXT_LENGTH} chars.`);
       return;
     }
-    
+
     setIsGenerating(true);
     setError(null);
     setStats(null);
-    
+
     try {
       // Step 1: Split into chunks
       const chunks = splitTextIntoChunks(aiContext, CHUNK_SIZE);
-      const totalChars = aiContext.length;
+      const totalChars = Math.max(1, aiContext.length);
       setChunkProgress({ current: 1, total: chunks.length });
 
       let allRawQuestions: unknown[] = [];
       let remainingQuestionsTarget = desiredQuestionCount;
+      const failedChunks: string[] = [];
 
-      // Step 2 & 3: Generate questions per chunk sequentially
+      // Step 2 & 3: Generate questions per chunk sequentially.
+      // The final chunk receives the remaining target so the allocation
+      // does not accidentally exceed the requested total.
       for (let i = 0; i < chunks.length; i++) {
         setChunkProgress({ current: i + 1, total: chunks.length });
+
         const chunkText = chunks[i];
-
-        // Calculate proportional question target for this chunk
         const isLastChunk = i === chunks.length - 1;
-        const chunkTarget = isLastChunk 
-          ? remainingQuestionsTarget 
-          : Math.max(1, Math.round(desiredQuestionCount * (chunkText.length / totalChars)));
-        
-        remainingQuestionsTarget = Math.max(0, remainingQuestionsTarget - chunkTarget);
 
-        const res = await fetch('/api/generate-questions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ context: chunkText, count: chunkTarget })
-        });
-        
-        const data = await res.json();
-        if (!res.ok) {
-          throw new Error(`Chunk ${i + 1}/${chunks.length} failed: ${data.error || 'Generation breakdown.'}`);
+        const proportionalTarget = Math.round(
+          desiredQuestionCount * (chunkText.length / totalChars)
+        );
+
+        const chunkTarget = isLastChunk
+          ? Math.max(1, remainingQuestionsTarget)
+          : Math.max(
+              1,
+              Math.min(remainingQuestionsTarget, proportionalTarget)
+            );
+
+        remainingQuestionsTarget = Math.max(
+          0,
+          remainingQuestionsTarget - chunkTarget
+        );
+
+        const result = await generateChunkWithRetry(chunkText, chunkTarget);
+
+        if (!result.ok) {
+          const message = `Chunk ${i + 1}/${chunks.length}: ${result.error}`;
+          failedChunks.push(message);
+          console.error(`[AI Generation] ${message}`);
+          continue;
         }
 
-        if (data.questions && Array.isArray(data.questions)) {
+        const data = result.data;
+
+        if (data?.questions && Array.isArray(data.questions)) {
           allRawQuestions = [...allRawQuestions, ...data.questions];
+        } else {
+          const message =
+            `Chunk ${i + 1}/${chunks.length}: API returned no questions.`;
+          failedChunks.push(message);
+          console.error(`[AI Generation] ${message}`, data);
         }
       }
 
       // Step 4: Validate merged questions
       const validatedQuestions: Question[] = [];
+
       allRawQuestions.forEach((incomingQuestion: unknown) => {
-        if (incomingQuestion && typeof incomingQuestion === 'object') {
-          const candidate = incomingQuestion as Record<string, unknown>;
-          
-          const hasValidType = candidate.type === 'MCQ' || candidate.type === 'MSQ';
-          const hasValidOptions = Array.isArray(candidate.options) && candidate.options.length === 4;
-          const hasValidAnswers = Array.isArray(candidate.correct_answers) && candidate.correct_answers.length > 0;
-          
-          if (hasValidType && hasValidOptions && hasValidAnswers) {
-            validatedQuestions.push({
-              id: typeof candidate.id === 'string' && candidate.id ? candidate.id : crypto.randomUUID(),
-              type: candidate.type as 'MCQ' | 'MSQ',
-              question_text: typeof candidate.question_text === 'string' ? candidate.question_text : '',
-              options: (candidate.options as unknown[]).map(opt => String(opt)),
-              correct_answers: (candidate.correct_answers as unknown[]).map(ans => String(ans)),
-            });
-          }
+        if (!incomingQuestion || typeof incomingQuestion !== 'object') return;
+
+        const candidate = incomingQuestion as Record<string, unknown>;
+
+        const hasValidType =
+          candidate.type === 'MCQ' || candidate.type === 'MSQ';
+
+        const hasValidQuestionText =
+          typeof candidate.question_text === 'string' &&
+          candidate.question_text.trim().length > 0;
+
+        const hasValidOptions =
+          Array.isArray(candidate.options) &&
+          candidate.options.length === 4 &&
+          candidate.options.every(
+            option =>
+              typeof option === 'string' && option.trim().length > 0
+          );
+
+        const hasValidAnswers =
+          Array.isArray(candidate.correct_answers) &&
+          candidate.correct_answers.length > 0 &&
+          candidate.correct_answers.every(answer => typeof answer === 'string');
+
+        if (!hasValidType || !hasValidQuestionText || !hasValidOptions || !hasValidAnswers) {
+          return;
         }
+
+        const options = (candidate.options as unknown[]).map(opt =>
+          String(opt).trim()
+        );
+
+        const correctAnswers = (candidate.correct_answers as unknown[]).map(ans =>
+          String(ans).trim()
+        );
+
+        const allAnswersExist = correctAnswers.every(answer =>
+          options.includes(answer)
+        );
+
+        const correctAnswerCountIsValid =
+          candidate.type === 'MCQ'
+            ? correctAnswers.length === 1
+            : correctAnswers.length >= 1;
+
+        if (!allAnswersExist || !correctAnswerCountIsValid) return;
+
+        validatedQuestions.push({
+          id:
+            typeof candidate.id === 'string' && candidate.id
+              ? candidate.id
+              : crypto.randomUUID(),
+          type: candidate.type as 'MCQ' | 'MSQ',
+          question_text: String(candidate.question_text).trim(),
+          options,
+          correct_answers: correctAnswers,
+        });
       });
 
       // Step 5: Remove duplicates across new chunks AND existing staging
-      const existingTexts = new Set(stagedQuestions.map(q => q.question_text.toLowerCase().trim()));
+      const existingTexts = new Set(
+        stagedQuestions.map(q => q.question_text.toLowerCase().trim())
+      );
       const seenInBatch = new Set<string>();
-      
+
       const uniqueNewQuestions = validatedQuestions.filter(q => {
         const normalizedText = q.question_text.toLowerCase().trim();
-        if (existingTexts.has(normalizedText) || seenInBatch.has(normalizedText)) {
+
+        if (
+          existingTexts.has(normalizedText) ||
+          seenInBatch.has(normalizedText)
+        ) {
           return false;
         }
+
         seenInBatch.add(normalizedText);
         return true;
       });
@@ -308,21 +428,48 @@ export default function AdminTestCreatePage() {
       // Step 6: Return & update state
       if (uniqueNewQuestions.length > 0) {
         setStagedQuestions(prev => [...prev, ...uniqueNewQuestions]);
-      } else if (validatedQuestions.length > 0) {
-        setError('AI generated questions, but they were all duplicates of what is already staged.');
-      } else {
-        setError('AI generation completed, but no questions passed structural validation rules.');
+      }
+
+      if (failedChunks.length > 0 && uniqueNewQuestions.length === 0) {
+        setError(
+          `AI generation failed for ${failedChunks.length} of ${chunks.length} chunks. ` +
+          failedChunks.join(' | ')
+        );
+      } else if (failedChunks.length > 0) {
+        setError(
+          `Generated ${uniqueNewQuestions.length} new questions, but ` +
+          `${failedChunks.length} of ${chunks.length} chunks failed. ` +
+          failedChunks.join(' | ')
+        );
+      } else if (uniqueNewQuestions.length === 0 && validatedQuestions.length > 0) {
+        setError(
+          'AI generated questions, but they were all duplicates of what is already staged.'
+        );
+      } else if (uniqueNewQuestions.length === 0) {
+        setError(
+          'AI generation completed, but no questions passed structural validation rules.'
+        );
       }
 
       setStats({
         requested: desiredQuestionCount,
         generated: uniqueNewQuestions.length,
-        totalInStaging: stagedQuestions.length + uniqueNewQuestions.length,
-        successRate: Math.round((uniqueNewQuestions.length / desiredQuestionCount) * 100)
+        totalInStaging:
+          stagedQuestions.length + uniqueNewQuestions.length,
+        successRate: Math.min(
+          100,
+          Math.round(
+            (uniqueNewQuestions.length / Math.max(1, desiredQuestionCount)) * 100
+          )
+        )
       });
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred during AI generation.');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'An error occurred during AI generation.'
+      );
     } finally {
       setIsGenerating(false);
       setChunkProgress(null);
