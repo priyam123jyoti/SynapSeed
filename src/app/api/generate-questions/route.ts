@@ -13,8 +13,6 @@ export async function POST(req: Request) {
     const body = await req.json();
 
     const context: string = body.context ?? '';
-
-    // New field (optional)
     const desiredQuestionCount: number =
       Number(body.desiredQuestionCount) || 20;
 
@@ -22,35 +20,22 @@ export async function POST(req: Request) {
 
     if (!apiKey) {
       return NextResponse.json(
-        {
-          error: 'Groq API Key is missing.',
-        },
-        {
-          status: 500,
-        }
+        { error: 'Groq API Key is missing.' },
+        { status: 500 }
       );
     }
 
     if (!context.trim()) {
       return NextResponse.json(
-        {
-          error: 'Study material is required.',
-        },
-        {
-          status: 400,
-        }
+        { error: 'Study material is required.' },
+        { status: 400 }
       );
     }
 
     if (context.length > 40000) {
       return NextResponse.json(
-        {
-          error:
-            'Maximum context size is 40,000 characters.',
-        },
-        {
-          status: 400,
-        }
+        { error: 'Maximum context size is 40,000 characters.' },
+        { status: 400 }
       );
     }
 
@@ -79,7 +64,6 @@ Generate ONLY:
 - One or more correct answers
 
 Never generate:
-
 - Fill in the Blank
 - True / False
 - Essay
@@ -93,21 +77,12 @@ QUESTION COUNT
 ========================
 
 The user would LIKE approximately ${safeQuestionCount} questions.
-
 This is NOT mandatory.
-
 Generate as many high-quality questions as reasonably possible from the material.
-
-If the study material is small,
-generate fewer.
-
-If the study material is large,
-generate close to ${safeQuestionCount}.
-
+If the study material is small, generate fewer.
+If the study material is large, generate close to ${safeQuestionCount}.
 Never invent facts that are not present.
-
 Avoid duplicate questions.
-
 Cover as many different topics as possible.
 
 ========================
@@ -115,7 +90,6 @@ QUALITY RULES
 ========================
 
 Questions should:
-
 - cover the entire document
 - avoid repetition
 - vary in difficulty
@@ -158,7 +132,7 @@ Return ONLY JSON.
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'gpt-oss-120b', // Updated from llama-3.3-70b-versatile
+          model: 'llama-3.3-70b-versatile', // FIXED MODEL
 
           temperature: 0.3,
 
@@ -182,7 +156,6 @@ Return ONLY JSON.
 
     if (!response.ok) {
       const error = await response.text();
-
       throw new Error(error);
     }
 
