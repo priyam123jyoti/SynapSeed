@@ -3,7 +3,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronRight, ChevronLeft, CheckCircle, XCircle, Leaf, Dna } from 'lucide-react';
-import MathText from '../MathText';
+import {MathText} from '../MathText';
 
 interface Question {
   question: string;
