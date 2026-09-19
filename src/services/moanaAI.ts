@@ -4,14 +4,13 @@ import Groq from "groq-sdk";
 // GROQ CONFIGURATION
 // ============================================================
 
-// Initialize ONLY on the server.
-// Never expose GROQ_API_KEY through NEXT_PUBLIC_*
+// Server-side only.
+// Make sure GROQ_API_KEY is NOT prefixed with NEXT_PUBLIC_.
 const groq = new Groq({
   apiKey: process.env.GROQ_API_KEY,
 });
 
 // Current Groq production model.
-// Replaces the retired "openai/gpt-oss-20b" model.
 const KAKU_MODEL = "openai/gpt-oss-20b";
 
 // ============================================================
@@ -23,17 +22,14 @@ You are KAKU.
 
 Created by Priyamjyoti Dihingia.
 
-You are an expert academic AI specializing in:
-- Physics
-- Chemistry
-- Botany
-- Zoology
+You are a master of Physics, Chemistry, Botany, and Zoology
+curriculum from Class 11 through BSc Final Semester level.
 
-You generate academically accurate educational content.
+You provide academically accurate, structured educational content.
 `;
 
 // ============================================================
-// MIND MAP GENERATOR
+// GENERATE MIND MAP
 // ============================================================
 
 export const generateMindMap = async (rawText: string) => {
@@ -46,21 +42,25 @@ TEXT:
 "${rawText}"
 
 ============================================================
-MIND MAP RULES
+INSTRUCTIONS
 ============================================================
 
 1. SINGLE ROOT
+
 Everything must branch from ONE central master topic.
 
 DO NOT create multiple separate maps.
 
 2. HIERARCHICAL SYNTHESIS
+
 If the text covers different subjects or areas, create one
 broad central title and use those topics as the primary
 branches.
 
 3. RECURSIVE DEPTH
+
 Map every important:
+
 - concept
 - sub-concept
 - definition
@@ -70,24 +70,27 @@ Map every important:
 - relationship
 - scientific detail
 
-into the hierarchy.
+within the single hierarchy.
 
 4. QUALITY NOTES
-Every node MUST contain a useful academic "description".
 
-Descriptions should function as high-quality study notes.
+Every node MUST have a "description".
 
-5. DO NOT INVENT INFORMATION
-Use the supplied scientific text as the primary source.
+The description should function as a high-quality study note.
+
+5. SOURCE BOUNDARY
+
+Base the mind map primarily on the supplied scientific text.
+
 Do not introduce unrelated concepts.
 
 ============================================================
 OUTPUT FORMAT
 ============================================================
 
-Return ONLY a JSON object.
+Return ONLY a valid JSON object.
 
-The JSON MUST follow this structure:
+Use EXACTLY this structure:
 
 {
   "map": {
@@ -103,16 +106,17 @@ The JSON MUST follow this structure:
   }
 }
 
-Do not include:
+Do not output:
+
 - Markdown
-- code fences
-- explanations outside JSON
-- comments
-- additional top-level properties
+- Code fences
+- Explanations outside JSON
+- Comments
+- Additional top-level properties
 `;
 
   try {
-    console.log("🧠 KAKU MIND MAP REQUEST", {
+    console.log("🧠 KAKU MIND MAP GENERATION:", {
       model: KAKU_MODEL,
       inputLength: rawText.length,
     });
@@ -123,13 +127,15 @@ Do not include:
       messages: [
         {
           role: "system",
-          content: `${KAKU_IDENTITY}
+          content: `
+${KAKU_IDENTITY}
 
 You are generating structured educational data.
 
 Output ONLY valid JSON.
 Do not output Markdown.
-Do not output commentary outside JSON.`,
+Do not output commentary outside JSON.
+          `,
         },
         {
           role: "user",
@@ -137,13 +143,9 @@ Do not output commentary outside JSON.`,
         },
       ],
 
-      // GPT-OSS supports JSON Object Mode.
       response_format: {
         type: "json_object",
       },
-
-      // Prevent reasoning text from being mixed into the JSON response.
-      reasoning_format: "hidden",
 
       temperature: 0.3,
     });
@@ -153,14 +155,14 @@ Do not output commentary outside JSON.`,
     console.log("🤖 KAKU MIND MAP RESPONSE RECEIVED");
 
     if (!content) {
-      throw new Error("Groq returned an empty response.");
+      throw new Error("Groq returned an empty mind map response.");
     }
 
     const parsed = JSON.parse(content);
 
-    if (!parsed?.map) {
+    if (!parsed || !parsed.map) {
       throw new Error(
-        "Groq returned JSON, but the required 'map' object is missing."
+        "KAKU response did not contain the required mind map structure."
       );
     }
 
@@ -168,7 +170,7 @@ Do not output commentary outside JSON.`,
       maps: [parsed.map],
     };
   } catch (error: any) {
-    console.error("❌ KAKU MIND MAP ENGINE FAILURE:", {
+    console.error("❌ KAKU ARCHITECT ERROR:", {
       message: error?.message,
       status: error?.status,
       code: error?.code,
@@ -182,7 +184,7 @@ Do not output commentary outside JSON.`,
 };
 
 // ============================================================
-// KAKU QUIZ GENERATOR
+// GENERATE KAKU QUIZ
 // ============================================================
 
 export const generateMoanaQuiz = async (
@@ -191,6 +193,7 @@ export const generateMoanaQuiz = async (
 ) => {
   const prompt = `
 ROLE:
+
 You are KAKU, an expert academic examination-question generator
 for Physics, Chemistry, Botany, and Zoology.
 
@@ -218,7 +221,8 @@ It is NOT merely a suggestion or general theme.
 ACADEMIC LEVEL — STRICT BOUNDARY
 ============================================================
 
-ALL questions must be appropriate for:
+ALL questions must be appropriate for the following academic
+range:
 
 CLASS 11
 → CLASS 12
@@ -231,18 +235,18 @@ DO NOT generate content above final-semester BSc level.
 
 STRICTLY EXCLUDE:
 
-- Primary-school material
-- Middle-school material
-- Elementary questions below Class 11
+- Primary-school level material
+- Middle-school level material
+- Overly elementary questions below Class 11
 - MSc-level material
 - Postgraduate-level material
 - PhD-level material
 - Research-level specialist concepts
 - Highly specialized research methodologies
-- Graduate-only mathematics
+- Advanced graduate-only mathematics
 - Obscure research literature
 - Highly specialized theories normally introduced after BSc
-- Advanced derivations beyond normal BSc curriculum
+- Unnecessarily advanced derivations beyond undergraduate level
 
 ============================================================
 SUBJECT BOUNDARY — CRITICAL
@@ -254,17 +258,25 @@ ${subject}
 
 NEVER switch to another subject.
 
+For example:
+
+If SUBJECT = Botany,
+do not generate Chemistry, Physics, or Zoology questions.
+
 ============================================================
 TOPIC BOUNDARY — MOST IMPORTANT
 ============================================================
 
-EVERY question MUST directly belong to:
+EVERY question MUST DIRECTLY belong to:
 
 ${topic}
 
+The topic is a HARD CONTENT BOUNDARY.
+
 Do not drift into unrelated chapters.
 
-Do not use another topic merely because it is related.
+Do not generate questions simply because they are generally
+related to the subject.
 
 ============================================================
 QUESTION QUALITY
@@ -272,7 +284,7 @@ QUESTION QUALITY
 
 Generate EXACTLY 10 high-quality MCQs.
 
-Questions should test a mixture of:
+Questions should test appropriate combinations of:
 
 - Conceptual understanding
 - Scientific reasoning
@@ -281,7 +293,11 @@ Questions should test a mixture of:
 - Important facts
 - Mechanisms
 - Processes
-- Classification where relevant
+- Classification
+- Cause and effect
+- Comparison
+
+where applicable to the requested topic.
 
 Avoid unnecessarily trivial questions.
 
@@ -290,14 +306,35 @@ Avoid obscure research-level questions.
 Avoid duplicate questions.
 
 ============================================================
-FINAL OUTPUT
+QUESTION STRUCTURE
 ============================================================
 
-Return ONLY valid JSON.
+Every question MUST have:
+
+1. One question
+2. Exactly four options
+3. One correct option
+4. A scientific explanation
+
+The "correct" value must be the zero-based index
+of the correct option.
+
+Therefore:
+
+0 = Option 0
+1 = Option 1
+2 = Option 2
+3 = Option 3
+
+============================================================
+FINAL OUTPUT REQUIREMENTS
+============================================================
 
 Return EXACTLY 10 questions.
 
-Required structure:
+Return ONLY valid JSON.
+
+The JSON MUST have exactly this structure:
 
 {
   "questions": [
@@ -322,7 +359,8 @@ STRICT JSON RULES
 - Exactly 10 question objects.
 - Exactly 4 options per question.
 - "correct" must be an integer from 0 to 3.
-- "explanation" must explain why the correct option is correct.
+- Every question must have one correct answer.
+- Every explanation must explain the correct answer.
 - No Markdown.
 - No code fences.
 - No text outside JSON.
@@ -330,7 +368,7 @@ STRICT JSON RULES
 `;
 
   try {
-    console.log("🧠 KAKU QUIZ GENERATION REQUEST:", {
+    console.log("🧠 KAKU QUIZ GENERATION:", {
       model: KAKU_MODEL,
       subject,
       topic,
@@ -348,20 +386,26 @@ ${KAKU_IDENTITY}
 
 You are an expert academic examination-question generator.
 
-The SUBJECT and TOPIC supplied by the user are authoritative.
+The SUBJECT and TOPIC provided by the user are authoritative.
 
 The TOPIC is a strict content boundary.
 
-The permitted academic range is:
+The permitted academic range is strictly:
 
-Class 11 → Class 12 → BSc Undergraduate → BSc Final Semester
+Class 11
+→ Class 12
+→ BSc Undergraduate
+→ BSc Final Semester
 
-Never generate:
-- content below Class 11
-- MSc content
-- postgraduate content
-- PhD content
-- research-level specialist content
+Never generate content below Class 11.
+
+Never generate MSc-level content.
+
+Never generate postgraduate-level content.
+
+Never generate PhD-level content.
+
+Never generate research-level specialist content.
 
 Never switch subjects.
 
@@ -378,40 +422,33 @@ Output ONLY valid JSON.
         },
       ],
 
-      // Current Groq production model.
-      model: KAKU_MODEL,
-
-      // JSON Object Mode.
       response_format: {
         type: "json_object",
       },
-
-      // Important for GPT-OSS when using JSON mode.
-      reasoning_format: "hidden",
 
       temperature: 0.3,
     });
 
     const content = response.choices?.[0]?.message?.content;
 
-    console.log("🤖 KAKU QUIZ RESPONSE RECEIVED");
+    console.log("🤖 KAKU RAW QUIZ RESPONSE:", content);
 
     if (!content) {
       throw new Error("Groq returned an empty quiz response.");
     }
 
-    console.log("🤖 KAKU RAW QUIZ RESPONSE:", content);
-
     const data = JSON.parse(content);
 
-    if (!Array.isArray(data?.questions)) {
+    if (!data || !Array.isArray(data.questions)) {
       throw new Error(
-        "Groq returned JSON, but the 'questions' array is missing."
+        "KAKU returned invalid questions format."
       );
     }
 
     if (data.questions.length === 0) {
-      throw new Error("Groq returned an empty questions array.");
+      throw new Error(
+        "KAKU returned an empty questions array."
+      );
     }
 
     return data.questions;
@@ -424,7 +461,8 @@ Output ONLY valid JSON.
     });
 
     throw new Error(
-      error?.message || "Failed to generate quiz questions via Groq."
+      error?.message ||
+        "Failed to generate quiz questions via Groq."
     );
   }
 };
